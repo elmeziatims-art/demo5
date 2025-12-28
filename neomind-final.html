@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neomind Advisory | Conseil EPM & CCH Tagetik pour la Finance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Mulish', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: #010c36;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            transition: background-color 0.3s ease;
+            padding: 20px 40px;
+        }
+
+        .navbar.scrolled {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .navbar-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #010c36;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 35px;
+            align-items: center;
+            list-style: none;
+        }
+
+        .nav-menu a {
+            color: #010c36;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: opacity 0.2s;
+        }
+
+        .nav-menu a:hover {
+            opacity: 0.7;
+        }
+
+        .nav-cta {
+            background: #010c36;
+            color: white !important;
+            padding: 12px 28px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .nav-cta:hover {
+            opacity: 1;
+            background: #1a2847;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 180px 40px 120px;
+            background: linear-gradient(180deg, #ffffff 0%, #f1f1f1 100%);
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #010c36;
+            line-height: 1.2;
+            margin-bottom: 25px;
+            max-width: 1100px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            color: #010c36;
+            opacity: 0.8;
+            max-width: 900px;
+            margin: 0 auto 40px;
+            font-weight: 400;
+        }
+
+        .hero-ctas {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 40px;
+        }
+
+        .btn-primary {
+            background: #010c36;
+            color: white;
+            padding: 18px 40px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: #1a2847;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #010c36;
+            border: 2px solid #010c36;
+            padding: 16px 40px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #010c36;
+            color: white;
+        }
+
+        /* Section */
+        .section {
+            padding: 100px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 70px;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #b8984e;
+            margin-bottom: 15px;
+            position: relative;
+            padding-left: 50px;
+        }
+
+        .eyebrow:before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 2px;
+            background: #b8984e;
+        }
+
+        .section-header h2 {
+            font-size: 2.8rem;
+            font-weight: 400;
+            color: #010c36;
+            line-height: 1.3;
+        }
+
+        .section-header h2 strong {
+            font-weight: 700;
+        }
+
+        /* Offres Grid */
+        .offres-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 60px;
+        }
+
+        .offre-card {
+            background: white;
+            border-radius: 12px;
+            padding: 45px 35px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .offre-card:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #c5dbfc, #010c36);
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+        }
+
+        .offre-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+        }
+
+        .offre-card:hover:before {
+            transform: scaleX(1);
+        }
+
+        .offre-card h3 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #010c36;
+            margin-bottom: 18px;
+            line-height: 1.3;
+        }
+
+        .offre-card p {
+            color: #4a5568;
+            margin-bottom: 25px;
+            line-height: 1.7;
+        }
+
+        .offre-card ul {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 25px;
+        }
+
+        .offre-card ul li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            color: #4a5568;
+            font-size: 0.95rem;
+        }
+
+        .offre-card ul li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #b8984e;
+            font-weight: 700;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 50px;
+            margin: 80px 0;
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: 30px;
+        }
+
+        .stat-number {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #b8984e;
+            margin-bottom: 10px;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            color: #010c36;
+            font-weight: 400;
+        }
+
+        /* Services avec couleurs différentes */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 35px;
+            margin-top: 60px;
+        }
+
+        .service-card {
+            border-radius: 16px;
+            padding: 50px 40px;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .service-card.blue {
+            background: #c5dbfc;
+            color: #010c36;
+        }
+
+        .service-card.beige {
+            background: #e1d5c2;
+            color: #2f211b;
+        }
+
+        .service-card.dark {
+            background: #08091a;
+            color: #fcfcfd;
+        }
+
+        .service-card.light {
+            background: #e7e9f3;
+            color: #010c36;
+        }
+
+        .service-card:hover {
+            transform: scale(1.02);
+        }
+
+        .service-card .eyebrow {
+            color: inherit;
+            opacity: 0.8;
+        }
+
+        .service-card h3 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 15px 0 20px;
+            line-height: 1.3;
+        }
+
+        .service-card p {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            opacity: 0.9;
+        }
+
+        /* Testimonials */
+        .testimonial {
+            background: white;
+            padding: 60px;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .testimonial-quote {
+            font-size: 1.4rem;
+            font-style: italic;
+            color: #010c36;
+            line-height: 1.8;
+            margin-bottom: 30px;
+        }
+
+        .testimonial-author {
+            font-weight: 700;
+            color: #010c36;
+            font-size: 1.1rem;
+        }
+
+        .testimonial-role {
+            color: #4a5568;
+            margin-top: 8px;
+        }
+
+        /* Footer */
+        .footer {
+            background: #010c36;
+            color: white;
+            padding: 80px 40px 40px;
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 60px;
+            margin-bottom: 50px;
+        }
+
+        .footer-column h4 {
+            font-size: 1.2rem;
+            margin-bottom: 25px;
+            font-weight: 700;
+        }
+
+        .footer-column ul {
+            list-style: none;
+        }
+
+        .footer-column ul li {
+            margin-bottom: 12px;
+        }
+
+        .footer-column a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-column a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 40px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* Logos clients */
+        .clients-section {
+            background: linear-gradient(135deg, #f0f0f0 0%, #f3f3f3 100%);
+            padding: 80px 40px;
+        }
+
+        .clients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            align-items: center;
+        }
+
+        .client-logo {
+            text-align: center;
+            font-weight: 600;
+            color: #666;
+            font-size: 1.1rem;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .client-logo:hover {
+            opacity: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .offres-grid,
+            .services-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .offres-grid,
+            .services-grid,
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 30px;
+            }
+
+            .hero {
+                padding: 140px 20px 80px;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero-ctas {
+                flex-direction: column;
+            }
+
+            .nav-menu {
+                display: none;
+            }
+        }
+
+        /* Background alternés */
+        .bg-light {
+            background: linear-gradient(135deg, #f0f0f0 0%, #f3f3f3 100%);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="navbar-container">
+            <div class="logo">
+                <svg width="40" height="20" viewBox="0 0 94 19" fill="none">
+                    <path d="M0.740082 0.0732422H6.61745V5.93255H0.740082V0.0732422Z" fill="#010c36"/>
+                    <path d="M6.63735 6.28369L0.740082 12.1905V18.042H6.58197L6.63735 6.28369Z" fill="#010c36"/>
+                    <path d="M12.8392 0.0888925L7.05264 5.85764H12.4515V18.03H18.7087C18.6903 15.5826 18.6534 9.72186 18.6534 5.85764C18.6534 1.99341 14.6388 -0.13191 12.8392 0.0888925Z" fill="#010c36"/>
+                </svg>
+                <span>Neomind</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#offres">OFFRES</a></li>
+                <li><a href="#services">SERVICES</a></li>
+                <li><a href="#partenaires">PARTENAIRES</a></li>
+                <li><a href="#approche">NOTRE APPROCHE</a></li>
+                <li><a href="#realisations">RÉALISATIONS</a></li>
+                <li><a href="#blog">BLOG</a></li>
+                <li><a href="#contact" class="nav-cta">CONTACT</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <h1><strong>Partenaire privilégié</strong> de la fonction Finance</h1>
+        <p><strong>Neomind Advisory est un cabinet de conseil indépendant spécialisé en transformation Finance, situé à Paris-La Défense.</strong> Grands groupes français, filiales françaises de groupes internationaux et ETI de tous secteurs d'activité font appel à notre expertise reconnue et notre approche immédiatement opérationnelle.</p>
+        <div class="hero-ctas">
+            <a href="#offres" class="btn-primary">Découvrir nos offres</a>
+            <a href="#contact" class="btn-secondary">Parlons de votre projet</a>
+        </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="section">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">2021</div>
+                <div class="stat-label">Année de création</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">20+</div>
+                <div class="stat-label">Consultants</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">30+</div>
+                <div class="stat-label">Clients accompagnés</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">100%</div>
+                <div class="stat-label">Satisfaction client</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Offres -->
+    <section id="offres" class="section">
+        <div class="section-header">
+            <div class="eyebrow">Expertises</div>
+            <h2>Nos <strong>offres métier</strong><br>pour des solutions adaptées à vos enjeux</h2>
+        </div>
+
+        <div class="offres-grid">
+            <div class="offre-card">
+                <h3>Pilotage de la performance financière</h3>
+                <p>Consolidation, budgeting, forecast, profitability, IBP : pilotez avec agilité et fiabilité.</p>
+                <ul>
+                    <li>Consolidation & Clôture financière</li>
+                    <li>Budgeting, Planning & Forecasting</li>
+                    <li>Profitability & Cost Analysis</li>
+                    <li>Integrated Business Planning (IBP)</li>
+                </ul>
+            </div>
+
+            <div class="offre-card">
+                <h3>Fiscalité & Reporting réglementaire</h3>
+                <p>Tax provision, Pillar 2, disclosure : sécurisez votre conformité fiscale et réglementaire.</p>
+                <ul>
+                    <li>Tax Provision & Reporting</li>
+                    <li>Global Minimum Tax (Pillar Two)</li>
+                    <li>Intelligent Disclosure</li>
+                </ul>
+            </div>
+
+            <div class="offre-card">
+                <h3>Normes comptables & Conformité</h3>
+                <p>IFRS, CSRD, Solvency II : anticipez et intégrez les évolutions normatives.</p>
+                <ul>
+                    <li>IFRS 16 & 17</li>
+                    <li>Solvency II / EBA</li>
+                    <li>CSRD & Taxonomie UE</li>
+                </ul>
+            </div>
+
+            <div class="offre-card">
+                <h3>ESG & Sustainability Performance</h3>
+                <p>Pilotez votre performance extra-financière avec méthode et auditabilité.</p>
+                <ul>
+                    <li>ESG Data Management</li>
+                    <li>ESG Scenario & Planning</li>
+                    <li>ESG Disclosure & Reporting</li>
+                </ul>
+            </div>
+
+            <div class="offre-card">
+                <h3>Sales Performance Management</h3>
+                <p>Optimisez pilotage commercial, incentives et prévisions avec une vision unifiée.</p>
+                <ul>
+                    <li>Territories & Quotas Management</li>
+                    <li>Incentive Compensation (ICM)</li>
+                    <li>Sales Forecasting & Analytics</li>
+                    <li>Commercial Agreements</li>
+                </ul>
+            </div>
+
+            <div class="offre-card">
+                <h3>Data Intelligence & Visualization</h3>
+                <p>Valorisez vos données financières pour éclairer la décision.</p>
+                <ul>
+                    <li>Analytic Information Hub</li>
+                    <li>Data Visualization Connectors</li>
+                    <li>ETL & APIs</li>
+                    <li>Storytelling & Analytics</li>
+                    <li>Data Governance</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services -->
+    <section id="services" class="section bg-light">
+        <div class="section-header">
+            <div class="eyebrow">Comment nous vous accompagnons</div>
+            <h2>Nos <strong>services</strong><br>De la stratégie à l'exécution</h2>
+        </div>
+
+        <div class="services-grid">
+            <div class="service-card blue">
+                <div class="eyebrow">Diagnostic</div>
+                <h3>Cadrage & Diagnostic</h3>
+                <p>Comprendre l'existant, identifier les pain points, définir la cible et construire votre feuille de route.</p>
+            </div>
+
+            <div class="service-card beige">
+                <div class="eyebrow">Conseil</div>
+                <h3>AMOA & Design de solution</h3>
+                <p>Expression de besoin, cahier des charges, RFP, vendor selection : nous traduisons vos besoins métier en solutions.</p>
+            </div>
+
+            <div class="service-card dark">
+                <div class="eyebrow">Implémentation</div>
+                <h3>Implémentation & Déploiement</h3>
+                <p>Build, test, deploy : configuration, développement, intégration SI, migration de données, go-live et hypercare.</p>
+            </div>
+
+            <div class="service-card light">
+                <div class="eyebrow">Support</div>
+                <h3>Run / Support / Optimisation</h3>
+                <p>Maintenance évolutive (TMA), montées de version, amélioration continue : nous vous accompagnons dans la durée.</p>
+            </div>
+
+            <div class="service-card beige">
+                <div class="eyebrow">Transformation</div>
+                <h3>Change Management</h3>
+                <p>Analyse d'impact, stratégie de conduite du changement, gestion de la résistance, coaching et accompagnement.</p>
+            </div>
+
+            <div class="service-card blue">
+                <div class="eyebrow">Autonomie</div>
+                <h3>Formation & Transfert de compétences</h3>
+                <p>Plans de formation, sessions présentielles/distancielles, documentation utilisateur, knowledge transfer.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Témoignages -->
+    <section class="section">
+        <div class="section-header">
+            <div class="eyebrow">Témoignages clients</div>
+            <h2>La satisfaction client est notre plus grande ambition</h2>
+        </div>
+
+        <div class="testimonial">
+            <div class="testimonial-quote">
+                « Neomind nous a accompagnés sur un projet structurant de transformation de notre closing financier. Leur expertise CCH Tagetik et leur compréhension de nos enjeux métier ont été décisives. Nous avons réduit de 40% notre temps de closing grâce à leur approche pragmatique et leur capacité à mobiliser les équipes. »
+            </div>
+            <div class="testimonial-author">Directrice Consolidation & Reporting Groupe</div>
+            <div class="testimonial-role">Grand groupe industriel</div>
+        </div>
+    </section>
+
+    <!-- Clients -->
+    <section class="clients-section">
+        <div class="section-header">
+            <div class="eyebrow" style="color: #b8984e;">Expertise reconnue</div>
+            <h2>Ils nous font confiance</h2>
+        </div>
+
+        <div class="clients-grid">
+            <div class="client-logo">VINCI</div>
+            <div class="client-logo">SNCF</div>
+            <div class="client-logo">VEOLIA</div>
+            <div class="client-logo">BNP PARIBAS</div>
+            <div class="client-logo">TOTAL ENERGIES</div>
+            <div class="client-logo">NATIXIS</div>
+            <div class="client-logo">SODEXO</div>
+            <div class="client-logo">ALLIANZ</div>
+        </div>
+    </section>
+
+    <!-- Partenaires -->
+    <section id="partenaires" class="section">
+        <div class="section-header">
+            <div class="eyebrow">Écosystème technologique</div>
+            <h2>Nos <strong>partenaires stratégiques</strong></h2>
+            <p style="max-width: 900px; margin: 20px auto 0; font-size: 1.1rem; color: #4a5568;">
+                Neomind s'appuie sur les leaders du marché EPM et Data pour garantir performance et pérennité à vos solutions. Notre indépendance nous permet de toujours recommander la meilleure option pour votre contexte.
+            </p>
+        </div>
+
+        <div class="offres-grid">
+            <div class="offre-card">
+                <h3 style="color: #b8984e;">Wolters Kluwer (CCH Tagetik)</h3>
+                <p style="font-weight: 600; color: #4a90e2; margin-bottom: 15px;">✓ Certified Partner</p>
+                <p>Solution EPM leader pour la consolidation financière, le budgeting, le forecast et le reporting réglementaire.</p>
+                <ul>
+                    <li>Consolidation financière</li>
+                    <li>Planning & Forecasting</li>
+                    <li>Disclosure Management</li>
+                    <li>ESG & Sustainability</li>
+                    <li>Tax & Regulatory Compliance</li>
+                </ul>
+            </div>
+
+            <div class="offre-card">
+                <h3 style="color: #b8984e;">Akeron</h3>
+                <p>Solutions d'automatisation et data quality pour la Finance, complémentaires aux plateformes EPM.</p>
+                <ul>
+                    <li>Collecte multi-sources</li>
+                    <li>Automatisation rapports</li>
+                    <li>Data quality & réconciliation</li>
+                    <li>Intégration CCH Tagetik</li>
+                </ul>
+            </div>
+
+            <div class="offre-card">
+                <h3 style="color: #b8984e;">Amelkis</h3>
+                <p>Acteur français spécialisé dans les solutions de data management et Business Intelligence pour la Finance.</p>
+                <ul>
+                    <li>Datawarehouse Finance</li>
+                    <li>Reporting décisionnel</li>
+                    <li>Analytics avancés</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 60px; padding: 40px; background: #fff3cd; border-radius: 12px; max-width: 900px; margin-left: auto; margin-right: auto;">
+            <p style="color: #856404; font-weight: 600; font-size: 1.1rem; margin: 0;">
+                ⚠️ Nous ne vendons pas de licences. Nous vous aidons à choisir, implémenter et valoriser les meilleures solutions pour votre contexte.
+            </p>
+        </div>
+    </section>
+
+    <!-- CTA Final -->
+    <section class="section" style="background: linear-gradient(135deg, #010c36 0%, #1a2847 100%); color: white; text-align: center;">
+        <div class="section-header">
+            <h2 style="color: white;">Besoin de nos services ou d'un accompagnement ?</h2>
+            <p style="color: rgba(255,255,255,0.9); font-size: 1.2rem; margin-top: 20px;">
+                Notre équipe répondra à vos questions dans les plus brefs délais.
+            </p>
+        </div>
+        <a href="#contact" class="btn-primary" style="background: white; color: #010c36; margin-top: 20px;">Contactez-nous</a>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-column">
+                <h4>NOS OFFRES</h4>
+                <ul>
+                    <li><a href="#offres">Pilotage performance</a></li>
+                    <li><a href="#offres">Fiscalité & Réglementaire</a></li>
+                    <li><a href="#offres">Normes & Conformité</a></li>
+                    <li><a href="#offres">ESG</a></li>
+                    <li><a href="#offres">SPM</a></li>
+                    <li><a href="#offres">Data Intelligence</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-column">
+                <h4>NOS SERVICES</h4>
+                <ul>
+                    <li><a href="#services">Cadrage & Diagnostic</a></li>
+                    <li><a href="#services">AMOA</a></li>
+                    <li><a href="#services">Implémentation</a></li>
+                    <li><a href="#services">Run & Support</a></li>
+                    <li><a href="#services">Change Management</a></li>
+                    <li><a href="#services">Formation</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-column">
+                <h4>PARTENAIRES</h4>
+                <ul>
+                    <li><a href="#partenaires">Wolters Kluwer</a></li>
+                    <li><a href="#partenaires">Akeron</a></li>
+                    <li><a href="#partenaires">Amelkis</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-column">
+                <h4>ENTREPRISE</h4>
+                <ul>
+                    <li><a href="#approche">Notre approche</a></li>
+                    <li><a href="#realisations">Réalisations</a></li>
+                    <li><a href="#blog">Blog</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>© 2025 Neomind Advisory – Tous droits réservés | Mentions légales | Politique de confidentialité</p>
+            <p style="margin-top: 10px;">Tour Voltaire, 1 Place des Degrés, 92800 Puteaux | contact@neomind-advisory.com</p>
+        </div>
+    </footer>
+
+    <script>
+        // Navbar scroll behavior
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 20) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
