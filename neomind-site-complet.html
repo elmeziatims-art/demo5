@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neomind Advisory - Site Complet</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        /* Navigation */
+        .top-nav {
+            background: #1a2b4a;
+            color: white;
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .top-nav a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .top-nav a:hover { opacity: 0.8; }
+        
+        /* Sections */
+        .page-section {
+            min-height: 100vh;
+            padding: 80px 20px;
+            border-bottom: 3px solid #e5e7eb;
+        }
+        .page-section:nth-child(even) { background: #f9fafb; }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .page-title {
+            font-size: 3rem;
+            color: #1a2b4a;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .page-subtitle {
+            font-size: 1.3rem;
+            color: #6b7280;
+            text-align: center;
+            margin-bottom: 60px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* Cards */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        
+        .card h3 {
+            color: #1a2b4a;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .card p {
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+        
+        .card ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .card ul li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            color: #4b5563;
+        }
+        
+        .card ul li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4a90e2;
+            font-weight: bold;
+        }
+        
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 15px 35px;
+            background: #4a90e2;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background: #357abd;
+            transform: translateY(-2px);
+        }
+        
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 40px;
+            text-align: center;
+            margin: 60px 0;
+        }
+        
+        .stat-number {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #1a2b4a;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            margin-top: 10px;
+        }
+        
+        /* Form */
+        .contact-form {
+            max-width: 600px;
+            margin: 40px auto;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #1a2b4a;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .form-group textarea {
+            min-height: 150px;
+        }
+        
+        /* Footer */
+        .footer {
+            background: #1a2b4a;
+            color: white;
+            padding: 60px 20px 30px;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .page-title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="top-nav">
+        <a href="#home">🏠 Accueil</a>
+        <a href="#offres">💼 Offres</a>
+        <a href="#services">🛠️ Services</a>
+        <a href="#partenaires">🤝 Partenaires</a>
+        <a href="#approche">🎯 Approche</a>
+        <a href="#realisations">📊 Réalisations</a>
+        <a href="#blog">📝 Blog</a>
+        <a href="#carriere">👥 Carrière</a>
+        <a href="#contact">📧 Contact</a>
+    </nav>
+
+    <!-- HOMEPAGE -->
+    <section id="home" class="page-section">
+        <div class="container">
+            <h1 class="page-title">Pilotez votre performance financière<br>avec méthode et ambition</h1>
+            <p class="page-subtitle">
+                Nous accompagnons les Directions Financières des grands groupes et ETI dans leurs transformations EPM, 
+                réglementaires et data : de la stratégie à l'exécution.
+            </p>
+            
+            <div style="text-align: center; margin: 40px 0;">
+                <a href="#offres" class="btn">Découvrir nos offres</a>
+            </div>
+
+            <div class="stats">
+                <div>
+                    <div class="stat-number">2021</div>
+                    <div class="stat-label">Année de création</div>
+                </div>
+                <div>
+                    <div class="stat-number">20+</div>
+                    <div class="stat-label">Consultants</div>
+                </div>
+                <div>
+                    <div class="stat-number">30+</div>
+                    <div class="stat-label">Clients accompagnés</div>
+                </div>
+                <div>
+                    <div class="stat-number">100%</div>
+                    <div class="stat-label">Satisfaction</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- OFFRES -->
+    <section id="offres" class="page-section">
+        <div class="container">
+            <h2 class="page-title">Nos Offres</h2>
+            <p class="page-subtitle">
+                Des expertises métier au service de vos enjeux Finance. Nous intervenons sur l'ensemble 
+                des dimensions de la performance financière.
+            </p>
+
+            <div class="cards-grid">
+                <div class="card">
+                    <h3>📊 Pilotage de la performance financière</h3>
+                    <p>Consolidation, budgeting, forecast, profitability, IBP : pilotez avec agilité et fiabilité.</p>
+                    <ul>
+                        <li>Consolidation & Clôture financière</li>
+                        <li>Budgeting, Planning & Forecasting</li>
+                        <li>Profitability & Cost Analysis</li>
+                        <li>Integrated Business Planning (IBP)</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>💼 Fiscalité & Reporting réglementaire</h3>
+                    <p>Tax provision, Pillar 2, disclosure réglementaire : sécurisez votre conformité fiscale.</p>
+                    <ul>
+                        <li>Tax Provision & Reporting</li>
+                        <li>Global Minimum Tax (Pillar Two)</li>
+                        <li>Intelligent Disclosure</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>📝 Normes comptables & Conformité</h3>
+                    <p>IFRS 16/17, CSRD, Solvency II : anticipez et intégrez les évolutions normatives.</p>
+                    <ul>
+                        <li>IFRS 16 (Leases)</li>
+                        <li>IFRS 17 (Insurance Contracts)</li>
+                        <li>Solvency II / EBA</li>
+                        <li>CSRD & Taxonomie UE</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>🌱 ESG & Sustainability Performance</h3>
+                    <p>Pilotez votre performance extra-financière avec méthode et auditabilité.</p>
+                    <ul>
+                        <li>ESG Data Management</li>
+                        <li>ESG Scenario & Planning</li>
+                        <li>ESG Disclosure & Reporting</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>💰 Sales Performance Management (SPM)</h3>
+                    <p>Optimisez pilotage commercial, incentives et prévisions.</p>
+                    <ul>
+                        <li>Territories & Quotas Management</li>
+                        <li>Incentive Compensation (ICM)</li>
+                        <li>Sales Forecasting & Analytics</li>
+                        <li>Commercial Agreements</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>📈 Data Intelligence & Visualization</h3>
+                    <p>Valorisez vos données financières pour éclairer la décision.</p>
+                    <ul>
+                        <li>Analytic Information Hub (AIH)</li>
+                        <li>Data Visualization Connectors</li>
+                        <li>ETL & APIs</li>
+                        <li>Storytelling & Analytics</li>
+                        <li>Data Governance</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SERVICES -->
+    <section id="services" class="page-section">
+        <div class="container">
+            <h2 class="page-title">Nos Services</h2>
+            <p class="page-subtitle">
+                Neomind vous accompagne tout au long du cycle de vie de vos projets Finance : 
+                du cadrage stratégique au run opérationnel.
+            </p>
+
+            <div class="cards-grid">
+                <div class="card">
+                    <h3>🎯 Cadrage & Diagnostic</h3>
+                    <p>Comprendre l'existant, identifier les pain points, définir la cible.</p>
+                    <ul>
+                        <li>Cartographie des processus</li>
+                        <li>Analyse des systèmes existants</li>
+                        <li>Identification des quick wins</li>
+                        <li>Feuille de route priorisée</li>
+                        <li>Business case et ROI</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>📋 AMOA & Design de solution</h3>
+                    <p>Définir le besoin fonctionnel et technique, choisir la solution.</p>
+                    <ul>
+                        <li>Expression de besoin détaillée</li>
+                        <li>Cahier des charges</li>
+                        <li>Processus et workflows cibles</li>
+                        <li>RFP et vendor selection</li>
+                        <li>Proof of concept (POC)</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>🛠️ Implémentation & Déploiement</h3>
+                    <p>Build, test, deploy : configuration, développement et intégration.</p>
+                    <ul>
+                        <li>Configuration solution EPM</li>
+                        <li>Développement règles métier</li>
+                        <li>Intégration SI existant</li>
+                        <li>Migration de données</li>
+                        <li>Recette et go-live</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>🔧 Run / Support / Optimisation</h3>
+                    <p>Maintenir et faire évoluer la solution en production.</p>
+                    <ul>
+                        <li>Support utilisateurs (L2/L3)</li>
+                        <li>Maintenance évolutive (TMA)</li>
+                        <li>Montées de version</li>
+                        <li>Amélioration continue</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>👥 Change Management</h3>
+                    <p>Accompagner l'adoption par les utilisateurs.</p>
+                    <ul>
+                        <li>Analyse d'impact organisationnel</li>
+                        <li>Stratégie de conduite du changement</li>
+                        <li>Gestion de la résistance</li>
+                        <li>Coaching et accompagnement</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>🎓 Formation</h3>
+                    <p>Rendre les équipes autonomes.</p>
+                    <ul>
+                        <li>Plans de formation par profil</li>
+                        <li>Sessions présentielles/distancielles</li>
+                        <li>Documentation utilisateur</li>
+                        <li>Knowledge transfer</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PARTENAIRES -->
+    <section id="partenaires" class="page-section">
+        <div class="container">
+            <h2 class="page-title">Nos Partenaires</h2>
+            <p class="page-subtitle">
+                Un écosystème technologique éprouvé, une posture de conseil indépendant.
+            </p>
+
+            <div class="cards-grid">
+                <div class="card">
+                    <h3>🏛️ Wolters Kluwer (CCH Tagetik)</h3>
+                    <p style="color: #4a90e2; font-weight: bold;">✓ Certified Partner</p>
+                    <p>Solution EPM leader pour la consolidation financière, le budgeting, le forecast et le reporting réglementaire.</p>
+                    <ul>
+                        <li>Consolidation financière</li>
+                        <li>Planning & Forecasting</li>
+                        <li>Disclosure Management</li>
+                        <li>ESG & Sustainability</li>
+                        <li>Tax & Regulatory Compliance</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>🔧 Akeron</h3>
+                    <p>Solutions d'automatisation et data quality pour la Finance, complémentaires aux plateformes EPM.</p>
+                    <ul>
+                        <li>Collecte multi-sources</li>
+                        <li>Automatisation rapports</li>
+                        <li>Data quality et réconciliation</li>
+                        <li>Intégration CCH Tagetik</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>📊 Amelkis</h3>
+                    <p>Acteur français spécialisé dans les solutions de data management et Business Intelligence pour la Finance.</p>
+                    <ul>
+                        <li>Datawarehouse Finance</li>
+                        <li>Reporting décisionnel</li>
+                        <li>Analytics</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 60px;">
+                <h3 style="color: #1a2b4a; margin-bottom: 30px;">Écosystème technologique maîtrisé</h3>
+                <p style="color: #6b7280; max-width: 800px; margin: 0 auto 40px;">
+                    Power BI • Tableau • Qlik • Python/R • SQL Server • Azure/AWS
+                </p>
+                <p style="background: #fff3cd; padding: 20px; border-radius: 8px; max-width: 800px; margin: 0 auto; color: #856404;">
+                    ⚠️ Nous ne vendons pas de licences. Nous vous aidons à choisir, implémenter et valoriser les meilleures solutions pour votre contexte.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- NOTRE APPROCHE -->
+    <section id="approche" class="page-section">
+        <div class="container">
+            <h2 class="page-title">Notre Approche</h2>
+            <p class="page-subtitle">
+                Finance-first, technology-enabled, value-driven
+            </p>
+
+            <div class="cards-grid">
+                <div class="card">
+                    <h3>🎯 Finance avant tout</h3>
+                    <p>Nous sommes des experts Finance avant d'être des experts techniques. Nous parlons le langage des DAF, RAF, Contrôleurs de Gestion.</p>
+                </div>
+
+                <div class="card">
+                    <h3>🔬 Vision end-to-end</h3>
+                    <p>Un projet EPM ne se limite pas à l'outil. Nous adressons l'ensemble : processus, organisation, data, SI, conduite du changement.</p>
+                </div>
+
+                <div class="card">
+                    <h3>📊 Gouvernance & data quality</h3>
+                    <p>La fiabilité de vos reportings repose sur la qualité et la traçabilité de vos données. Audit trail, réconciliations, contrôles.</p>
+                </div>
+
+                <div class="card">
+                    <h3>🚀 Pragmatisme et valeur</h3>
+                    <p>Nos projets génèrent de la valeur mesurable, rapidement. Quick wins, déploiements itératifs, amélioration continue.</p>
+                </div>
+
+                <div class="card">
+                    <h3>🤝 Transfert de compétences</h3>
+                    <p>Notre objectif est votre autonomie. Formation, documentation, knowledge transfer : nous vous rendons opérationnels.</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 80px; text-align: center;">
+                <h3 style="color: #1a2b4a; margin-bottom: 40px;">Méthodologie projet en 4 phases</h3>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; max-width: 1000px; margin: 0 auto;">
+                    <div>
+                        <div style="width: 60px; height: 60px; background: #4a90e2; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; margin: 0 auto 15px;">1</div>
+                        <h4 style="color: #1a2b4a; margin-bottom: 10px;">CADRAGE & DIAGNOSTIC</h4>
+                        <p style="color: #6b7280; font-size: 0.9rem;">4-8 semaines</p>
+                    </div>
+                    <div>
+                        <div style="width: 60px; height: 60px; background: #10b981; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; margin: 0 auto 15px;">2</div>
+                        <h4 style="color: #1a2b4a; margin-bottom: 10px;">DESIGN & BUILD</h4>
+                        <p style="color: #6b7280; font-size: 0.9rem;">12-24 semaines</p>
+                    </div>
+                    <div>
+                        <div style="width: 60px; height: 60px; background: #f59e0b; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; margin: 0 auto 15px;">3</div>
+                        <h4 style="color: #1a2b4a; margin-bottom: 10px;">DEPLOY & RUN</h4>
+                        <p style="color: #6b7280; font-size: 0.9rem;">4-8 semaines</p>
+                    </div>
+                    <div>
+                        <div style="width: 60px; height: 60px; background: #8b5cf6; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; margin: 0 auto 15px;">4</div>
+                        <h4 style="color: #1a2b4a; margin-bottom: 10px;">OPTIMIZE & EVOLVE</h4>
+                        <p style="color: #6b7280; font-size: 0.9rem;">Continue</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- RÉALISATIONS -->
+    <section id="realisations" class="page-section">
+        <div class="container">
+            <h2 class="page-title">Nos Réalisations</h2>
+            <p class="page-subtitle">
+                Découvrez comment nous accompagnons les Directions Financières dans leurs transformations EPM.
+            </p>
+
+            <div class="cards-grid">
+                <div class="card">
+                    <h3>🏭 Grand groupe industriel</h3>
+                    <p><strong>Transformation du closing financier avec CCH Tagetik</strong></p>
+                    <p style="background: #f0fdf4; padding: 15px; border-radius: 8px; color: #15803d; font-weight: 600;">
+                        ✓ -60% temps de closing (de 20 à 8 jours)
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>💼 ETI Services</h3>
+                    <p><strong>Implémentation d'un processus de budgeting collaboratif</strong></p>
+                    <p style="background: #f0fdf4; padding: 15px; border-radius: 8px; color: #15803d; font-weight: 600;">
+                        ✓ -50% temps budget
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>⚡ Groupe Énergie</h3>
+                    <p><strong>Pillar 2 readiness et implémentation CbCR</strong></p>
+                    <p style="background: #f0fdf4; padding: 15px; border-radius: 8px; color: #15803d; font-weight: 600;">
+                        ✓ 100% conforme Pillar 2
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>🌱 Groupe Retail</h3>
+                    <p><strong>CSRD readiness et reporting extra-financier</strong></p>
+                    <p style="background: #f0fdf4; padding: 15px; border-radius: 8px; color: #15803d; font-weight: 600;">
+                        ✓ Reporting CSRD opérationnel
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>🏦 Banque d'investissement</h3>
+                    <p><strong>Datawarehouse Finance et dashboards Power BI</strong></p>
+                    <p style="background: #f0fdf4; padding: 15px; border-radius: 8px; color: #15803d; font-weight: 600;">
+                        ✓ 200+ utilisateurs autonomes
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>💊 Groupe Pharma</h3>
+                    <p><strong>Pilotage des incentives commerciaux avec CCH Tagetik SPM</strong></p>
+                    <p style="background: #f0fdf4; padding: 15px; border-radius: 8px; color: #15803d; font-weight: 600;">
+                        ✓ 500+ commerciaux pilotés
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BLOG -->
+    <section id="blog" class="page-section">
+        <div class="container">
+            <h2 class="page-title">Insights & Perspectives Finance</h2>
+            <p class="page-subtitle">
+                Nos experts partagent leur vision sur les transformations Finance, EPM et Data.
+            </p>
+
+            <div class="cards-grid">
+                <div class="card">
+                    <span style="background: #4a90e2; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">#CSRD</span>
+                    <h3 style="margin-top: 15px;">CSRD : comment préparer votre reporting extra-financier avant 2026</h3>
+                    <p style="font-size: 0.9rem; color: #6b7280;">23 août 2025 • 8 min de lecture</p>
+                </div>
+
+                <div class="card">
+                    <span style="background: #10b981; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">#EPM</span>
+                    <h3 style="margin-top: 15px;">Un projet EPM, c'est avant tout une transformation</h3>
+                    <p style="font-size: 0.9rem; color: #6b7280;">13 oct 2025 • 6 min de lecture</p>
+                </div>
+
+                <div class="card">
+                    <span style="background: #f59e0b; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">#Pillar2</span>
+                    <h3 style="margin-top: 15px;">Pillar 2 : impacts pour les groupes français</h3>
+                    <p style="font-size: 0.9rem; color: #6b7280;">10 sept 2025 • 7 min de lecture</p>
+                </div>
+
+                <div class="card">
+                    <span style="background: #8b5cf6; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">#Data Quality</span>
+                    <h3 style="margin-top: 15px;">Data quality : le maillon faible de vos reportings Finance</h3>
+                    <p style="font-size: 0.9rem; color: #6b7280;">5 sept 2025 • 5 min de lecture</p>
+                </div>
+
+                <div class="card">
+                    <span style="background: #ec4899; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">#Transformation</span>
+                    <h3 style="margin-top: 15px;">Les 5 erreurs à éviter dans un projet de closing financier</h3>
+                    <p style="font-size: 0.9rem; color: #6b7280;">1er sept 2025 • 6 min de lecture</p>
+                </div>
+
+                <div class="card">
+                    <span style="background: #14b8a6; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">#REX</span>
+                    <h3 style="margin-top: 15px;">REX : déploiement CCH Tagetik dans un groupe de 150 filiales</h3>
+                    <p style="font-size: 0.9rem; color: #6b7280;">25 août 2025 • 9 min de lecture</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CARRIÈRE -->
+    <section id="carriere" class="page-section">
+        <div class="container">
+            <h2 class="page-title">Rejoignez Neomind Advisory</h2>
+            <p class="page-subtitle">
+                Vous êtes consultant Finance, EPM ou Data ? Vous cherchez un environnement stimulant, 
+                à taille humaine, où vous pourrez grandir et avoir de l'impact ? Bienvenue chez Neomind.
+            </p>
+
+            <div class="cards-grid">
+                <div class="card">
+                    <h3>🎯 Excellence & Delivery</h3>
+                    <p>Nous livrons des projets de qualité, dans les délais, avec un impact mesurable pour nos clients.</p>
+                </div>
+
+                <div class="card">
+                    <h3>🤝 Entraide & Collaboration</h3>
+                    <p>Pas de silos, pas de politique. Nous travaillons en équipe, nous nous soutenons, nous partageons nos connaissances.</p>
+                </div>
+
+                <div class="card">
+                    <h3>📈 Apprentissage continu</h3>
+                    <p>Le marché évolue vite. Nous investissons dans la formation, les certifications, la veille.</p>
+                </div>
+
+                <div class="card">
+                    <h3>🚀 Impact & Autonomie</h3>
+                    <p>Vous aurez de vraies responsabilités, dès le début. Vous serez écouté, challengé, valorisé.</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 60px; text-align: center;">
+                <h3 style="color: #1a2b4a; margin-bottom: 30px;">Les profils que nous recrutons</h3>
+                <div class="cards-grid">
+                    <div class="card">
+                        <h3>💼 Consultant Finance / EPM</h3>
+                        <ul>
+                            <li>Expérience Direction Financière</li>
+                            <li>Maîtrise processus Finance</li>
+                            <li>Appétence transformation EPM</li>
+                            <li>Niveau: Junior à Senior</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h3>🛠️ Consultant CCH Tagetik</h3>
+                        <ul>
+                            <li>Expérience CCH Tagetik</li>
+                            <li>Modules: Consolidation, Planning, etc.</li>
+                            <li>Certifications appréciées</li>
+                            <li>Niveau: Confirmé à Senior</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h3>📊 Consultant Data / BI</h3>
+                        <ul>
+                            <li>Expérience data architecture</li>
+                            <li>Maîtrise Power BI, SQL, ETL</li>
+                            <li>Compréhension enjeux Finance</li>
+                            <li>Niveau: Confirmé à Senior</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div style="margin-top: 40px;">
+                    <a href="#contact" class="btn">Postuler</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" class="page-section">
+        <div class="container">
+            <h2 class="page-title">Parlons de votre projet</h2>
+            <p class="page-subtitle">
+                Projet de transformation EPM, mise en conformité réglementaire, optimisation de vos processus Finance : 
+                nos experts sont à votre écoute.
+            </p>
+
+            <form class="contact-form">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label>Prénom *</label>
+                        <input type="text" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nom *</label>
+                        <input type="text" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Entreprise *</label>
+                    <input type="text" required>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Téléphone</label>
+                        <input type="tel">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Objet de la demande *</label>
+                    <select required>
+                        <option value="">Sélectionnez...</option>
+                        <option>Projet EPM / Transformation Finance</option>
+                        <option>Consolidation & Reporting</option>
+                        <option>Budgeting & Forecasting</option>
+                        <option>ESG & CSRD</option>
+                        <option>Fiscalité & Conformité</option>
+                        <option>Data & BI</option>
+                        <option>Autre</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Message *</label>
+                    <textarea required></textarea>
+                </div>
+
+                <div style="margin: 20px 0;">
+                    <label style="display: flex; align-items: center; gap: 10px; font-weight: normal;">
+                        <input type="checkbox" required>
+                        J'accepte la politique de confidentialité *
+                    </label>
+                </div>
+
+                <button type="submit" class="btn" style="width: 100%;">Envoyer ma demande</button>
+            </form>
+
+            <div style="text-align: center; margin-top: 60px; padding: 40px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+                <h3 style="color: #1a2b4a; margin-bottom: 30px;">Nos coordonnées</h3>
+                <p><strong>📍 Adresse:</strong> Tour Voltaire, 1 Place des Degrés, 92800 Puteaux</p>
+                <p><strong>✉️ Email:</strong> contact@neomind-advisory.com</p>
+                <p><strong>📞 Téléphone:</strong> +33 (0)1 XX XX XX XX</p>
+                <p><strong>🔗 LinkedIn:</strong> linkedin.com/company/neomindadvisory</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <p style="font-size: 1.2rem; margin-bottom: 20px;">🔷 NEOMIND Advisory</p>
+        <p style="margin-bottom: 30px;">Partenaire de la performance financière</p>
+        <p style="opacity: 0.8;">© 2025 Neomind Advisory – Tous droits réservés</p>
+        <p style="opacity: 0.6; margin-top: 10px;">Mentions légales | Politique de confidentialité</p>
+    </footer>
+
+</body>
+</html>
