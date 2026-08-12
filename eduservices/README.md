@@ -1,7 +1,7 @@
 # EDUSERVICES GROUP — Modèle de pilotage budgétaire (v2)
 
 Modèle Excel de pilotage budgétaire à maille fine, préparé avant implémentation dans **CCH Tagetik**.
-Générateur : `gen_v2.py` (+ socle de données `gen_v2_data.py`). Livrable : **`EDUSERVICES_Modele_Pilotage_Budget.xlsx`** (16 feuilles).
+Générateur : `gen_v2.py` (+ socle de données `gen_v2_data.py`). Livrable : **`EDUSERVICES_Modele_Pilotage_Budget.xlsx`** (17 feuilles).
 
 ## Maille
 Marque × Campus × Programme × **Année d'études** × Modalité (initial/alternance) — ~58 cellules, 14 campus, **~82 % alternance**.
@@ -22,6 +22,7 @@ Marque × Campus × Programme × **Année d'études** × Modalité (initial/alte
 | 10 | PnL | P&L consolidé N-1 vs Budget + **pont à 4 effets** |
 | 11 | **Simulateur** | Décisions ouvrir/fermer/regrouper (**maille promo**, garde-fou capacité) → **EBITDA AVANT → APRÈS** |
 | 11b | **Mutualisation** | Regroupement inter-sections (**maille campus × cycle**) : sections économisables & économie potentielle |
+| 11c | **Cascade** | Allocation **en cascade** (marque→campus→classe) + effet d'une fermeture : **bénéfique** (contribution < 0) vs **entraînement** (redivision de la structure) |
 | 12 | **Sensibilite** | Impact € sur l'EBITDA **par levier** (sens unique) |
 | 13 | Simulation | KPIs, taux d'alternance/sécurisation, **€ à sécuriser** |
 | 14 | Mapping_Tagetik | Passerelle Tagetik |
@@ -41,7 +42,7 @@ Marque × Campus × Programme × **Année d'études** × Modalité (initial/alte
 - **Frais de structure & marketing groupe = montant FIXE** (siège, IT, marque), alloué par driver — plus un % du CA.
 - **CAC** : global (fixe, en structure) + **variable par programme** (achat de leads, per inscrit).
 - **Sécurisation N-1** et **conversion candidature→inscrit** : **déduites de l'historique** (par programme / par cellule), puis bougées par les curseurs. Les valeurs globales ne sont que des replis.
-- **Coût ETP permanent** ~58 k€ chargé ; **taux de passage** B1→B2 85 %…
+- **Coût ETP permanent** ~58 k€ chargé ; **taux de passage** B1→B2 **93 %** (rétention élevée).
 
 ## Simulateur & conseil de décisions (feuille 11) — logique CFO
 Cascade à deux niveaux : **CA − coûts directs évitables = MARGE DE CONTRIBUTION** (la métrique de décision) puis **− structure allouée = résultat tout compris** (info). Principe : **on décide sur la contribution, jamais sur le résultat tout compris** — car la **structure (loyer, permanents, siège) est non-évitable** : fermer une promo ne l'économise pas, elle **se redilue** sur les autres (indicateur *structure/étudiant avant → après*). Reco : 🔴 Ne pas ouvrir (contribution < 0) · 🟢 Ouvrir +1 (saturé) · 🟡 Surveiller (sous-rempli mais contribution positive → **garder**) · 🟢 Maintenir.

@@ -6,6 +6,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.utils import get_column_letter as GL, column_index_from_string as CI
+from openpyxl.formatting.rule import CellIsRule
 exec(open("/home/user/demo5/eduservices/gen_v2_data.py").read().split('if __name__')[0])
 
 OUT="/home/user/demo5/eduservices/EDUSERVICES_Modele_Pilotage_Budget.xlsx"
@@ -95,6 +96,7 @@ sh=[("01_Objectifs","CADRAGE top-down : CA & EBITDA cibles € → écart vs bud
  ("10_PnL","P&L consolidé N-1 vs Budget + pont à 4 effets"),
  ("11_Simulateur","Décisions ouvrir/fermer/redistribuer (maille PROMO) → EBITDA AVANT → APRÈS"),
  ("11b_Mutualisation","Mutualisation inter-sections (maille CAMPUS) : sections économisables & économie potentielle"),
+ ("11c_Cascade","Allocation EN CASCADE (marque→campus→classe) + effet d'une fermeture (bénéfique vs entraînement)"),
  ("12_Sensibilite","Impact € sur l'EBITDA par levier (sens unique)"),
  ("13_Simulation","KPIs, € à risque, taux d'alternance/sécurisation"),
  ("14_Mapping_Tagetik","Passerelle Tagetik")]
@@ -496,6 +498,71 @@ ws.merge_cells(f"B{r+4}:K{r+6}")
 C(ws,f"B{r+4}","🧪 Indicateur de POTENTIEL (bac à sable), maille campus × cycle. « Sections économisables » = classes récupérables si l'on regroupe les étudiants d'un même cycle dans des classes pleines ; le plancher = ARRONDI.SUP(effectif du cycle / capacité) → la capacité n'est JAMAIS dépassée (même garde-fou que le simulateur, mais sur le cycle). On ne mélange PAS des cycles différents (un B1 et un M2 ne partagent pas de classe). L'économie ne porte que sur la part d'heures réellement mutualisable au sein du cycle (tronc commun) — le reste reste spécifique à chaque année. N'affecte PAS le P&L officiel ; à décliner dans Tagetik à la maille de consolidation.",CIT,align=ALW)
 ws.freeze_panes="E6"
 
+# ============================================================ 11c_Cascade (allocation en cascade : marque→campus→classe + fermeture)
+ws=wb.create_sheet("11c_Cascade"); ws.sheet_view.showGridLines=False
+for c,w in {"A":2,"B":24,"C":12,"D":11,"E":14,"F":13,"G":14,"H":15,"I":13,"J":12,"K":14,"L":15}.items(): ws.column_dimensions[c].width=w
+REDF=PatternFill("solid",fgColor="FFC7CE"); REDFONT=Font(name=F,color="9C0006",bold=True)
+ws.merge_cells("B2:L2"); C(ws,"B2","Allocation de la structure EN CASCADE (marque → campus → classe) & effet d'une fermeture",CTIT,FNAVY,align=AL); ws.row_dimensions[2].height=26
+ws.merge_cells("B3:L3"); C(ws,"B3","Cas d'école (bac à sable, montants illustratifs). La structure NON-ÉVITABLE descend en cascade : au CA par marque, puis au nb d'étudiants par campus, puis au NB DE CLASSES par promo (3 classes → /3). Fermer une promo ne supprime pas la structure : elle se redivise sur les classes restantes.",CIT); ws.row_dimensions[3].height=30
+# --- niveau 1 : siège groupe → marque (au CA) ---
+band(ws,5,"B","L","1) Descente de la structure non-évitable  —  siège groupe → marque (au CA) → campus (au nb d'étudiants)")
+C(ws,"B6","Siège / structure GROUPE à répartir (€) :",CB,align=AR); ws.merge_cells("B6:D6"); C(ws,"E6",900000,CIN,FYEL,fmt=EUR,align=AR,border=True)
+for i,h in enumerate(["Marque","CA (€)","Part CA","Siège alloué marque"]): C(ws,f"{GL(2+i)}8",h,CHDR,FBLUE,align=AC,border=True)
+brA=[("MBway (focus)",8000000),("ISCOM",5000000),("Pigier",3000000)]
+for i,(nm,ca) in enumerate(brA):
+    r=9+i; C(ws,f"B{r}",nm,CREG,align=AL,border=True); C(ws,f"C{r}",ca,CIN,fmt=EUR,align=AR,border=True)
+    C(ws,f"D{r}",f"=IFERROR(C{r}/SUM($C$9:$C$11),0)",CF,fmt=PCT,align=AC,border=True); C(ws,f"E{r}",f"=D{r}*$E$6",CF,fmt=EUR,align=AR,border=True)
+C(ws,"B12","TOTAL",CFB,FTOT,align=AL,border=True); C(ws,"C12","=SUM(C9:C11)",CFB,FTOT,fmt=EUR,align=AR,border=True); C(ws,"D12"," ",fill=FTOT,border=True); C(ws,"E12","=SUM(E9:E11)",CFB,FTOT,fmt=EUR,align=AR,border=True)
+# --- niveau 2 : marque focus (MBway) → campus (au nb d'étudiants) ---
+for i,h in enumerate(["Campus MBway","Effectif","Part effectif","Siège campus","Fixe campus (loyer+perm)","Envelope campus"]): C(ws,f"{GL(2+i)}14",h,CHDR,FBLUE,align=AC,border=True)
+cpB=[("Lyon (focus)",260,205000),("Paris",310,300000),("Nantes",240,240000)]
+for i,(nm,eff,fixe) in enumerate(cpB):
+    r=15+i; C(ws,f"B{r}",nm,CREG,align=AL,border=True); C(ws,f"C{r}",eff,CIN,fmt=NB,align=AC,border=True)
+    C(ws,f"D{r}",f"=IFERROR(C{r}/SUM($C$15:$C$17),0)",CF,fmt=PCT,align=AC,border=True)
+    C(ws,f"E{r}",f"=D{r}*$E$9",CF,fmt=EUR,align=AR,border=True)          # siège marque MBway = E9
+    C(ws,f"F{r}",fixe,CIN,fmt=EUR,align=AR,border=True); C(ws,f"G{r}",f"=E{r}+F{r}",CFB,fmt=EUR,align=AR,border=True)
+C(ws,"B18","TOTAL",CFB,FTOT,align=AL,border=True); C(ws,"C18","=SUM(C15:C17)",CFB,FTOT,fmt=NB,align=AC,border=True); C(ws,"D18"," ",fill=FTOT,border=True)
+for col in ["E","F","G"]: C(ws,f"{col}18",f"=SUM({col}15:{col}17)",CFB,FTOT,fmt=EUR,align=AR,border=True)
+ENV="$G$15"  # envelope du campus focus (MBway Lyon) — NON-ÉVITABLE
+# --- niveau 3 : campus focus → promos (au nb de classes) + décision ---
+band(ws,20,"B","L","2) Répartition campus → promos AU NOMBRE DE CLASSES  —  Campus focus : MBway Lyon  (décide sur la CONTRIBUTION ; la structure se redivise)")
+hh=["Promo (MBway Lyon)","Effectif","Classes","Contribution\n(évitable)","Struct/classe\n(avant)","Struct allouée\n(avant)","Résultat t.c.\n(avant)","Décision","Classes\naprès","Struct allouée\n(après)","Résultat t.c.\n(après)"]
+for i,h in enumerate(hh): C(ws,f"{GL(2+i)}21",h,CHDR,FBLUE,align=AC,border=True)
+ws.row_dimensions[21].height=30
+dv_c=DataValidation(type="list",formula1='"Maintenir,Fermer"',allow_blank=False); ws.add_data_validation(dv_c)
+promos=[("Bachelor 1",66,2,150000,"Maintenir"),("Bachelor 2",56,2,120000,"Maintenir"),
+        ("Bachelor 3",50,2,105000,"Maintenir"),("Mastère 2 (sous-rempli)",8,1,-15000,"Fermer")]
+P0=22
+for i,(nm,eff,cl,ctb,dec) in enumerate(promos):
+    r=P0+i
+    C(ws,f"B{r}",nm,CREG,align=AL,border=True); C(ws,f"C{r}",eff,CIN,fmt=NB,align=AC,border=True); C(ws,f"D{r}",cl,CIN,fmt=NB,align=AC,border=True)
+    C(ws,f"E{r}",ctb,CIN,fmt=EUR,align=AR,border=True)
+    C(ws,f"F{r}",f"=IFERROR({ENV}/SUM($D$22:$D$25),0)",CF,fmt=EUR,align=AR,border=True)   # struct/classe avant = envelope / total classes
+    C(ws,f"G{r}",f"=D{r}*F{r}",CF,fmt=EUR,align=AR,border=True)                            # struct allouée avant
+    C(ws,f"H{r}",f"=E{r}-G{r}",CFB,fmt=EUR,align=AR,border=True)                           # résultat tout compris avant
+    C(ws,f"I{r}",dec,CINB,FYEL,align=AC,border=True); dv_c.add(ws[f"I{r}"])
+    C(ws,f"J{r}",f'=IF(I{r}="Fermer",0,D{r})',CF,fmt=NB,align=AC,border=True)              # classes après
+    C(ws,f"K{r}",f'=IF(I{r}="Fermer",0,J{r}*IFERROR({ENV}/SUM($J$22:$J$25),0))',CF,fmt=EUR,align=AR,border=True)  # struct allouée après (redivision sur classes restantes)
+    C(ws,f"L{r}",f'=IF(I{r}="Fermer",0,E{r}-K{r})',CFB,fmt=EUR,align=AR,border=True)       # résultat tout compris après
+r=P0+4
+C(ws,f"B{r}","TOTAL",CFB,FTOT,align=AL,border=True)
+for col in ["C","D"]: C(ws,f"{col}{r}",f"=SUM({col}22:{col}25)",CFB,FTOT,fmt=NB,align=AC,border=True)
+for col in ["G","H"]: C(ws,f"{col}{r}",f"=SUM({col}22:{col}25)",CFB,FTOT,fmt=EUR,align=AR,border=True)
+C(ws,f"E{r}",f"=SUM(E22:E25)",CFB,FTOT,fmt=EUR,align=AR,border=True); C(ws,f"F{r}"," ",fill=FTOT,border=True)
+C(ws,f"I{r}"," ",fill=FTOT,border=True); C(ws,f"J{r}","=SUM(J22:J25)",CFB,FTOT,fmt=NB,align=AC,border=True)
+for col in ["K","L"]: C(ws,f"{col}{r}",f"=SUM({col}22:{col}25)",CFB,FTOT,fmt=EUR,align=AR,border=True)
+# rouge auto si résultat tout compris < 0 (avant ET après) → montre l'entraînement
+ws.conditional_formatting.add("H22:H25",CellIsRule(operator="lessThan",formula=["0"],fill=REDF,font=REDFONT))
+ws.conditional_formatting.add("L22:L25",CellIsRule(operator="lessThan",formula=["0"],fill=REDF,font=REDFONT))
+# KPI EBITDA campus avant/après
+kr=r+2
+C(ws,f"B{kr}","EBITDA campus AVANT :",CB,align=AR); ws.merge_cells(f"B{kr}:D{kr}"); C(ws,f"E{kr}",f"=SUM(E22:E25)-{ENV}",CFB,fmt=EUR,align=AR,border=True)
+C(ws,f"G{kr}","EBITDA campus APRÈS :",CB,align=AR); ws.merge_cells(f"G{kr}:H{kr}"); C(ws,f"I{kr}",f'=SUMIFS(E22:E25,I22:I25,"<>Fermer")-{ENV}',CFB,FTOT,fmt=EUR,align=AR,border=True); ws.merge_cells(f"I{kr}:J{kr}")
+C(ws,f"K{kr}","Δ EBITDA :",CB,align=AR); C(ws,f"L{kr}",f"=I{kr}-E{kr}",CFB,FRISK,fmt=EUR,align=AR,border=True)
+ws.merge_cells(f"B{kr+2}:L{kr+5}")
+C(ws,f"B{kr+2}","🧪 LECTURE (deux enseignements). ① On DÉCIDE sur la CONTRIBUTION (évitable) : fermer la promo à contribution NÉGATIVE (Mastère 2) fait MONTER l'EBITDA campus (Δ = +15 000 € = la perte évitée). ② MAIS la structure est NON-ÉVITABLE : en fermant, ses classes quittent le dénominateur → la structure se redivise sur les classes restantes (÷ nb de classes) → le « résultat tout compris » d'une promo marginale (Bachelor 3) bascule EN ROUGE, alors même que l'EBITDA groupe s'est amélioré. Le drag est un effet d'ALLOCATION (comptable), pas une vraie perte : la structure était déjà là. À l'inverse, fermer une promo à contribution POSITIVE (essaie Bachelor 1) fait CHUTER l'EBITDA et enfonce toutes les voisines. N'affecte pas le P&L officiel.",CIT,align=ALW)
+ws.freeze_panes="B22"
+
 # ============================================================ 12_Sensibilite
 ws=wb.create_sheet("12_Sensibilite"); ws.sheet_view.showGridLines=False
 for c,w in {"A":2,"B":40,"C":16,"D":44}.items(): ws.column_dimensions[c].width=w
@@ -667,7 +734,7 @@ GLOSS={
 }
 GLOSS={norm(k):v for k,v in GLOSS.items()}
 HEADER_ROW={"01_Objectifs":5,"03_Coeff_Strateg":5,"04_Referentiel":5,"05_Param_Prog_Annee":3,"06_Historique":3,
- "07_Structure":3,"08_Moteur":2,"09_Allocation":5,"10_PnL":5,"11_Simulateur":5,"11b_Mutualisation":5,"12_Sensibilite":5,"13_Simulation":5,"14_Mapping_Tagetik":5}
+ "07_Structure":3,"08_Moteur":2,"09_Allocation":5,"10_PnL":5,"11_Simulateur":5,"11b_Mutualisation":5,"11c_Cascade":21,"12_Sensibilite":5,"13_Simulation":5,"14_Mapping_Tagetik":5}
 def add_note(cell,text):
     cm=Comment(text,"Guide"); cm.width=300; cm.height=120; cell.comment=cm
 for shname,hr in HEADER_ROW.items():
