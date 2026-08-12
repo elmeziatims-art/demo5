@@ -136,9 +136,9 @@ consts=[("Coût chargé / ETP permanent","€",ETPC,EUR,"réel (SIRH)"),
  ("Frais de structure & marketing groupe (€ FIXE)","€",STRUCT_FIXE,EUR,"réel (siège, IT, marque)"),
  ("Recouvrement reste à charge (employeur)","%",RECOUV,PCT,"hypothèse (100% légal)"),
  ("Autres charges d'exploitation / étudiant","€",AUTRES_ETU,EUR,"réel (achats, sous-traitance, IT)"),
- ("Sécurisation N-1 — REPLI","%",SECU_N1,PCT,"repli (sinon mesuré par programme)"),
- ("Élasticité marketing — REPLI","x",ELAST_DEF,X2,"repli (sinon mesurée N-2/N-1)"),
- ("Conversion candidature→inscrit — REPLI","%",CONV_N1,PCT,"repli (sinon mesurée par cellule)")]
+ ("Sécurisation N-1 — défaut (si hist. manquant)","%",SECU_N1,PCT,"défaut (sinon mesuré par programme)"),
+ ("Élasticité marketing — défaut (si hist. manquant)","x",ELAST_DEF,X2,"défaut (sinon mesurée N-2/N-1)"),
+ ("Conversion cand.→inscrit — défaut (si hist. manquant)","%",CONV_N1,PCT,"défaut (sinon mesurée par cellule)")]
 r=15
 for lib,u,val,fmt,note in consts:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True); C(ws,f"C{r}",u,CREG,align=AC,border=True)
@@ -402,7 +402,7 @@ C(ws,"B12","Cibles en JAUNE (saisie direction). Le budget construit vient du mot
 
 # ============================================================ 11_Simulateur (logique CFO : décision sur la CONTRIBUTION)
 ws=wb.create_sheet("11_Simulateur"); ws.sheet_view.showGridLines=False
-sc=["Marque","Ville","Programme","Année","Effectif","CA","Coûts directs\névitables","MARGE DE\nCONTRIBUTION","Structure\nallouée","Résultat\ntout compris","Rempl.","🤖 Reco","Motif","Décision","Contribution\naprès","Δ EBITDA"]
+sc=["Marque","Ville","Programme","Année","Effectif","CA","Coûts directs\névitables","MARGE DE\nCONTRIBUTION","Structure allouée\n(après, dilution)","Résultat tout\ncompris (après)","Rempl.","🤖 Reco","Motif","Décision","Contribution\naprès","Δ EBITDA"]
 for i,w in enumerate([13,9,15,6,8,11,12,13,11,12,7,17,42,17,12,11]): ws.column_dimensions[GL(1+i)].width=w
 ws.merge_cells("A1:P1"); C(ws,"A1","Simulateur & conseil de décisions — logique CFO : on décide sur la MARGE DE CONTRIBUTION (col. H)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
 DR0=6; last=DR0+N-1
@@ -427,8 +427,8 @@ for idx in range(N):
     C(ws,f"E{r}",f"={MO('AD')+str(mr)}",CL,fmt=NB,align=AC,border=True); C(ws,f"F{r}",f"={MO('AH')+str(mr)}",CL,fmt=EUR,align=AR,border=True)
     C(ws,f"G{r}",f"=F{r}-{am}",CF,fmt=EUR,align=AR,border=True)                       # coûts directs évitables
     C(ws,f"H{r}",f"={am}",CFB,FLIGHT,fmt=EUR,align=AR,border=True)                     # CONTRIBUTION (métrique de décision)
-    C(ws,f"I{r}",f"=E{r}*{STRUCT_ETU}",CF,fmt=EUR,align=AR,border=True)                # structure allouée (info)
-    C(ws,f"J{r}",f"=H{r}-I{r}",CF,fmt=EUR,align=AR,border=True)                        # résultat tout compris (info)
+    C(ws,f"I{r}",f'=IF(N{r}="Ne pas ouvrir",0,E{r})*IFERROR({STRUCT_TOT}/{EFF_AP},0)',CF,fmt=EUR,align=AR,border=True)  # structure allouée APRÈS décisions (dilution)
+    C(ws,f"J{r}",f"=O{r}-I{r}",CF,fmt=EUR,align=AR,border=True)                        # résultat tout compris APRÈS (contribution après − structure diluée)
     C(ws,f"K{r}",f"={an}",CL,fmt=PCT,align=AC,border=True)
     C(ws,f"L{r}",f'=IF(H{r}<0,"🔴 Ne pas ouvrir",IF(K{r}>=0.95,"🟢 Ouvrir +1 classe",IF(K{r}<0.55,"🟡 Surveiller","🟢 Maintenir")))',CF,align=AL,border=True)
     C(ws,f"M{r}",f'=IF(H{r}<0,"Contribution négative : la fermer améliore l\'EBITDA",IF(K{r}>=0.95,"Quasi saturé : +1 classe capte la demande",IF(K{r}<0.55,"Sous-rempli MAIS contribution positive → GARDER (fermer perdrait la marge, la structure resterait)","Sain")))',CIT,align=ALW,border=True)
