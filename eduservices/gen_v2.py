@@ -85,7 +85,7 @@ ws.merge_cells("B3:D3"); C(ws,"B3","Cohortes · marketing mesuré sur l'historiq
 band(ws,5,"B","D","Les feuilles")
 sh=[("01_Objectifs","CADRAGE top-down : CA & EBITDA cibles € → écart vs budget construit"),
  ("02_Leviers","Hypothèses de pilotage + scénario + constantes de référence"),
- ("03_Coeff_Strateg","Coefficients stratégiques par marque (marketing / prix)"),
+ ("03_Coeff_Strateg","Coefficients stratégiques par marque × campus (marketing / prix)"),
  ("04_Referentiel","Dimensions : entités, comptes (fixe/variable)"),
  ("05_Param_Prog_Annee","DONNÉES DE RÉFÉRENCE par programme×année (capacité, heures, taux, pédago, CAC variable, passage)"),
  ("06_Historique","Réalisé N-1 par cellule (funnel, cohorte) + historique marketing N-2/N-1 → élasticité mesurée"),
@@ -93,7 +93,8 @@ sh=[("01_Objectifs","CADRAGE top-down : CA & EBITDA cibles € → écart vs bud
  ("08_Moteur","Moteur budget par cellule (cohortes, marketing→volume, seuil=point mort)"),
  ("09_Allocation","Frais de structure alloués par driver"),
  ("10_PnL","P&L consolidé N-1 vs Budget + pont à 4 effets"),
- ("11_Simulateur","Décisions ouvrir/fermer/redistribuer → EBITDA AVANT → APRÈS"),
+ ("11_Simulateur","Décisions ouvrir/fermer/redistribuer (maille PROMO) → EBITDA AVANT → APRÈS"),
+ ("11b_Mutualisation","Mutualisation inter-sections (maille CAMPUS) : sections économisables & économie potentielle"),
  ("12_Sensibilite","Impact € sur l'EBITDA par levier (sens unique)"),
  ("13_Simulation","KPIs, € à risque, taux d'alternance/sécurisation"),
  ("14_Mapping_Tagetik","Passerelle Tagetik")]
@@ -152,17 +153,20 @@ DRIVER="'02_Leviers'!$D$24"
 
 # ============================================================ 03_Coeff_Strateg
 ws=wb.create_sheet("03_Coeff_Strateg"); ws.sheet_view.showGridLines=False
-for c,w in {"A":2,"B":26,"C":18,"D":16,"E":14}.items(): ws.column_dimensions[c].width=w
-ws.merge_cells("B2:E2"); C(ws,"B2","Coefficients stratégiques par marque",CTIT,FNAVY,align=AL); ws.row_dimensions[2].height=28
-ws.merge_cells("B3:E3"); C(ws,"B3","On pousse + ou – selon la marque : effort appliqué = levier × coefficient.",CIT)
-for i,h in enumerate(["Marque","Intensité MARKETING","Intensité PRIX","Posture"]): C(ws,f"{GL(2+i)}5",h,CHDR,FBLUE,align=AC,border=True)
+for c,w in {"A":2,"B":22,"C":12,"D":18,"E":14,"F":12,"G":2,"H":16}.items(): ws.column_dimensions[c].width=w
+ws.merge_cells("B2:F2"); C(ws,"B2","Coefficients stratégiques par marque × campus",CTIT,FNAVY,align=AL); ws.row_dimensions[2].height=28
+ws.merge_cells("B3:F3"); C(ws,"B3","On pousse + ou – selon la marque ET le campus : effort appliqué = levier × coefficient. Par défaut = valeur de la marque ; ajuste une ligne pour cibler un campus.",CIT); ws.row_dimensions[3].height=26
+for i,h in enumerate(["Marque","Ville","Intensité MARKETING","Intensité PRIX","Posture"]): C(ws,f"{GL(2+i)}5",h,CHDR,FBLUE,align=AC,border=True)
+C(ws,"H5","Clé (marque|campus)",CHDR,FBLUE,align=AC,border=True)
 CO0=6; r=CO0
 for marque,(dom,cv,cp,base,villes) in BRANDS.items():
-    C(ws,f"B{r}",marque,CREG,align=AL,border=True)
-    C(ws,f"C{r}",cv,CIN,fmt=X2,align=AC,border=True); C(ws,f"D{r}",cp,CIN,fmt=X2,align=AC,border=True)
-    C(ws,f"E{r}",f'=IF(C{r}>=1.15,"Pousser",IF(C{r}<=0.85,"Défendre","Maintenir"))',CF,align=AC,border=True); r+=1
+    for ville in villes:
+        C(ws,f"B{r}",marque,CREG,align=AL,border=True); C(ws,f"C{r}",ville,CREG,align=AC,border=True)
+        C(ws,f"D{r}",cv,CIN,fmt=X2,align=AC,border=True); C(ws,f"E{r}",cp,CIN,fmt=X2,align=AC,border=True)
+        C(ws,f"F{r}",f'=IF(D{r}>=1.15,"Pousser",IF(D{r}<=0.85,"Défendre","Maintenir"))',CF,align=AC,border=True)
+        C(ws,f"H{r}",f'=B{r}&"|"&C{r}',CF,align=AC,border=True); r+=1
 CON=r-1
-CVRANGE=f"'03_Coeff_Strateg'!$C${CO0}:$C${CON}"; CPRANGE=f"'03_Coeff_Strateg'!$D${CO0}:$D${CON}"; CMRANGE=f"'03_Coeff_Strateg'!$B${CO0}:$B${CON}"
+CVRANGE=f"'03_Coeff_Strateg'!$D${CO0}:$D${CON}"; CPRANGE=f"'03_Coeff_Strateg'!$E${CO0}:$E${CON}"; CMRANGE=f"'03_Coeff_Strateg'!$H${CO0}:$H${CON}"
 
 # ============================================================ 04_Referentiel
 ws=wb.create_sheet("04_Referentiel"); ws.sheet_view.showGridLines=False
@@ -286,8 +290,8 @@ for idx in range(N):
     C(ws,f"S{r}",f"=INDEX({PA('I')},MATCH(N{r},{PAKEY},0))",CF,fmt=EUR,align=AC,border=True)
     C(ws,f"T{r}",f"=IFERROR(INDEX({PA('J')},MATCH(N{r},{PAKEY},0)),0)",CF,fmt=PCT,align=AC,border=True)
     C(ws,f"U{r}",f"=P{r}*Q{r}*(1+{PSAL})",CF,fmt=EUR,align=AC,border=True)
-    C(ws,f"V{r}",f"=INDEX({CVRANGE},MATCH(A{r},{CMRANGE},0))",CF,fmt=X2,align=AC,border=True)
-    C(ws,f"W{r}",f"=INDEX({CPRANGE},MATCH(A{r},{CMRANGE},0))",CF,fmt=X2,align=AC,border=True)
+    C(ws,f"V{r}",f'=INDEX({CVRANGE},MATCH(A{r}&"|"&B{r},{CMRANGE},0))',CF,fmt=X2,align=AC,border=True)
+    C(ws,f"W{r}",f'=INDEX({CPRANGE},MATCH(A{r}&"|"&B{r},{CMRANGE},0))',CF,fmt=X2,align=AC,border=True)
     C(ws,f"X{r}",f"=IFERROR(INDEX({MEELA},MATCH(C{r},{MEKEY},0)),{KELAST})",CF,fmt=X2,align=AC,border=True)
     C(ws,f"Y{r}",f"={PMKT}*V{r}",CF,fmt=PCT,align=AC,border=True)
     C(ws,f"Z{r}",f"=IF(F{r}=1,J{r}*(1+X{r}*Y{r}),0)",CF,fmt=NB,align=AC,border=True)
@@ -416,7 +420,7 @@ C(ws,"A3","Structure / étudiant — AVANT :",CB,align=AR); ws.merge_cells("A3:C
 C(ws,"E3","APRÈS :",CB,align=AR); ws.merge_cells("E3:F3"); C(ws,"G3",f"=IFERROR({STRUCT_TOT}/{EFF_AP},0)",CFB,FRISK,fmt=EUR,align=AR,border=True); ws.merge_cells("G3:H3")
 C(ws,"I3","Effectif total APRÈS :",CB,align=AR); ws.merge_cells("I3:J3"); C(ws,"K3",f"={EFF_AP}",CFB,fmt=NB,align=AC,border=True)
 C(ws,"M3","⚠ Fermer retire des étudiants → structure/étudiant ↑ (tous absorbent +). Ouvrir en capte → structure/étudiant ↓ (tous s'enrichissent). La structure totale ne bouge pas ; l'EBITDA groupe ne varie que des contributions.",CIT,align=ALW); ws.merge_cells("M3:Q3"); ws.row_dimensions[3].height=30
-C(ws,"A4","🧪 BAC À SABLE : ces décisions montrent un impact SIMULÉ (encadré ci-dessus) — elles n'affectent PAS le budget officiel (feuilles 09_Allocation / 10_PnL / 13_Simulation), qui se pilote via les LEVIERS (feuille 02_Leviers).",CITB if False else Font(name=F,italic=True,bold=True,color="C00000"),align=AL); ws.merge_cells("A4:Q4"); ws.row_dimensions[4].height=16
+C(ws,"A4","🧪 BAC À SABLE : décisions à la maille d'UNE promo — impact SIMULÉ (encadré ci-dessus), sans effet sur le budget officiel (09/10/13), qui se pilote via les LEVIERS (02). « Regrouper » ici respecte la capacité de la promo ; pour mutualiser des sections parallèles d'un même CAMPUS, voir la feuille 11b_Mutualisation.",Font(name=F,italic=True,bold=True,color="C00000"),align=AL); ws.merge_cells("A4:Q4"); ws.row_dimensions[4].height=16
 for i,h in enumerate(sc): C(ws,f"{GL(1+i)}5",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[5].height=34
 # deux jeux de décisions : ENTRÉE (recrutement décidable) vs POURSUITE (cohorte déjà inscrite → seulement l'organisation des classes)
@@ -448,6 +452,48 @@ for idx in range(N):
     C(ws,f"O{r}",f"=M{r}*IFERROR({STRUCT_TOT}/{EFF_AP},0)",CF,fmt=EUR,align=AR,border=True)   # structure allouée après (dilution symétrique)
     C(ws,f"P{r}",f"=N{r}-O{r}",CF,fmt=EUR,align=AR,border=True)                        # résultat tout compris après
     C(ws,f"Q{r}",f"=N{r}-H{r}",CFB,fmt=EUR,align=AR,border=True)                       # Δ EBITDA groupe (= Δ contribution)
+ws.freeze_panes="E6"
+
+# ============================================================ 11b_Mutualisation (inter-sections, maille CAMPUS × CYCLE)
+CYCLES={"BAC":("Bachelor",["B1","B2","B3"]),"MAST":("Mastère",["M1","M2"]),"BTS":("BTS",["1","2"])}
+mut_groups=[]; _seen=set()
+for rr in rows:
+    key=(rr["marque"],rr["ville"],rr["type"])
+    if key in _seen: continue
+    _seen.add(key); mut_groups.append(key)
+def niv_mask(cyc): return "("+"+".join(f'({mrng("D")}="{n}")' for n in CYCLES[cyc][1])+")"
+ws=wb.create_sheet("11b_Mutualisation"); ws.sheet_view.showGridLines=False
+for c,w in {"A":2,"B":16,"C":11,"D":11,"E":10,"F":12,"G":11,"H":13,"I":14,"J":13,"K":15}.items(): ws.column_dimensions[c].width=w
+ws.merge_cells("B2:K2"); C(ws,"B2","Mutualisation inter-sections — maille CAMPUS × CYCLE (un cran au-dessus du simulateur)",CTIT,FNAVY,align=AL); ws.row_dimensions[2].height=26
+ws.merge_cells("B3:K3"); C(ws,"B3","Le simulateur (11) raisonne à la maille d'UNE promo. Ici on regroupe les promos d'un même CYCLE sur un campus (ex. Bachelor B1+B2+B3, qui partagent un tronc commun) : chacune arrondit au minimum de son côté → de la capacité se gaspille ; la mutualisation en récupère une partie.",CIT); ws.row_dimensions[3].height=28
+C(ws,"B4","% d'heures mutualisables (tronc commun partagé) :",CB,align=AR); ws.merge_cells("B4:F4")
+C(ws,"G4",0.25,CINB,FYEL,fmt=PCT,align=AC,border=True); MUT="$G$4"
+C(ws,"H4","← hypothèse : part des heures réellement partageable au sein d'un cycle (le reste reste spécifique à chaque année).",CIT,align=AL); ws.merge_cells("H4:K4")
+for i,h in enumerate(["Marque","Ville","Cycle","Effectif","Sections\naujourd'hui","Capacité\nmoy.","Sections si\nmutualisé","Sections\néconomisables","Coût moyen\n/ classe","Économie\npotentielle €"]):
+    C(ws,f"{GL(2+i)}5",h,CHDR,FBLUE,align=AC,border=True)
+ws.row_dimensions[5].height=30
+MU0=6
+for idx,(m,vl,cyc) in enumerate(mut_groups):
+    r=MU0+idx; base=f'({mrng("A")}="{m}")*({mrng("B")}="{vl}")*{niv_mask(cyc)}'
+    C(ws,f"B{r}",m,CL,align=AL,border=True); C(ws,f"C{r}",vl,CL,align=AC,border=True); C(ws,f"D{r}",CYCLES[cyc][0],CL,align=AC,border=True)
+    C(ws,f"E{r}",f"=SUMPRODUCT({base}*{mrng('AD')})",CF,fmt=NB,align=AC,border=True)          # effectif du cycle sur le campus
+    C(ws,f"F{r}",f"=SUMPRODUCT({base}*{mrng('AI')})",CF,fmt=NB,align=AC,border=True)          # sections aujourd'hui = Σ classes (chaque année arrondit au minimum)
+    C(ws,f"G{r}",f"=IFERROR(SUMPRODUCT({base}*{mrng('AI')}*{mrng('O')})/F{r},0)",CF,fmt=NB1,align=AC,border=True)  # capacité moyenne pondérée
+    C(ws,f"H{r}",f"=IF(E{r}<=0,0,MAX(1,ROUNDUP(E{r}/G{r},0)))",CF,fmt=NB,align=AC,border=True)   # plancher capacité : jamais dépassé
+    C(ws,f"I{r}",f"=MAX(0,F{r}-H{r})",CFB,fmt=NB,align=AC,border=True)                     # sections récupérables par mutualisation
+    C(ws,f"J{r}",f"=IFERROR(SUMPRODUCT({base}*{mrng('AJ')})/F{r},0)",CF,fmt=EUR,align=AR,border=True)  # coût moyen d'une classe
+    C(ws,f"K{r}",f"=I{r}*J{r}*{MUT}",CFB,fmt=EUR,align=AR,border=True)                     # économie potentielle = sections récup. × coût/classe × %mutualisable
+MUN=MU0+len(mut_groups)-1; r=MU0+len(mut_groups)
+C(ws,f"B{r}","TOTAL",CFB,FTOT,align=AL,border=True)
+for col in ["C","D"]: C(ws,f"{col}{r}"," ",fill=FTOT,border=True)
+for col,fmt in [("E",NB),("F",NB),("G",None),("H",NB),("I",NB),("J",None),("K",EUR)]:
+    if fmt is None: C(ws,f"{col}{r}"," ",fill=FTOT,border=True)
+    else: C(ws,f"{col}{r}",f"=SUM({col}{MU0}:{col}{MUN})",CFB,FTOT,fmt=fmt,align=(AR if fmt==EUR else AC),border=True)
+MUTOT=r
+C(ws,f"B{r+2}","Économie potentielle totale de mutualisation :",CB,align=AR); ws.merge_cells(f"B{r+2}:F{r+2}")
+C(ws,f"G{r+2}",f"=K{MUTOT}",CFB,FRISK,fmt=EUR,align=AR,border=True); ws.merge_cells(f"G{r+2}:H{r+2}")
+ws.merge_cells(f"B{r+4}:K{r+6}")
+C(ws,f"B{r+4}","🧪 Indicateur de POTENTIEL (bac à sable), maille campus × cycle. « Sections économisables » = classes récupérables si l'on regroupe les étudiants d'un même cycle dans des classes pleines ; le plancher = ARRONDI.SUP(effectif du cycle / capacité) → la capacité n'est JAMAIS dépassée (même garde-fou que le simulateur, mais sur le cycle). On ne mélange PAS des cycles différents (un B1 et un M2 ne partagent pas de classe). L'économie ne porte que sur la part d'heures réellement mutualisable au sein du cycle (tronc commun) — le reste reste spécifique à chaque année. N'affecte PAS le P&L officiel ; à décliner dans Tagetik à la maille de consolidation.",CIT,align=ALW)
 ws.freeze_panes="E6"
 
 # ============================================================ 12_Sensibilite
@@ -572,7 +618,7 @@ GLOSS={
  "SecFac":"Facteur de financement alternance BUDGET (sécurisation + reste à charge recouvré). = 1 en initial.",
  "SecN-1":"Facteur de financement alternance N-1 (référence pour le pont).",
  "CA Bud":"CA budget = effectif × tarif × facteur financement + frais de dossier.",
- "Cl besoin":"Classes nécessaires = arrondi supérieur (effectif / capacité).",
+ "Cl besoin":"Classes nécessaires = arrondi supérieur (effectif / capacité) — le MINIMUM par cellule (promo). Ce minimum ne se réduit pas au sein d'une promo ; le regroupement de sections parallèles d'un même campus se traite un cran au-dessus (feuille 11b_Mutualisation).",
  "Enseign":"Coût d'enseignement = classes × coût par classe.",
  "Pédago€":"Coût pédagogique = effectif × coût pédago/étudiant × (1 + inflation).",
  "Mktg":"Marketing = nouveaux × CAC variable × (1 + effort). = 0 en année de poursuite.",
@@ -601,6 +647,14 @@ GLOSS={
  "Effectif après":"Effectif après ta décision (0 si 'ne pas lancer' ; +1 classe captée si 'ouvrir').",
  "Contribution après":"Contribution recalculée selon ta décision. Regrouper (−1 classe) n'est crédité (économie d'une classe) QUE si l'effectif tient dans les classes restantes : effectif ≤ (classes−1) × capacité × 1,10 (tolérance salle +10%). Sinon aucune économie : le regroupement déborderait la capacité.",
  "Δ EBITDA":"Impact sur l'EBITDA groupe = contribution après − contribution avant.",
+ # 11b Mutualisation
+ "Cycle":"Cycle de diplôme (Bachelor / Mastère / BTS). On ne mutualise qu'au sein d'un même cycle : ses années partagent un tronc commun ; on ne mélange pas des cycles différents.",
+ "Sections aujourd'hui":"Nombre de classes ouvertes aujourd'hui pour ce cycle sur le campus = somme des classes de chaque année (chacune arrondit au minimum de son côté).",
+ "Capacité moy.":"Capacité moyenne d'une classe sur le campus (pondérée par le nombre de classes).",
+ "Sections si mutualisé":"Plancher physique = ARRONDI.SUP(effectif total du campus / capacité moyenne). C'est le minimum de classes si on regroupait les étudiants dans des classes pleines — la capacité n'est jamais dépassée.",
+ "Sections économisables":"Classes récupérables = sections aujourd'hui − plancher. Vient des arrondis : chaque promo arrondit au minimum, mais mises en commun elles remplissent mieux.",
+ "Coût moyen / classe":"Coût d'enseignement moyen d'une classe du campus = coût enseignement total / nombre de classes.",
+ "Économie potentielle €":"Sections économisables × coût moyen/classe × % d'heures mutualisables. Potentiel indicatif (bac à sable), pas un impact P&L officiel.",
  # 12 Sensibilite
  "Levier (pas)":"Levier testé et son incrément.","Impact EBITDA":"Effet € sur l'EBITDA d'un pas du levier (approximation vivante).","Lecture":"Interprétation.",
  # 13 Simulation
@@ -613,7 +667,7 @@ GLOSS={
 }
 GLOSS={norm(k):v for k,v in GLOSS.items()}
 HEADER_ROW={"01_Objectifs":5,"03_Coeff_Strateg":5,"04_Referentiel":5,"05_Param_Prog_Annee":3,"06_Historique":3,
- "07_Structure":3,"08_Moteur":2,"09_Allocation":5,"10_PnL":5,"11_Simulateur":5,"12_Sensibilite":5,"13_Simulation":5,"14_Mapping_Tagetik":5}
+ "07_Structure":3,"08_Moteur":2,"09_Allocation":5,"10_PnL":5,"11_Simulateur":5,"11b_Mutualisation":5,"12_Sensibilite":5,"13_Simulation":5,"14_Mapping_Tagetik":5}
 def add_note(cell,text):
     cm=Comment(text,"Guide"); cm.width=300; cm.height=120; cell.comment=cm
 for shname,hr in HEADER_ROW.items():

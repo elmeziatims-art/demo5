@@ -1,7 +1,7 @@
 # EDUSERVICES GROUP — Modèle de pilotage budgétaire (v2)
 
 Modèle Excel de pilotage budgétaire à maille fine, préparé avant implémentation dans **CCH Tagetik**.
-Générateur : `gen_v2.py` (+ socle de données `gen_v2_data.py`). Livrable : **`EDUSERVICES_Modele_Pilotage_Budget.xlsx`** (15 feuilles).
+Générateur : `gen_v2.py` (+ socle de données `gen_v2_data.py`). Livrable : **`EDUSERVICES_Modele_Pilotage_Budget.xlsx`** (16 feuilles).
 
 ## Maille
 Marque × Campus × Programme × **Année d'études** × Modalité (initial/alternance) — ~58 cellules, 14 campus, **~82 % alternance**.
@@ -12,7 +12,7 @@ Marque × Campus × Programme × **Année d'études** × Modalité (initial/alte
 | 00 | Notice | Guide + légende |
 | 01 | **Objectifs** | Cadrage top-down : CA & EBITDA **cibles €** → écart vs budget construit |
 | 02 | Leviers | Hypothèses de pilotage + scénario + constantes de référence |
-| 03 | Coeff_Strateg | Coefficients stratégiques par marque (marketing / prix) |
+| 03 | Coeff_Strateg | Coefficients stratégiques **par marque × campus** (marketing / prix) |
 | 04 | Referentiel | Dimensions, comptes (fixe/variable) |
 | 05 | **Param_Prog_Annee** | Données de référence **par programme × année** (capacité, heures, taux, pédago, CAC variable, taux de passage) |
 | 06 | Historique | Réalisé N-1 par cellule + **historique marketing N-2/N-1 → élasticité mesurée** |
@@ -20,13 +20,17 @@ Marque × Campus × Programme × **Année d'études** × Modalité (initial/alte
 | 08 | Moteur | Budget par cellule : **cohortes**, **marketing→volume**, seuil = **point mort** |
 | 09 | Allocation | Frais de structure alloués par driver |
 | 10 | PnL | P&L consolidé N-1 vs Budget + **pont à 4 effets** |
-| 11 | **Simulateur** | Décisions ouvrir/fermer/redistribuer → **EBITDA AVANT → APRÈS** |
+| 11 | **Simulateur** | Décisions ouvrir/fermer/regrouper (**maille promo**, garde-fou capacité) → **EBITDA AVANT → APRÈS** |
+| 11b | **Mutualisation** | Regroupement inter-sections (**maille campus × cycle**) : sections économisables & économie potentielle |
 | 12 | **Sensibilite** | Impact € sur l'EBITDA **par levier** (sens unique) |
 | 13 | Simulation | KPIs, taux d'alternance/sécurisation, **€ à sécuriser** |
 | 14 | Mapping_Tagetik | Passerelle Tagetik |
 
 ## Logique clé (tout est mesuré / lié)
-- **Cohortes** : effectif d'une année budget = effectif de l'année inférieure N-1 × **taux de passage** (réinscription **dès la 2ᵉ année**). Les entrants (B1/M1/BTS1) viennent du funnel marketing.
+- **Cohortes** : effectif d'une année budget = effectif de l'année inférieure N-1 × **taux de passage** (réinscription **dès la 2ᵉ année**, rétention **93–96 %**). Les entrants (B1/M1/BTS1) viennent du funnel marketing.
+- **Capacité de classe CONSTANTE par cycle** (Bachelor 32, Mastère 26, BTS 30) : une salle ne rétrécit pas d'une année à l'autre.
+- **Coefficients stratégiques par marque × campus** : on peut pousser le marketing/prix différemment à Paris et à Bordeaux pour une même marque.
+- **Regroupement à deux mailles** : *simulateur* (promo, garde-fou capacité de la promo) et *mutualisation* (campus × cycle, plancher = arrondi.sup(effectif/capacité), jamais de dépassement).
 - **Marketing → volume, mesuré sur l'historique** : `élasticité = %Δ candidatures ÷ %Δ marketing` (N-2→N-1). Augmenter le budget marketing → + candidatures → + inscrits → **ROI net** visible.
 - **CAC en deux composantes** : global partagé (groupe) + variable par programme (achat de leads).
 - **Seuil d'ouverture = point mort calculé** (pas un chiffre en dur).

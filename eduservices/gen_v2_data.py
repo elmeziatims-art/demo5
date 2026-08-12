@@ -28,7 +28,7 @@ ORDER={"BAC":["B1","B2","B3"],"MAST":["M1","M2"],"BTS":["1","2"]}
 # ---- paramètres opérationnels PAR PROGRAMME × ANNÉE ----
 def op_params(prog, ptype, niveau, domaine):
     heures={"BTS":{"1":720,"2":680},"BAC":{"B1":600,"B2":560,"B3":520},"MAST":{"M1":480,"M2":440}}[ptype][niveau]
-    cap  ={"BTS":{"1":30,"2":30},"BAC":{"B1":34,"B2":32,"B3":30},"MAST":{"M1":26,"M2":24}}[ptype][niveau]
+    cap  ={"BTS":30,"BAC":32,"MAST":26}[ptype]  # capacité CONSTANTE par cycle : une salle ne rétrécit pas d'une année à l'autre
     taux =55 if ptype=="BTS" else (70 if ptype=="MAST" else 58)
     if domaine=="Communication": taux+=4
     if domaine=="Tourisme": taux-=2
@@ -36,7 +36,7 @@ def op_params(prog, ptype, niveau, domaine):
     if ptype=="BTS": ped=350
     if ptype=="MAST": ped+=120
     cacv=({"BTS":250,"BAC":320,"MAST":600}[ptype]) if niveau in ENTRY else 0  # CAC variable (leads) : seulement en année d'ENTRÉE (on ne recrute pas en poursuite)
-    passage=0 if niveau in ENTRY else {"B2":0.85,"B3":0.90,"M2":0.92,"2":0.90}[niveau]
+    passage=0 if niveau in ENTRY else {"B2":0.93,"B3":0.95,"M2":0.96,"2":0.94}[niveau]  # rétention élevée (proche de 100 %) : peu de décrochage en cours de cycle
     return dict(cap=cap,heures=heures,taux=taux,pedago=ped,cacv=cacv,passage=passage)
 
 def tarif(t,mod):
