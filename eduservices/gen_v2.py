@@ -500,40 +500,41 @@ ws.freeze_panes="E6"
 
 # ============================================================ 11c_Cascade (allocation en cascade sur un VRAI campus : MBway Lyon)
 ws=wb.create_sheet("11c_Cascade"); ws.sheet_view.showGridLines=False
-for c,w in {"A":2,"B":22,"C":11,"D":11,"E":9,"F":12,"G":13,"H":13,"I":13,"J":13,"K":11,"L":10,"M":13,"N":13}.items(): ws.column_dimensions[c].width=w
+for c,w in {"A":2,"B":24,"C":11,"D":11,"E":9,"F":12,"G":13,"H":13,"I":13,"J":13,"K":11,"L":10,"M":13,"N":13}.items(): ws.column_dimensions[c].width=w
 for c in ["P","Q","R","S","T"]: ws.column_dimensions[c].width=11
+FM,FV="ISCOM","Toulouse"  # campus focus : petit campus → marges fines → l'effet d'entraînement (rouge) se voit
 REDF=PatternFill("solid",fgColor="FFC7CE"); REDFONT=Font(name=F,color="9C0006",bold=True)
-ws.merge_cells("B2:N2"); C(ws,"B2","Allocation EN CASCADE sur un VRAI campus (MBway Lyon) & effet d'une fermeture",CTIT,FNAVY,align=AL); ws.row_dimensions[2].height=26
-ws.merge_cells("B3:N3"); C(ws,"B3","Chiffres RÉELS du moteur (structure, CA, effectifs, économie unitaire feuille 05). La structure NON-ÉVITABLE descend en cascade : groupe → marque au CA → campus au nb d'étudiants → promo au NOMBRE DE CLASSES. Change l'effectif SCÉNARIO (bleu) d'une promo : sa contribution se recalcule, et tu vois quand fermer devient bénéfique… ou pas.",CIT); ws.row_dimensions[3].height=32
-# --- section 1 : structure non-évitable de MBway Lyon = siège cascadé (CA→effectif) + loyer & permanents réels ---
-band(ws,5,"B","N","1) Structure non-évitable de MBway Lyon  —  siège groupe cascadé (CA marque → effectif campus) + loyer & permanents directs (réels, feuille 09)")
-LYROW=AR0+[i for i,cc in enumerate(campus) if cc["marque"]=="MBway" and cc["ville"]=="Lyon"][0]  # ligne 09_Allocation de MBway Lyon
-caM=f'SUMIFS({mrng("AH")},{mrng("A")},"MBway")'; effM=f'SUMIFS({mrng("AD")},{mrng("A")},"MBway")'
-effLy=f'SUMIFS({mrng("AD")},{mrng("A")},"MBway",{mrng("B")},"Lyon")'
+ws.merge_cells("B2:N2"); C(ws,"B2",f"Allocation EN CASCADE sur un VRAI campus ({FM} {FV}) & effet d'une fermeture",CTIT,FNAVY,align=AL); ws.row_dimensions[2].height=26
+ws.merge_cells("B3:N3"); C(ws,"B3","OBJET DE L'ONGLET : montrer, sur un vrai campus, QUAND fermer une promo est bénéfique (ou pas). Chiffres RÉELS du moteur. La structure NON-ÉVITABLE descend en cascade : groupe → marque au CA → campus au nb d'étudiants → promo au NOMBRE DE CLASSES. On DÉCIDE sur la CONTRIBUTION (évitable) ; le « résultat tout compris » (après structure) n'est qu'informatif. Change l'effectif SCÉNARIO (bleu) : contribution et classes se recalculent.",CIT); ws.row_dimensions[3].height=40
+# --- section 1 : structure non-évitable du campus focus = siège cascadé (CA→effectif) + loyer & permanents réels ---
+band(ws,5,"B","N",f"1) Structure non-évitable de {FM} {FV}  —  siège groupe cascadé (CA marque → effectif campus) + loyer & permanents directs (réels, feuille 09)")
+LYROW=AR0+[i for i,cc in enumerate(campus) if cc["marque"]==FM and cc["ville"]==FV][0]  # ligne 09_Allocation du campus focus
+caM=f'SUMIFS({mrng("AH")},{mrng("A")},"{FM}")'; effM=f'SUMIFS({mrng("AD")},{mrng("A")},"{FM}")'
+effLy=f'SUMIFS({mrng("AD")},{mrng("A")},"{FM}",{mrng("B")},"{FV}")'
 C(ws,"B6","Siège / structure centrale GROUPE (réel) :",CB,align=AR); ws.merge_cells("B6:F6"); C(ws,"G6",f"={KSTRUCT}*(1+{PINFL})",CL,fmt=EUR,align=AR,border=True)
-C(ws,"B7","× Part MBway au CA :",CB,align=AR); ws.merge_cells("B7:F7"); C(ws,"G7",f"=IFERROR({caM}/{msum('AH')},0)",CL,fmt=PCT,align=AC,border=True)
-C(ws,"H7","→ Siège MBway :",CB,align=AR); C(ws,"I7","=G6*G7",CF,fmt=EUR,align=AR,border=True)
-C(ws,"B8","× Part Lyon dans MBway (aux effectifs) :",CB,align=AR); ws.merge_cells("B8:F8"); C(ws,"G8",f"=IFERROR({effLy}/{effM},0)",CL,fmt=PCT,align=AC,border=True)
-C(ws,"H8","→ Siège Lyon :",CB,align=AR); C(ws,"I8","=I7*G8",CF,fmt=EUR,align=AR,border=True)
-C(ws,"B9","Loyer Lyon (réel, feuille 09) :",CB,align=AR); ws.merge_cells("B9:H9"); C(ws,"I9",f"='09_Allocation'!E{LYROW}",CL,fmt=EUR,align=AR,border=True)
-C(ws,"B10","Permanents Lyon (réel, feuille 09) :",CB,align=AR); ws.merge_cells("B10:H10"); C(ws,"I10",f"='09_Allocation'!F{LYROW}",CL,fmt=EUR,align=AR,border=True)
-C(ws,"B11","ENVELOPE Lyon = siège Lyon + loyer + permanents (NON-ÉVITABLE) :",CB,align=AR); ws.merge_cells("B11:H11"); C(ws,"I11","=I8+I9+I10",CFB,FTOT,fmt=EUR,align=AR,border=True)
+C(ws,"B7",f"× Part {FM} au CA :",CB,align=AR); ws.merge_cells("B7:F7"); C(ws,"G7",f"=IFERROR({caM}/{msum('AH')},0)",CL,fmt=PCT,align=AC,border=True)
+C(ws,"H7",f"→ Siège {FM} :",CB,align=AR); C(ws,"I7","=G6*G7",CF,fmt=EUR,align=AR,border=True)
+C(ws,"B8",f"× Part {FV} dans {FM} (aux effectifs) :",CB,align=AR); ws.merge_cells("B8:F8"); C(ws,"G8",f"=IFERROR({effLy}/{effM},0)",CL,fmt=PCT,align=AC,border=True)
+C(ws,"H8",f"→ Siège {FV} :",CB,align=AR); C(ws,"I8","=I7*G8",CF,fmt=EUR,align=AR,border=True)
+C(ws,"B9",f"Loyer {FV} (réel, feuille 09) :",CB,align=AR); ws.merge_cells("B9:H9"); C(ws,"I9",f"='09_Allocation'!E{LYROW}",CL,fmt=EUR,align=AR,border=True)
+C(ws,"B10",f"Permanents {FV} (réel, feuille 09) :",CB,align=AR); ws.merge_cells("B10:H10"); C(ws,"I10",f"='09_Allocation'!F{LYROW}",CL,fmt=EUR,align=AR,border=True)
+C(ws,"B11",f"ENVELOPE {FV} = siège + loyer + permanents (NON-ÉVITABLE) :",CB,align=AR); ws.merge_cells("B11:H11"); C(ws,"I11","=I8+I9+I10",CFB,FTOT,fmt=EUR,align=AR,border=True)
 ENV="$I$11"
-# --- section 2 : répartition Lyon -> promos AU NB DE CLASSES + décision (économie unitaire réelle, effectif éditable) ---
-band(ws,13,"B","N","2) Répartition Lyon → promos AU NOMBRE DE CLASSES + décision  (change l'effectif bleu ; le rouge = résultat tout compris < 0)")
-hh=["Promo (MBway Lyon)","Eff. réel\n(moteur)","Eff.\nscénario","Classes","CA","Contribution\n(évitable)","Struct/classe","Struct allouée","Résultat t.c.\n(avant)","Décision","Cl.\naprès","Struct après","Résultat t.c.\n(après)"]
+# --- section 2 : répartition campus -> promos AU NB DE CLASSES + décision (économie unitaire réelle, effectif éditable) ---
+band(ws,13,"B","N","2) Répartition campus → promos AU NOMBRE DE CLASSES + décision  (change l'effectif bleu ; le rouge = résultat tout compris < 0)")
+hh=[f"Promo ({FM} {FV})","Eff. réel\n(moteur)","Eff.\nscénario","Classes","CA","Contribution\n(évitable)","Struct/classe","Struct allouée","Résultat t.c.\n(avant)","Décision","Cl.\naprès","Struct après","Résultat t.c.\n(après)"]
 for i,h in enumerate(hh): C(ws,f"{GL(2+i)}14",h,CHDR,FBLUE,align=AC,border=True)
 C(ws,"P13","Paramètres unitaires (issus du modèle, feuille 05)",CIT,align=AL); ws.merge_cells("P13:T13")
 for i,h in enumerate(["Capacité","Coût/classe","Tarif","Charge/étu","CAC/étu"]): C(ws,f"{GL(16+i)}14",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[14].height=30
 dv_c=DataValidation(type="list",formula1='"Maintenir,Fermer"',allow_blank=False); ws.add_data_validation(dv_c)
-mrow_lyon={rr["niv"]:MR0+i for i,rr in enumerate(rows) if rr["marque"]=="MBway" and rr["ville"]=="Lyon"}  # lignes moteur exactes (lien direct, sans SUMIFS)
-# promo, niveau, eff_scenario_defaut, cap, cout/classe, tarif, charge/étu (pédago+autres), cac, décision
-promos=[("Bachelor 1 (INIT)","B1",73,32,34800,8500,1334,320,"Maintenir"),
-        ("Bachelor 2 (ALT)","B2",62,32,32480,8000,1334,0,"Maintenir"),
-        ("Bachelor 3 (ALT)","B3",54,32,30160,8000,1334,0,"Maintenir"),
-        ("Mastère 1 (ALT)","M1",44,26,33600,9000,1454,600,"Maintenir"),
-        ("Mastère 2 — extinction","M2",3,26,30800,9000,1454,0,"Fermer")]
+mrow_lyon={rr["niv"]:MR0+i for i,rr in enumerate(rows) if rr["marque"]==FM and rr["ville"]==FV}  # lignes moteur exactes (lien direct, sans SUMIFS)
+# promo, niveau, eff_scenario_defaut, cap, cout/classe, tarif, charge/étu (pédago+autres), cac, décision — ISCOM Toulouse (réel, feuille 05)
+promos=[("Bachelor 1 (INIT)","B1",51,32,37200,8500,1484,320,"Maintenir"),
+        ("Bachelor 2 (ALT)","B2",44,32,34720,8000,1484,0,"Maintenir"),
+        ("Bachelor 3 (ALT)","B3",38,32,32240,8000,1484,0,"Maintenir"),
+        ("Mastère 1 (ALT — piège)","M1",31,26,35520,9000,1604,600,"Maintenir"),
+        ("Mastère 2 — extinction","M2",4,26,32560,9000,1604,0,"Fermer")]
 P0=15; PN=P0+len(promos)-1
 for i,(nm,niv,effsc,cap,coutcl,tarif,charge,cac,dec) in enumerate(promos):
     r=P0+i
@@ -565,7 +566,7 @@ C(ws,f"B{kr}","EBITDA campus AVANT :",CB,align=AR); ws.merge_cells(f"B{kr}:E{kr}
 C(ws,f"H{kr}","EBITDA campus APRÈS :",CB,align=AR); ws.merge_cells(f"H{kr}:I{kr}"); C(ws,f"J{kr}",f'=SUMIFS(G{P0}:G{PN},K{P0}:K{PN},"<>Fermer")-{ENV}',CFB,FTOT,fmt=EUR,align=AR,border=True)
 C(ws,f"M{kr}","Δ EBITDA :",CB,align=AR); C(ws,f"N{kr}",f"=J{kr}-F{kr}",CFB,FRISK,fmt=EUR,align=AR,border=True)
 ws.merge_cells(f"B{kr+2}:N{kr+6}")
-C(ws,f"B{kr+2}","🧪 LECTURE (vrai campus, bac à sable). On DÉCIDE sur la CONTRIBUTION (évitable). ① Le Mastère 2 est ici en EXTINCTION (3 étudiants) : sa contribution est NÉGATIVE (une classe coûte plus qu'elle ne rapporte, seuil de rentabilité ≈ 4-5 étudiants) → le fermer fait MONTER l'EBITDA campus = fermeture BÉNÉFIQUE. ② À l'inverse, remets une promo bien remplie (Bachelor 1) sur « Fermer » : l'EBITDA CHUTE (on perd sa contribution) et la structure non-évitable se redivise sur les classes restantes (÷ nb de classes) → le résultat tout compris des voisines se dégrade. Remarque HONNÊTE : avec des promos normalement remplies l'économie unitaire est saine (rentables dès ~5 étudiants), donc fermer n'est JAMAIS bénéfique — ça ne le devient que pour une promo réellement sous-remplie / en extinction. Baisse les effectifs bleus pour rendre une promo marginale et voir l'effet d'entraînement basculer une voisine EN ROUGE. N'affecte pas le P&L officiel.",CIT,align=ALW)
+C(ws,f"B{kr+2}","🧪 LECTURE (vrai campus ISCOM Toulouse, bac à sable). On DÉCIDE sur la CONTRIBUTION (évitable), JAMAIS sur le résultat tout compris. Trois enseignements visibles ici : ① FERMER BÉNÉFIQUE — le Mastère 2 est en EXTINCTION (4 étudiants) : sa CONTRIBUTION est négative (une classe coûte plus qu'elle ne rapporte) → le fermer fait MONTER l'EBITDA campus (Δ = perte évitée). ② EFFET D'ENTRAÎNEMENT — en fermant, la structure non-évitable se redivise sur les classes restantes (÷ nb de classes) → le résultat tout compris du Bachelor 3 (déjà mince) bascule EN ROUGE, alors que l'EBITDA s'est amélioré : c'est un effet d'ALLOCATION comptable, pas une vraie perte. ③ LE PIÈGE — le Mastère 1 est EN ROUGE en résultat tout compris (il porte beaucoup de structure) MAIS sa CONTRIBUTION est POSITIVE (~+119 k€) → il NE FAUT PAS le fermer : le fermer FERAIT PERDRE cette contribution et alourdirait tout le monde. Essaie : mets le Mastère 1 sur « Fermer » → l'EBITDA CHUTE. N'affecte pas le P&L officiel.",CIT,align=ALW)
 ws.freeze_panes="C15"
 
 # ============================================================ 12_Sensibilite
