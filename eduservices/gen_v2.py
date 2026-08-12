@@ -109,6 +109,22 @@ for t,ft,fl in [("Saisie / donnée réelle",CIN,None),("Formule",CF,None),("Lien
 ws.merge_cells(f"B{r+1}:D{r+2}")
 C(ws,f"B{r+1}","Marques/campus réels EDUSERVICES ; montants ILLUSTRATIFS calibrés sur des ordres de grandeur sourcés "
  "(scolarité 8-11 k€, NPEC ~7-10 k€, marge EBITDA ~20 %, classe ~30). À remplacer par le réel.",CIT,align=ALW)
+r+=4
+band(ws,r,"B","D","Mode d'emploi — par où commencer"); r+=1
+steps=[("1","02_Leviers : choisis le SCÉNARIO et règle les curseurs (%). Tout le budget se recalcule."),
+ ("2","08_Moteur : le budget se construit cellule par cellule (cohortes → marketing→volume → tarif → financement)."),
+ ("3","10_PnL & 13_Simulation : lis le compte de résultat consolidé et les KPIs (Budget vs N-1)."),
+ ("4","01_Objectifs : compare au cadrage top-down (cibles direction) ; 12_Sensibilite : quel levier actionner pour combler l'écart."),
+ ("5","11 / 11b / 11c : simule des décisions (ouvrir / fermer / regrouper / mutualiser) — BAC À SABLE, sans impact sur le budget officiel.")]
+for n,t in steps:
+    C(ws,f"B{r}",n,CB,FLIGHT,align=AC,border=True); ws.merge_cells(f"C{r}:D{r}"); C(ws,f"C{r}",t,CREG,align=ALW,border=True); r+=1
+r+=1; band(ws,r,"B","D","3 façons d'utiliser le modèle"); r+=1
+for a,b in [("Construire (bottom-up)","Le budget monte tout seul depuis les drivers et l'historique — aucune saisie de résultat."),
+ ("Challenger","Un directeur de campus ajuste SES effectifs / curseurs → version bottom-up à confronter au cadrage."),
+ ("Simuler","Tester une ouverture / fermeture / mutualisation et voir l'impact EBITDA avant de trancher.")]:
+    C(ws,f"B{r}",a,CB,align=AL,border=True); ws.merge_cells(f"C{r}:D{r}"); C(ws,f"C{r}",b,CREG,align=ALW,border=True); r+=1
+r+=1; ws.merge_cells(f"B{r}:D{r+1}")
+C(ws,f"B{r}","💡 Astuce : survole le TITRE d'un onglet pour lire son OBJET, et une ENTÊTE de colonne pour son explication. 🔵 bleu = à saisir · 🟡 jaune = hypothèse à remplir.",CIT,align=ALW)
 
 # ============================================================ 02_Leviers
 ws=wb.create_sheet("02_Leviers"); ws.sheet_view.showGridLines=False
@@ -319,6 +335,19 @@ for col in ["B","C","D","E"]: C(ws,f"{col}{r}"," ",fill=FTOT,border=True)
 for col,fmt in [("F",NB),("G",NB),("H",NB),("AB",NB),("AC",NB),("AD",NB),("AH",EUR),("AI",NB),("AJ",EUR),("AK",EUR),("AL",EUR),("AM",EUR)]:
     C(ws,f"{col}{r}",f"=SUM({col}{MR0}:{col}{MRN})",CFB,FTOT,fmt=fmt,align=(AC if fmt==NB else AR),border=True)
 MTOT=r; ws.freeze_panes="G3"
+# --- guide de lecture visible des blocs de colonnes (pour qui n'ouvre pas les notes) ---
+gr=MTOT+2
+band(ws,gr,"A","H","Guide de lecture — de gauche à droite, chaque bloc construit le budget de la cellule :"); gr+=1
+mgroups=[("A–F","Identité & type : marque, campus, programme, année, modalité, année d'entrée (1 = on recrute)"),
+ ("G–M","Réalisé N-1 repris : effectif, nouveaux, réinscrits, candidatures, effectif année inférieure, tarif, classes"),
+ ("N–T","Paramètres programme×année (feuille 05) : capacité, heures, taux, pédago, CAC variable, taux de passage"),
+ ("U–Y","Coûts unitaires & coefficients : coût/classe, coeff marketing, coeff prix, élasticité, effort"),
+ ("Z–AD","COHORTE → VOLUME : candidatures budget → conversion → nouveaux + réinscrits = EFFECTIF budget"),
+ ("AE–AH","Tarif & financement alternance : tarif budget, facteur sécurisation, CA budget"),
+ ("AI–AL","Coûts budget : classes nécessaires, enseignement, pédagogie, marketing"),
+ ("AM–AP","RÉSULTATS : marge de CONTRIBUTION, remplissage, contribution/étudiant, point mort (seuil d'ouverture)")]
+for rng,txt in mgroups:
+    C(ws,f"A{gr}",rng,CB,FLIGHT,align=AC,border=True); ws.merge_cells(f"B{gr}:H{gr}"); C(ws,f"B{gr}",txt,CREG,align=ALW,border=True); gr+=1
 MO=lambda col:f"'08_Moteur'!{col}"
 def mrng(col): return f"'08_Moteur'!${col}${MR0}:${col}${MRN}"
 def msum(col): return f"SUM({mrng(col)})"
