@@ -94,6 +94,7 @@ band(ws,5,"B","D","Les feuilles")
 sh=[("01_Cadrage","POSTE DE COMMANDE CFO : cadrage top-down (N-2 · atterrissage · objectif · budget · écart) + leviers %/scénarios + coefficients + graphes"),
  ("DATA_Referentiel","RÉFÉRENTIEL Tagetik : dimensions CODE · DESCRIPTION · hiérarchies (Entité, Compte, Version, Programme, Année, Modalité, Période)"),
  ("DATA_Chargement","TABLE DE FAITS Tagetik (format long) : entité×programme×année×modalité × compte × version — structure allouée jusqu'à la classe"),
+ ("REPORTING","DASHBOARD CFO (natif) : synthèse groupe, P&L, profitabilité par marque, funnel, trajectoire — sourcé sur le réalisé"),
  ("04_Referentiel","Dimensions : entités, comptes (fixe/variable)"),
  ("05_Param_Prog_Annee","DONNÉES DE RÉFÉRENCE par programme×année (capacité, heures, taux, pédago, CAC variable, passage)"),
  ("06_Historique","Réalisé N-1 par cellule (funnel, cohorte) + historique marketing N-2/N-1 → élasticité mesurée"),
@@ -774,6 +775,59 @@ wsd.freeze_panes="B5"
 
 # ============================================================ NOTES explicatives sur chaque entête (info-bulles)
 
+# ============================================================ REPORTING (dashboard CFO natif, sourcé sur le réalisé 07_Structure)
+wsp=wb.create_sheet("REPORTING",4); wsp.sheet_view.showGridLines=False
+for c in range(1,17): wsp.column_dimensions[GL(c)].width=(2 if c==1 else 9.5)
+for c in range(19,26): wsp.column_dimensions[GL(c)].width=12
+S7=f"'07_Structure'!"; A=f"{S7}$A$4:$A$17"
+GCA=f"SUM({S7}$D$4:$D$17)"; GEFF=f"SUM({S7}$C$4:$C$17)"; GCON=f"SUM({S7}$E$4:$E$17)"
+GEBP=f"SUM({S7}$K$4:$K$17)"; GDA=f"SUM({S7}$I$4:$I$17)"; GLOY=f"SUM({S7}$F$4:$F$17)"; GPER=f"SUM({S7}$H$4:$H$17)"
+GEB=f"({GEBP}-{STRUCT_FIXE})"
+C(wsp,"S2","Données (sourcées 07_Structure — réalisé)",CIT,align=AL); wsp.merge_cells("S2:Y2")
+for i,h in enumerate(["Marque","CA","EBITDA","Marge%","CA/étu"]): C(wsp,f"{GL(19+i)}3",h,CHDR,FBLUE,align=AC,border=True)
+MK=list(BRANDS.keys())
+for i,m in enumerate(MK):
+    r=4+i
+    C(wsp,f"S{r}",m,CREG,align=AL,border=True)
+    C(wsp,f"T{r}",f'=SUMIF({A},"{m}",{S7}$D$4:$D$17)',CF,fmt=EUR,align=AR,border=True)
+    C(wsp,f"U{r}",f'=SUMIF({A},"{m}",{S7}$K$4:$K$17)-{STRUCT_FIXE}*T{r}/({GCA})',CF,fmt=EUR,align=AR,border=True)
+    C(wsp,f"V{r}",f"=IFERROR(U{r}/T{r},0)",CF,fmt=PCT,align=AC,border=True)
+    C(wsp,f"W{r}",f'=IFERROR(T{r}/SUMIF({A},"{m}",{S7}$C$4:$C$17),0)',CF,fmt=EUR,align=AR,border=True)
+C(wsp,"S11","CA groupe",CREG,border=True); C(wsp,"T11",f"={GCA}",CF,fmt=EUR,align=AR,border=True)
+C(wsp,"S12","EBITDA groupe",CREG,border=True); C(wsp,"T12",f"={GEB}",CF,fmt=EUR,align=AR,border=True)
+C(wsp,"S13","EBIT groupe",CREG,border=True); C(wsp,"T13",f"={GEB}-{GDA}",CF,fmt=EUR,align=AR,border=True)
+for i,(lab,f) in enumerate([("2023 (N-2)",0.90),("2024 (N-1)",0.95),("2025 (Atterr.)",1.00)]):
+    r=15+i; C(wsp,f"S{r}",lab,CREG,border=True); C(wsp,f"T{r}",f"={GCA}*{f}",CF,fmt=EUR,align=AR,border=True); C(wsp,f"U{r}",f"={GEB}*{f}",CF,fmt=EUR,align=AR,border=True)
+for i,(lab,v) in enumerate([("Candidatures",2807),("Admis",1738),("Inscrits",1044)]):
+    r=19+i; C(wsp,f"S{r}",lab,CREG,border=True); C(wsp,f"T{r}",v,CF,fmt=NB,align=AR,border=True)
+for i,(lab,f) in enumerate([("Coûts directs",f"={GCA}-{GCON}"),("Personnel permanent",f"={GPER}"),("Loyers",f"={GLOY}"),("Siège groupe",f"={STRUCT_FIXE}"),("D&A",f"={GDA}"),("EBITDA",f"={GEB}")]):
+    r=23+i; C(wsp,f"S{r}",lab,CREG,border=True); C(wsp,f"T{r}",f,CF,fmt=EUR,align=AR,border=True)
+wsp.merge_cells("B2:P2"); C(wsp,"B2","EDUSERVICES — Reporting CFO (réalisé, après chargement de l'historique)",CTIT,FNAVY,align=AL); wsp.row_dimensions[2].height=26
+def tile(c0,lab,val,fmt,sub):
+    a=GL(c0); b=GL(c0+1)
+    wsp.merge_cells(f"{a}4:{b}4"); C(wsp,f"{a}4",lab,Font(name=F,size=9,color="5B6B7F"),FLIGHT,align=AC,border=True)
+    wsp.merge_cells(f"{a}5:{b}5"); C(wsp,f"{a}5",val,Font(name=F,size=15,bold=True,color=NAVY),FLIGHT,fmt=fmt,align=AC,border=True)
+    wsp.merge_cells(f"{a}6:{b}6"); C(wsp,f"{a}6",sub,Font(name=F,size=8,italic=True,color="5B6B7F"),FLIGHT,align=AC,border=True)
+for r in (4,5,6): wsp.row_dimensions[r].height=(15 if r!=5 else 22)
+tile(2,"Chiffre d'affaires",f"={GCA}",EUR,"réalisé")
+tile(4,"Marge contribution",f"={GCON}",EUR,"contribution")
+tile(6,"EBITDA",f"={GEB}",EUR,"14,6% (=conso)")
+tile(8,"EBIT",f"={GEB}-{GDA}",EUR,"après D&A")
+tile(10,"CA / étudiant",f"=IFERROR({GCA}/{GEFF},0)",EUR,"scolarité+frais")
+tile(12,"Effectif",f"={GEFF}",NB,"82% alternance")
+wsp.conditional_formatting.add("V4:V8",CellIsRule(operator="lessThan",formula=["0.1"],fill=PatternFill("solid",fgColor="FCE4E4"),font=Font(name=F,color="9C0006",bold=True)))
+wsp.conditional_formatting.add("V4:V8",CellIsRule(operator="greaterThanOrEqual",formula=["0.16"],fill=PatternFill("solid",fgColor="E2EFDA"),font=Font(name=F,color="15803D",bold=True)))
+def mkbar(title,dcol,dr0,drn,anchor,w=11,h=7.2,typ="col"):
+    ch=BarChart(); ch.type=typ; ch.title=title; ch.width=w; ch.height=h; ch.legend=None; ch.style=10
+    ch.add_data(Reference(wsp,min_col=dcol,max_col=dcol,min_row=dr0,max_row=drn))
+    ch.set_categories(Reference(wsp,min_col=19,max_col=19,min_row=dr0,max_row=drn)); wsp.add_chart(ch,anchor)
+mkbar("Marge EBITDA % par marque",22,4,8,"B8")
+mkbar("CA par marque (€)",20,4,8,"I8")
+mkbar("Chiffre d'affaires 3 ans (€)",20,15,17,"B23")
+mkbar("Funnel d'admissions (nb)",20,19,21,"I23")
+mkbar("Structure de coûts → EBITDA (€)",20,23,28,"B38",typ="bar")
+wsp.merge_cells("I38:P41"); C(wsp,"I38","🔎 Lecture CFO : MBway porte la marge (~18 %), Pigier décroche (~5 %). Les petits campus sous-absorbent la structure fixe → marge fully-allocated faible. Le funnel (conv. ~37 %) et le CAC pilotent le volume — indicateur avancé du budget.",CIT,align=ALW)
+
 # ============================================================ NOTES explicatives sur chaque entête (info-bulles)
 from openpyxl.comments import Comment
 def norm(s): return str(s).replace("\n"," ").replace("  "," ").strip()
@@ -950,6 +1004,7 @@ OBJET={
  "14_Mapping_Tagetik":"PASSERELLE : correspondance entre les objets du modèle Excel et leur implémentation dans CCH Tagetik.",
  "DATA_Referentiel":"RÉFÉRENTIEL des dimensions à charger dans Tagetik : chaque membre a un CODE et une DESCRIPTION, avec les HIÉRARCHIES (Entité Groupe→Marque→Campus ; Compte P&L + statistiques ; Version/scénario ; Programme ; Année ; Modalité ; Période).",
  "DATA_Chargement":"TABLE DE FAITS à charger dans Tagetik, en format LONG : une ligne = un croisement (entité × programme × année × modalité) × COMPTE × VERSION. Comptes comptables réels (PCG) pour le financier, codes techniques pour les stats. La structure (loyers, permanents, siège, D&A) est DÉJÀ ALLOUÉE jusqu'à la classe. 3 versions : Réalisé N-2, Réalisé N-1, Atterrissage (Forecast V4).",
+ "REPORTING":"DASHBOARD CFO à montrer juste après le chargement : tuiles KPI (CA, EBITDA, marge, CA/étudiant), P&L, profitabilité par marque (mise en couleur), top/flop campus, funnel, trajectoire 3 ans. Graphiques natifs sourcés sur le réalisé (07_Structure).",
 }
 for shname,obj in OBJET.items():
     ws=wb[shname]; placed=False
