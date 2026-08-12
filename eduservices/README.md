@@ -39,15 +39,18 @@ Marque × Campus × Programme × **Année d'études** × Modalité (initial/alte
 - **Sécurisation N-1** et **conversion candidature→inscrit** : **déduites de l'historique** (par programme / par cellule), puis bougées par les curseurs. Les valeurs globales ne sont que des replis.
 - **Coût ETP permanent** ~58 k€ chargé ; **taux de passage** B1→B2 85 %…
 
-## Conseil intelligent (feuille 11)
-Pour chaque promo, une **recommandation automatique** déduite du point mort + remplissage + contribution :
-🔴 Ne pas lancer (sous le point mort) · 🟢 Ouvrir +1 (saturé) · 🟡 Surveiller/regrouper (sous-rempli) · 🟢 Maintenir — avec le **€ d'impact** et le motif. *Insight : la scolarité dépassant largement le coût marginal d'une classe, fermer n'est presque jamais justifié — la décision est surtout d'ouvrir ou de remplir.*
+## Simulateur & conseil de décisions (feuille 11) — logique CFO
+Cascade à deux niveaux : **CA − coûts directs évitables = MARGE DE CONTRIBUTION** (la métrique de décision) puis **− structure allouée = résultat tout compris** (info). Principe : **on décide sur la contribution, jamais sur le résultat tout compris** — car la **structure (loyer, permanents, siège) est non-évitable** : fermer une promo ne l'économise pas, elle **se redilue** sur les autres (indicateur *structure/étudiant avant → après*). Reco : 🔴 Ne pas ouvrir (contribution < 0) · 🟢 Ouvrir +1 (saturé) · 🟡 Surveiller (sous-rempli mais contribution positive → **garder**) · 🟢 Maintenir.
+
+## Calibrage sur le réel (comptes consolidés EDUSERVICES 4.0, clos 31/08/2025)
+CA 345,8 M€ · **EBITDA 14,6 %** · EBIT 8,6 % · D&A 6 % du CA · personnel 46 % · **~8,2 k€/étudiant**.
+Le modèle (échantillon représentatif ~20 M€) reproduit ces **ratios** : CA/étudiant 8 276 €, marge EBITDA N-1 **14,6 %**.
 
 ## Vérifications
-- **0 erreur** sur ~5 460 cellules (moteur `formulas`).
-- Marge EBITDA **N-1 19,2 % · Budget 21,4 %** ; scénarios ~Cadrage 21 % · Optimiste 27 % · Prudent 19 %.
-- Pont CA (Volume/Tarif/Sécurisation/Frais) **réconcilie exactement**.
-- Élasticité marketing **mesurée** (~0,5) ; simulateur, reco et marketing→volume **dynamiques** ; recalcul auto à l'ouverture.
+- **0 erreur** sur ~5 500 cellules (moteur `formulas`).
+- Marge EBITDA **N-1 14,6 %** (= réel) ; pont CA (Volume/Tarif/Sécurisation/Frais) **réconcilie exactement**.
+- Fermeture d'une promo : EBITDA groupe = − contribution (structure inchangée, rediluée) — **vérifié**.
+- Élasticité marketing **mesurée** ; simulateur, reco et marketing→volume **dynamiques** ; recalcul auto à l'ouverture.
 
 ## Convention de couleurs
 🔵 saisie · ⚫ formule · 🟢 lien inter-feuilles · 🟡 hypothèse à remplir.
