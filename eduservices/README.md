@@ -1,7 +1,7 @@
 # EDUSERVICES GROUP — Modèle de pilotage budgétaire (v2)
 
 Modèle Excel de pilotage budgétaire à maille fine, préparé avant implémentation dans **CCH Tagetik**.
-Générateur : `gen_v2.py` (+ socle de données `gen_v2_data.py`). Livrable : **`EDUSERVICES_Modele_Pilotage_Budget.xlsx`** (15 feuilles).
+Générateur : `gen_v2.py` (+ socle de données `gen_v2_data.py`). Livrable : **`EDUSERVICES_Modele_Pilotage_Budget.xlsx`** (16 feuilles).
 
 ## Maille
 Marque × Campus × Programme × **Année d'études** × Modalité (initial/alternance) — ~58 cellules, 14 campus, **~82 % alternance**.
@@ -17,12 +17,13 @@ Marque × Campus × Programme × **Année d'études** × Modalité (initial/alte
 | 07 | Structure | Réalisé par campus |
 | 08 | Moteur | Budget par cellule : **cohortes**, **marketing→volume**, seuil = **point mort** |
 | 09 | Allocation | Frais de structure alloués par driver |
-| 10 | PnL | P&L consolidé N-1 vs Budget + **pont à 4 effets** |
+| 10 | PnL | P&L consolidé N-1 vs Budget + **pont à 3 effets** |
 | 11 | **Simulateur** | Décisions ouvrir/fermer/regrouper (**maille promo**, garde-fou capacité) → **EBITDA AVANT → APRÈS** |
 | 11b | **Mutualisation** | Regroupement inter-sections (**maille campus × cycle**) : sections économisables & économie potentielle |
 | 11c | **Cascade** | Allocation **en cascade** (marque→campus→classe) + effet d'une fermeture : **bénéfique** (contribution < 0) vs **entraînement** (redivision de la structure) |
 | 12 | **Sensibilite** | Impact € sur l'EBITDA **par levier** (sens unique) |
-| 13 | Simulation | KPIs, taux d'alternance/sécurisation, **€ à sécuriser** |
+| 13 | Simulation | KPIs Budget vs N-1 : effectif, CA, EBITDA, **taux d'alternance** |
+| — | **DATA_Chargement** | **Table de faits à charger** (Tagetik) : historique par cellule (CRM · compta · marketing · référentiel) sur N-2·N-1·atterrissage + structure par campus |
 | 14 | Mapping_Tagetik | Passerelle Tagetik |
 
 ## Base temporelle (principe contrôle de gestion)
@@ -36,13 +37,13 @@ On ne budgète **pas** sur un **N-1 clôturé** (il ne l'est pas au moment du bu
 - **Marketing → volume, mesuré sur l'historique** : `élasticité = %Δ candidatures ÷ %Δ marketing` (N-2→N-1). Augmenter le budget marketing → + candidatures → + inscrits → **ROI net** visible.
 - **CAC en deux composantes** : global partagé (groupe) + variable par programme (achat de leads).
 - **Seuil d'ouverture = point mort calculé** (pas un chiffre en dur).
-- **Alternance / financement** : sécurisation ≤ 3 mois → OPCO rétroactif 100 % ; reste à charge **employeur** (recouvrement paramétrable, défaut **100 % légal**). Le **taux de sécurisation** pilote l'**exposition** (« € à sécuriser ») ; son effet **EBITDA** n'apparaît que si le recouvrement < 100 %.
+- **Alternance** : CA reconnu au **tarif plein** (OPCO + employeur). Le facteur de sécurisation a été **retiré** du modèle (jugé non significatif pour le groupe).
 - **Cadrage top-down** : cibles CA/EBITDA € → écart → à combler via les leviers (voir Sensibilité).
 
 ## Précisions d'architecture (données vs décisions)
 - **Frais de structure & marketing groupe = montant FIXE** (siège, IT, marque), alloué par driver — plus un % du CA.
 - **CAC** : global (fixe, en structure) + **variable par programme** (achat de leads, per inscrit).
-- **Sécurisation N-1** et **conversion candidature→inscrit** : **déduites de l'historique** (par programme / par cellule), puis bougées par les curseurs. Les valeurs globales ne sont que des replis.
+- **Conversion candidature→inscrit** : **déduite de l'historique** (par cellule), puis bougée par les curseurs. Les valeurs globales ne sont que des replis.
 - **Coût ETP permanent** ~58 k€ chargé ; **taux de passage** B1→B2 **93 %** (rétention élevée).
 
 ## Simulateur & conseil de décisions (feuille 11) — logique CFO
@@ -70,7 +71,7 @@ Effectif 2 415 · **alternance 82 %** · 5 marques · 14 campus.
 
 ## Vérifications
 - **0 erreur** sur ~5 500 cellules (moteur `formulas`).
-- Marge EBITDA **N-1 14,6 %** (= réel) ; pont CA (Volume/Tarif/Sécurisation/Frais) **réconcilie exactement**.
+- Marge EBITDA **N-1 14,6 %** (= réel) ; pont CA (Volume/Tarif/Frais) **réconcilie exactement**.
 - Fermeture d'une promo : EBITDA groupe = − contribution (structure inchangée, rediluée) — **vérifié**.
 - Élasticité marketing **mesurée** ; simulateur, reco et marketing→volume **dynamiques** ; recalcul auto à l'ouverture.
 

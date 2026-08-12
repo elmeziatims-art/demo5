@@ -52,12 +52,9 @@ CAP_D,HRS_D,TXH_D,PEDA_D,ETPC,FRAIS,DA_PCT=30,550,60,400,58000,90,0.06  # ETP ch
 CONV_N1,ADM_N1=0.372,0.62
 AUTRES_ETU=934   # autres charges d'exploitation / étudiant (achats pédago, sous-traitance, IT, missions, honoraires) -> cale l'EBITDA à 14,6% et les achats/autres à ~11% du CA (réel)
 STRUCT_FIXE=2000000   # frais de structure & marketing groupe : montant FIXE (siège, IT, marque, équipe centrale)
-SECU_N1,RECOUV=0.86,1.00
 ELAST_DEF=0.5    # élasticité marketing par défaut (repli si historique mince)
-# taux de sécurisation ≤3 mois N-1, mesuré PAR PROGRAMME (issu de l'historique)
-def secu_prog(dom): return {"Management":0.88,"Communication":0.85,"Commerce":0.87,"Commerce/RH":0.84,"Tourisme":0.83}.get(dom,SECU_N1)
-
-def sf(mod,secu,recouv=RECOUV): return 1.0 if mod!="ALT" else secu+(1-secu)*recouv
+# sécurisation RETIRÉE du modèle : l'alternance est reconnue au tarif plein (OPCO + employeur) -> facteur = 1
+def sf(mod,*a,**k): return 1.0
 
 # ---- génération des cellules avec cohortes ----
 rows=[]

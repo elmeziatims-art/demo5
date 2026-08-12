@@ -60,7 +60,7 @@ for r in rows:
     if key in seenc: continue
     seenc.add(key); cells=[x for x in rows if (x["marque"],x["ville"])==key]
     eff=sum(x["eff"] for x in cells); nouv=sum(x["nouv"] for x in cells)
-    ca=sum(x["eff"]*x["tarif"]*sf(x["mod"],SECU_N1)+x["nouv"]*FRAIS for x in cells)
+    ca=sum(x["eff"]*x["tarif"]+x["nouv"]*FRAIS for x in cells)
     ens=sum(x["classes"]*x["heures"]*x["taux"] for x in cells)
     ped=sum(x["eff"]*x["pedago"] for x in cells)
     mkt=sum(x["nouv"]*x["cacv"] for x in cells)   # variable par programme uniquement (le global est fixe, en structure)
@@ -78,8 +78,7 @@ print("[py] CA N-1=%.0f EBITDA N-1=%.0f (%.1f%%)"%(grp_ca_n1,grp_ebitda_n1,grp_e
 CAD="'01_Cadrage'!"
 SCEN=f"{CAD}$D$3"                     # scénario actif (Cadrage/Optimiste/Prudent)
 PMKT,PPRIX,PDCONV,PPASS,PINFL,PSAL=(f"{CAD}$H${_r}" for _r in (16,17,18,19,20,21))   # leviers % (ACTIF)
-KETPC,KFRAIS,KSTRUCT,KRECOUV,KAUTRES,KSECUN1,KELAST,KCONV=(f"{CAD}$H${_r}" for _r in (23,24,25,26,27,28,29,30))  # constantes (ACTIF)
-PSECU=f"{CAD}$H$28"                   # sécurisation retirée des leviers top-down -> constante (défaut)
+KETPC,KFRAIS,KSTRUCT,KAUTRES,KELAST,KCONV=(f"{CAD}$H${_r}" for _r in (23,24,25,26,27,28))  # constantes (ACTIF) — sécurisation & recouvrement retirés
 DRIVER=f"{CAD}$D$34"                  # driver d'allocation vers CAMPUS (l'allocation 09 s'appuie dessus)
 DRIVER_MARQUE=f"{CAD}$D$33"; DRIVER_PROG=f"{CAD}$D$35"  # drivers marque & programme (cascade)
 _NC=sum(len(v[4]) for v in BRANDS.values())   # nb de campus (coeff marque×campus)
@@ -105,7 +104,7 @@ sh=[("01_Cadrage","POSTE DE COMMANDE CFO : cadrage top-down (N-2 · atterrissage
  ("11b_Mutualisation","Mutualisation inter-sections (maille CAMPUS) : sections économisables & économie potentielle"),
  ("11c_Cascade","Allocation EN CASCADE sur un VRAI campus (MBway Lyon) + effet d'une fermeture (bénéfique vs entraînement)"),
  ("12_Sensibilite","Impact € sur l'EBITDA par levier (sens unique)"),
- ("13_Simulation","KPIs, € à risque, taux d'alternance/sécurisation"),
+ ("13_Simulation","KPIs Budget vs N-1 : effectif, CA, EBITDA, taux d'alternance"),
  ("14_Mapping_Tagetik","Passerelle Tagetik")]
 r=6
 for a,b in sh:
@@ -195,18 +194,17 @@ for rr in rows:
 HRN=HR0+N-1
 # bloc marketing par programme (N-2/N-1 -> élasticité)
 mrow=HRN+3
-C(ws,f"A{mrow}","Historique marketing & sécurisation par programme (issu du réalisé)",CB,align=AL); ws.merge_cells(f"A{mrow}:G{mrow}")
+C(ws,f"A{mrow}","Historique marketing par programme (issu du réalisé) → élasticité mesurée",CB,align=AL); ws.merge_cells(f"A{mrow}:F{mrow}")
 mrow+=1
-for i,h in enumerate(["Programme","Cand N-2","Cand N-1","Marketing N-2","Marketing N-1","Élasticité mesurée","Sécurisation N-1"]): C(ws,f"{GL(1+i)}{mrow}",h,CHDR,FBLUE,align=AC,border=True)
+for i,h in enumerate(["Programme","Cand N-2","Cand N-1","Marketing N-2","Marketing N-1","Élasticité mesurée"]): C(ws,f"{GL(1+i)}{mrow}",h,CHDR,FBLUE,align=AC,border=True)
 ME0=mrow+1; r=ME0
 for (m,pnom,ptype,dom) in prog_list:
     h=mkt_hist[(m,pnom)]
     C(ws,f"A{r}",pnom,CIN,align=AL,border=True); C(ws,f"B{r}",h["cand_n2"],CIN,fmt=NB,align=AC,border=True); C(ws,f"C{r}",h["cand_n1"],CIN,fmt=NB,align=AC,border=True)
     C(ws,f"D{r}",h["mkt_n2"],CIN,fmt=EUR,align=AR,border=True); C(ws,f"E{r}",h["mkt_n1"],CIN,fmt=EUR,align=AR,border=True)
-    C(ws,f"F{r}",f"=IFERROR((C{r}/B{r}-1)/(E{r}/D{r}-1),{KELAST})",CF,fmt=X2,align=AC,border=True)
-    C(ws,f"G{r}",secu_prog(dom),CIN,fmt=PCT,align=AC,border=True); r+=1
+    C(ws,f"F{r}",f"=IFERROR((C{r}/B{r}-1)/(E{r}/D{r}-1),{KELAST})",CF,fmt=X2,align=AC,border=True); r+=1
 MEN=r-1
-MEKEY=f"'06_Historique'!$A${ME0}:$A${MEN}"; MEELA=f"'06_Historique'!$F${ME0}:$F${MEN}"; MESECU=f"'06_Historique'!$G${ME0}:$G${MEN}"
+MEKEY=f"'06_Historique'!$A${ME0}:$A${MEN}"; MEELA=f"'06_Historique'!$F${ME0}:$F${MEN}"
 def hc_(col,rr): return f"'06_Historique'!{col}{rr}"
 
 # ============================================================ 07_Structure
@@ -236,7 +234,7 @@ STC=lambda col:f"'07_Structure'!{col}{STOT}"
 ws=wb.create_sheet("08_Moteur"); ws.sheet_view.showGridLines=False
 mcols=["Marque","Ville","Programme","Année","Mod","Entrée","Eff N-1","Nouv N-1","Réins N-1","Cand N-1","EffInf N-1","Tarif N-1","Cl N-1","clé",
  "Cap","Heures","Taux","Pédago","CACvar","Passage","Coût/cl","cMkt","cPrix","Élast","Effort","Cand Bud","Conv","Nouv Bud","Réins Bud","Effectif Bud",
- "Tarif Bud","SecFac","SecN-1","CA Bud","Cl besoin","Enseign","Pédago€","Mktg","Contrib","Rempl","Contr/étu","Pt mort"]
+ "Tarif Bud","(réservé)","(réservé2)","CA Bud","Cl besoin","Enseign","Pédago€","Mktg","Contrib","Rempl","Contr/étu","Pt mort"]
 for i,w in enumerate([15,9,17,6,5,6]+[9]*(len(mcols)-6)): ws.column_dimensions[GL(1+i)].width=w
 ws.merge_cells("A1:AP1"); C(ws,"A1","Moteur de budget par cellule (cohortes · marketing→volume mesuré · seuil=point mort)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
 for i,h in enumerate(mcols): C(ws,f"{GL(1+i)}2",h,CHDR,FBLUE,align=AC,border=True)
@@ -267,8 +265,8 @@ for idx in range(N):
     C(ws,f"AC{r}",f"=IF(F{r}=1,0,K{r}*(T{r}+{PPASS}))",CF,fmt=NB,align=AC,border=True)
     C(ws,f"AD{r}",f"=AB{r}+AC{r}",CFB,fmt=NB,align=AC,border=True)
     C(ws,f"AE{r}",f"=L{r}*(1+{PPRIX}*W{r})",CF,fmt=EUR,align=AC,border=True)
-    C(ws,f"AF{r}",f'=IF(E{r}="ALT",{PSECU}+(1-{PSECU})*{KRECOUV},1)',CF,fmt=X2,align=AC,border=True)
-    C(ws,f"AG{r}",f'=IF(E{r}="ALT",IFERROR(INDEX({MESECU},MATCH(C{r},{MEKEY},0)),{KSECUN1})+(1-IFERROR(INDEX({MESECU},MATCH(C{r},{MEKEY},0)),{KSECUN1}))*{KRECOUV},1)',CF,fmt=X2,align=AC,border=True)  # sécu N-1 par programme
+    C(ws,f"AF{r}","=1",CF,fmt=X2,align=AC,border=True)   # financement alternance = 1 (tarif plein) — sécurisation retirée
+    C(ws,f"AG{r}","=1",CF,fmt=X2,align=AC,border=True)
     C(ws,f"AH{r}",f"=AD{r}*AE{r}*AF{r}+AB{r}*{KFRAIS}",CF,fmt=EUR,align=AR,border=True)
     C(ws,f"AI{r}",f"=IF(AD{r}<=0,0,MAX(1,ROUNDUP(AD{r}/O{r},0)))",CF,fmt=NB,align=AC,border=True)
     C(ws,f"AJ{r}",f"=AI{r}*U{r}",CF,fmt=EUR,align=AR,border=True)
@@ -292,7 +290,7 @@ mgroups=[("A–F","Identité & type : marque, campus, programme, année, modalit
  ("N–T","Paramètres programme×année (feuille 05) : capacité, heures, taux, pédago, CAC variable, taux de passage"),
  ("U–Y","Coûts unitaires & coefficients : coût/classe, coeff marketing, coeff prix, élasticité, effort"),
  ("Z–AD","COHORTE → VOLUME : candidatures budget → conversion → nouveaux + réinscrits = EFFECTIF budget"),
- ("AE–AH","Tarif & financement alternance : tarif budget, facteur sécurisation, CA budget"),
+ ("AE–AH","Tarif & CA budget : tarif budget, CA budget"),
  ("AI–AL","Coûts budget : classes nécessaires, enseignement, pédagogie, marketing"),
  ("AM–AP","RÉSULTATS : marge de CONTRIBUTION, remplissage, contribution/étudiant, point mort (seuil d'ouverture)")]
 for rng,txt in mgroups:
@@ -358,12 +356,11 @@ pl(r,"EBIT",f"={n1_ctb}-{n1_loy}-{n1_perm}-{n1_str}-{n1_da}",f"={ALc('L')}",EUR,
 band(ws,r+1,"B","F","Pont Chiffre d'affaires (N-1 → Budget)"); r+=2
 for i,h in enumerate(["Effet","Montant"]): C(ws,f"{GL(2+i)}{r}",h,CHDR,FBLUE,align=AC,border=True)
 r+=1
-vol=f"=SUMPRODUCT(({mrng('AD')}-{mrng('G')})*{mrng('L')}*{mrng('AG')})"
-tar=f"=SUMPRODUCT({mrng('AD')}*({mrng('AE')}-{mrng('L')})*{mrng('AG')})"
-sig=f"=SUMPRODUCT({mrng('AD')}*{mrng('AE')}*({mrng('AF')}-{mrng('AG')}))"
+vol=f"=SUMPRODUCT(({mrng('AD')}-{mrng('G')})*{mrng('L')})"
+tar=f"=SUMPRODUCT({mrng('AD')}*({mrng('AE')}-{mrng('L')}))"
 fra=f"=SUMPRODUCT({mrng('AB')})*{KFRAIS}-SUMPRODUCT({mrng('H')})*{KFRAIS}"
 for lib,f2,fl in [("CA Réalisé N-1",f"={n1_ca}",None),("  + Effet Volume",vol,None),("  + Effet Tarif",tar,None),
- ("  + Effet Sécurisation",sig,None),("  + Effet Frais",fra,None),("CA Budget N+1",f"={msum('AH')}",FTOT)]:
+ ("  + Effet Frais",fra,None),("CA Budget N+1",f"={msum('AH')}",FTOT)]:
     C(ws,f"B{r}",lib,(CFB if fl else CREG),fl,align=AL,border=True); C(ws,f"C{r}",f2,(CFB if fl else CF),fl,fmt=EUR,align=AR,border=True); r+=1
 
 # ============================================================ 01_Cadrage (poste de commande CFO)  [tab position 1]
@@ -414,8 +411,8 @@ for lib,u,ba,cad,opt,pru,fmt in levs:
 band(ws,22,"B","H","Constantes de référence — base = atterrissage · les 3 scénarios sont SAISISSABLES (€ : variation en % · taux : valeur en %)")
 # typ : "var" = € piloté par une VARIATION en % (ACTIF = base×(1+var)) ; "val" = taux/x saisi DIRECTEMENT (ACTIF = valeur)
 consts=[("Coût chargé / ETP permanent","€",ETPC,EUR,"var"),("Frais de dossier / nouvel inscrit","€",FRAIS,EUR,"var"),
- ("Frais de structure & marketing groupe (FIXE)","€",STRUCT_FIXE,EUR,"var"),("Recouvrement reste à charge (employeur)","%",RECOUV,PCT,"val"),
- ("Autres charges d'exploitation / étudiant","€",AUTRES_ETU,EUR,"var"),("Sécurisation contrat (défaut, ≤3 mois)","%",SECU_N1,PCT,"val"),
+ ("Frais de structure & marketing groupe (FIXE)","€",STRUCT_FIXE,EUR,"var"),
+ ("Autres charges d'exploitation / étudiant","€",AUTRES_ETU,EUR,"var"),
  ("Élasticité marketing (défaut)","x",ELAST_DEF,X2,"val"),("Conversion cand.→inscrit (défaut)","%",CONV_N1,PCT,"val")]
 r=23
 for lib,u,val,fmt,typ in consts:
@@ -630,14 +627,11 @@ varm=f'SUMPRODUCT(({mrng("F")}=1)*{mrng("H")}*{mrng("S")}*(1+{mrng("Y")}))'
 reinb=f'SUMPRODUCT(({mrng("F")}=0)*{mrng("K")})'
 ctb_etu=f"IFERROR({msum('AM')}/{msum('AD')},0)"
 rows_sens=[("+1 % de hausse tarifaire",f"=0.01*{scol}","Tombe quasi intégralement en EBITDA."),
- ("+1 point de sécurisation (≤3 mois)",f"=0.01*{altn}*(1-{KRECOUV})","Nul si recouvrement=100 % ; sinon réduit la perte."),
  ("+1 % de budget marketing",f"=0.01*{KELAST}*{newc}-0.01*{varm}","Plus de leads → plus d'inscrits, net du coût."),
  ("+1 point de taux de passage",f"=0.01*{reinb}*{ctb_etu}","Rétention : + d'étudiants qui poursuivent.")]
 r=6
 for lib,f2,lec in rows_sens:
     C(ws,f"B{r}",lib,CB,align=AL,border=True); C(ws,f"C{r}",f2,CF,fmt=EUR,align=AR,border=True); C(ws,f"D{r}",lec,CIT,align=ALW,border=True); ws.row_dimensions[r].height=26; r+=1
-C(ws,f"B{r+1}","Exposition financement alternance (€ à sécuriser) :",CB,align=AR); ws.merge_cells(f"B{r+1}:C{r+1}")
-C(ws,f"D{r+1}",f'=SUMPRODUCT(({mrng("E")}="ALT")*{mrng("AD")}*{mrng("AE")})*(1-{PSECU})',CFB,FRISK,fmt=EUR,align=AR)
 
 # ============================================================ 13_Simulation
 ws=wb.create_sheet("13_Simulation"); ws.sheet_view.showGridLines=False
@@ -651,13 +645,10 @@ kp=[("Effectif total",f"={msum('AD')}",f"={n1_eff}",NB),("Chiffre d'affaires",f"
  ("Marge de contribution",f"={msum('AM')}",f"={n1_ctb}",EUR),("EBITDA",f"={ebit}",f"={ebn1}",EUR),
  ("Marge EBITDA %",f"=IFERROR({ebit}/{msum('AH')},0)",f"=IFERROR(({ebn1})/{n1_ca},0)",PCT),
  ("Nombre de classes",f"={msum('AI')}",f"={msum('M')}",NB),("Nouveaux inscrits",f"={msum('AB')}",f"={msum('H')}",NB),
- ("Taux d'alternance",f"=IFERROR({altR}/{msum('AD')},0)",f"=IFERROR({altF}/{msum('G')},0)",PCT),
- ("Taux de sécurisation",f"={PSECU}",f"={KSECUN1}",PCT),
- ("€ à sécuriser (exposition)",f'=SUMPRODUCT(({mrng("E")}="ALT")*{mrng("AD")}*{mrng("AE")})*(1-{PSECU})',
-   f'=SUMPRODUCT(({mrng("E")}="ALT")*{mrng("G")}*{mrng("L")})*(1-{KSECUN1})',EUR)]
+ ("Taux d'alternance",f"=IFERROR({altR}/{msum('AD')},0)",f"=IFERROR({altF}/{msum('G')},0)",PCT)]
 r=6
 for lib,bud,n1,fmt in kp:
-    fill=FRISK if "sécuriser" in lib else None
+    fill=None
     C(ws,f"B{r}",lib,CB,fill,align=AL,border=True); C(ws,f"C{r}",bud,CF,fill,fmt=fmt,align=AC,border=True); C(ws,f"D{r}",n1,CF,fill,fmt=fmt,align=AC,border=True)
     C(ws,f"E{r}",(f"=C{r}-D{r}" if fmt==PCT else f"=IFERROR(C{r}/D{r}-1,0)"),CF,fill,fmt=PCT,align=AC,border=True); r+=1
 
@@ -671,7 +662,7 @@ r=6
 for a,b,c in [("Marque / Campus","Entity","Hiérarchie Groupe→Marque→Campus"),("Programme × Année × Modalité","Dimensions analytiques","Maille fine, attributs initial/alternance"),
  ("Params (capacité, heures…)","Attributs de dimension / driver","Données de référence par programme×année (feuille 05)"),
  ("Historique N-2/N-1","Category ACTUAL (multi-années)","Plus de profondeur = élasticité marketing robuste"),
- ("Cohortes / taux de passage","Règle de calcul","Progression B1→B2→B3"),("Sécurisation & recouvrement","Comptes techniques","Financement alternance, exposition"),
+ ("Cohortes / taux de passage","Règle de calcul","Progression B1→B2→B3"),
  ("Objectifs (cadrage)","Version cible + écart","Top-down vs bottom-up"),("Décisions ouvrir/fermer","Scénarios / versions","Simulateur → snapshot"),
  ("Allocation structure","Cost allocation (driver)","Effectif/CA/m²")]:
     C(ws,f"B{r}",a,CB,align=ALW,border=True); C(ws,f"C{r}",b,CREG,align=ALW,border=True); C(ws,f"D{r}",c,CREG,align=ALW,border=True); ws.row_dimensions[r].height=28; r+=1
@@ -682,19 +673,18 @@ CYC={"BTS":"BTS","BAC":"Bachelor","MAST":"Mastère"}
 colH=["Marque","Campus","Programme","Cycle","Année","Modalité",
  "Cand. N-2","Cand. N-1","Cand. Atterr.","Admis N-1","Admis Atterr.",
  "Nouv. N-2","Nouv. N-1","Nouv. Atterr.","Réins. N-1","Réins. Atterr.","Effectif N-2","Effectif N-1","Effectif Atterr.",
- "Mktg N-2 (€)","Mktg N-1 (€)","Mktg Atterr. (€)","Tarif N-1 (€)","Tarif Atterr. (€)","Sécur. N-1","Sécur. Atterr.",
+ "Mktg N-2 (€)","Mktg N-1 (€)","Mktg Atterr. (€)","Tarif N-1 (€)","Tarif Atterr. (€)",
  "Classes N-1","Classes Atterr.","Capacité","Heures/classe","Taux horaire","Pédago/étu","CAC","Taux passage"]
 for c in range(1,7): wsd.column_dimensions[GL(c)].width=[13,11,20,9,7,9][c-1]
 for c in range(7,35): wsd.column_dimensions[GL(c)].width=11
 wsd.merge_cells("A1:J1"); C(wsd,"A1","DONNÉES À CHARGER — table de faits historique (base de projection : Réalisé N-1 ↔ Atterrissage N)",CTIT,FNAVY,align=AL); wsd.row_dimensions[1].height=26
-wsd.merge_cells("A2:AH2"); C(wsd,"A2","Une ligne par cellule fine (marque×campus×programme×année×modalité). Charge le réel des sources : 🟦 CRM/admissions · 🟩 compta/scolarité · 🟧 marketing · 🟪 OPCO/alternance · référentiel. Les 2 bases de projection (N-1 réel & atterrissage N) sont chargées côte à côte ; le N-2 donne la profondeur (élasticité).",CIT,align=ALW); wsd.row_dimensions[2].height=30
-for s,e,t in [(1,6,"DIMENSIONS"),(7,11,"CRM — Admissions (funnel)"),(12,19,"CRM — Effectifs"),(20,22,"MARKETING — Dépense d'acquisition (€)"),(23,24,"COMPTA — Tarif scolarité (€)"),(25,26,"OPCO — Sécurisation alternance"),(27,34,"RÉFÉRENTIEL — Organisation & coûts unitaires")]:
+wsd.merge_cells("A2:AF2"); C(wsd,"A2","Une ligne par cellule fine (marque×campus×programme×année×modalité). Charge le réel des sources : 🟦 CRM/admissions · 🟩 compta/scolarité · 🟧 marketing · référentiel. Les 2 bases de projection (N-1 réel & atterrissage N) sont chargées côte à côte ; le N-2 donne la profondeur (élasticité).",CIT,align=ALW); wsd.row_dimensions[2].height=30
+for s,e,t in [(1,6,"DIMENSIONS"),(7,11,"CRM — Admissions (funnel)"),(12,19,"CRM — Effectifs"),(20,22,"MARKETING — Dépense d'acquisition (€)"),(23,24,"COMPTA — Tarif scolarité (€)"),(25,32,"RÉFÉRENTIEL — Organisation & coûts unitaires")]:
     band(wsd,4,GL(s),GL(e),t)
 for i,h in enumerate(colH): C(wsd,f"{GL(1+i)}5",h,CHDR,FBLUE,align=AC,border=True)
 wsd.row_dimensions[5].height=28
 dr=6
 for rr in rows:
-    dom=BRANDS[rr["marque"]][0]; secu=secu_prog(dom) if rr["mod"]=="ALT" else 1.0
     ca_att=rr["cand"]; ca_n1=round(ca_att*0.955); ca_n2=round(ca_att*0.91)
     ad_att=rr["admis"]; ad_n1=round(ad_att*0.95)
     no_att=rr["nouv"]; no_n1=round(no_att*0.93); no_n2=round(no_att*0.86)
@@ -702,13 +692,12 @@ for rr in rows:
     ef_att=rr["eff"]; ef_n1=round(ef_att*0.95); ef_n2=round(ef_att*0.90)
     mk_att=rr["nouv"]*rr["cacv"]; mk_n1=round(mk_att*0.90); mk_n2=round(mk_att*0.82)
     ta_att=rr["tarif"]; ta_n1=round(ta_att*0.98)
-    se_n1=round(secu-0.02,2) if rr["mod"]=="ALT" else 1.0
     cl_att=rr["classes"]; cl_n1=(max(1,round(ef_n1/rr["cap"])) if ef_n1>0 else 0)
     vals=[rr["marque"],rr["ville"],rr["prog"],CYC[rr["type"]],rr["niv"],rr["mod"],
      ca_n2,ca_n1,ca_att,ad_n1,ad_att, no_n2,no_n1,no_att,re_n1,re_att,ef_n2,ef_n1,ef_att,
-     mk_n2,mk_n1,mk_att,ta_n1,ta_att,se_n1,secu, cl_n1,cl_att,
+     mk_n2,mk_n1,mk_att,ta_n1,ta_att, cl_n1,cl_att,
      rr["cap"],rr["heures"],rr["taux"],rr["pedago"],rr["cacv"],rr["passage"]]
-    fmts=[None]*6+[NB]*13+[EUR]*5+[PCT]*2+[NB]*3+[NB,EUR,EUR,NB,PCT]
+    fmts=[None]*6+[NB]*13+[EUR]*5+[NB]*2+[NB,NB,EUR,EUR,NB,PCT]
     for i,(v,fmt) in enumerate(zip(vals,fmts)):
         st=(CREG if i<6 else CIN); al=(AL if i<3 else AC)
         C(wsd,f"{GL(1+i)}{dr}",v,st,fmt=fmt,align=al,border=True)
@@ -765,7 +754,6 @@ GLOSS={
  "Tarif N-1":"Tarif moyen l'an dernier (€/étudiant/an).","Tarif Bud":"Tarif budget = tarif N-1 × (1 + hausse prix × coefficient marque).",
  "Classes N-1":"Nombre de classes l'an dernier.","Cl N-1":"Nombre de classes l'an dernier.",
  "Élasticité mesurée":"Élasticité marketing = %Δ candidatures ÷ %Δ marketing, mesurée sur N-2/N-1.",
- "Sécurisation N-1":"Part des alternants dont le contrat a été sécurisé dans les 3 mois l'an dernier (financement OPCO à 100 %).",
  # 07 Structure
  "Effectif N-1 ":"Effectif réel l'an dernier.","CA N-1":"Chiffre d'affaires réel l'an dernier.",
  "Contribution N-1":"Marge de contribution réelle l'an dernier (CA − coûts directs).",
@@ -787,8 +775,6 @@ GLOSS={
  "Effort":"Effort marketing appliqué = levier 'variation budget marketing' × coefficient marque.",
  "Conv":"Taux de conversion candidature→inscrit (mesuré par cellule) + gain du levier conversion.",
  "Effectif Bud":"Effectif budget = nouveaux + réinscrits.",
- "SecFac":"Facteur de financement alternance BUDGET (sécurisation + reste à charge recouvré). = 1 en initial.",
- "SecN-1":"Facteur de financement alternance N-1 (référence pour le pont).",
  "CA Bud":"CA budget = effectif × tarif × facteur financement + frais de dossier.",
  "Cl besoin":"Classes nécessaires = arrondi supérieur (effectif / capacité) — le MINIMUM par cellule (promo). Ce minimum ne se réduit pas au sein d'une promo ; le regroupement de sections parallèles d'un même campus se traite un cran au-dessus (feuille 11b_Mutualisation).",
  "Enseign":"Coût d'enseignement = classes × coût par classe.",
@@ -897,12 +883,12 @@ OBJET={
  "07_Structure":"Réalisé N-1 par CAMPUS (loyers, ETP permanents, D&A, m²) : la base des coûts de structure.",
  "08_Moteur":"CŒUR DE CALCUL : construit le budget de CHAQUE cellule (cohortes, marketing→volume, tarif, financement alternance, point mort). Toutes les feuilles de résultat en découlent.",
  "09_Allocation":"Répartir les frais de structure FIXES sur les campus selon un driver (effectifs / CA / m²).",
- "10_PnL":"Compte de résultat consolidé N-1 vs Budget + PONT d'explication du CA (volume / tarif / sécurisation / frais).",
+ "10_PnL":"Compte de résultat consolidé N-1 vs Budget + PONT d'explication du CA (volume / tarif / frais).",
  "11_Simulateur":"BAC À SABLE de décisions à la maille PROMO (ouvrir / fermer / regrouper) → impact EBITDA AVANT/APRÈS. N'affecte PAS le budget officiel.",
  "11b_Mutualisation":"BAC À SABLE à la maille CAMPUS × CYCLE : combien de classes / € récupérables en mutualisant le tronc commun, sans dépasser la capacité.",
  "11c_Cascade":"BAC À SABLE : allocation de la structure EN CASCADE (marque→campus→classe) et démonstration de QUAND fermer une promo est bénéfique ou non, sur un vrai campus.",
  "12_Sensibilite":"Classer les LEVIERS par impact € sur l'EBITDA, pour savoir lequel actionner afin de combler l'écart de cadrage.",
- "13_Simulation":"TABLEAU DE BORD : KPIs clés Budget vs N-1 (effectif, CA, EBITDA, taux d'alternance, sécurisation, € à sécuriser).",
+ "13_Simulation":"TABLEAU DE BORD : KPIs clés Budget vs N-1 (effectif, CA, EBITDA, taux d'alternance).",
  "14_Mapping_Tagetik":"PASSERELLE : correspondance entre les objets du modèle Excel et leur implémentation dans CCH Tagetik.",
  "DATA_Chargement":"DONNÉES À CHARGER dans Tagetik : table de faits historique (une ligne par cellule fine) alimentée par les sources — CRM/admissions, compta/scolarité, marketing, OPCO/alternance, SIRH — sur N-2 · N-1 · atterrissage N, plus la structure par campus. C'est la BASE de projection.",
 }
