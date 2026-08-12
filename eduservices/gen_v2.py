@@ -728,6 +728,29 @@ GLOSS={
  "Sections économisables":"Classes récupérables = sections aujourd'hui − plancher. Vient des arrondis : chaque promo arrondit au minimum, mais mises en commun elles remplissent mieux.",
  "Coût moyen / classe":"Coût d'enseignement moyen d'une classe du campus = coût enseignement total / nombre de classes.",
  "Économie potentielle €":"Sections économisables × coût moyen/classe × % d'heures mutualisables. Potentiel indicatif (bac à sable), pas un impact P&L officiel.",
+ # 11c Cascade
+ "Promo (ISCOM Toulouse)":"Promotion = programme × année du campus focus (ISCOM Toulouse).",
+ "Eff. réel (moteur)":"Effectif budget RÉEL calculé par le moteur (feuille 08) pour cette promo — sert de référence en regard du scénario.",
+ "Eff. scénario":"Effectif que TU testes (bleu, éditable). Baisse-le pour simuler une promo sous-remplie / en extinction et voir l'effet.",
+ "Classes":"Nombre de classes = arrondi supérieur (effectif scénario / capacité).",
+ "Contribution (évitable)":"CA − coûts directs évitables (enseignement + charge/étu + CAC). C'est LA métrique de décision : on ne ferme que si elle est négative.",
+ "Struct/classe":"Structure non-évitable du campus (envelope) ÷ nombre total de classes. C'est ce qui se REDIVISE quand on ferme une promo.",
+ "Struct allouée":"Structure portée par la promo = ses classes × structure/classe.",
+ "Résultat t.c. (avant)":"Résultat TOUT COMPRIS = contribution − structure allouée. INFORMATIF : peut être négatif alors que la contribution est positive (le piège). JAMAIS un critère de fermeture.",
+ "Cl. après":"Nombre de classes après ta décision (0 si Fermer).",
+ "Struct après":"Structure allouée après décisions : l'envelope (inchangée, non-évitable) se redivise sur les classes RESTANTES → chacune en porte plus.",
+ "Résultat t.c. (après)":"Résultat tout compris recalculé après décisions. En ROUGE si < 0 : rend visible l'effet d'entraînement.",
+ "Coût/classe":"Coût d'enseignement d'une classe (heures × taux horaire), issu du modèle (feuille 05).",
+ "Tarif":"Tarif de scolarité par étudiant et par an (feuille 05).",
+ "Charge/étu":"Charges variables par étudiant = coût pédagogique + autres charges d'exploitation (feuille 05).",
+ "CAC/étu":"Coût d'acquisition (achat de leads) par étudiant — uniquement en année d'entrée.",
+ # divers entêtes
+ "Clé (marque|campus)":"Clé technique marque|campus : le moteur s'en sert pour retrouver le bon coefficient stratégique du campus.",
+ "Heures/classe":"Heures d'enseignement délivrées par classe et par an.",
+ "Coût pédago/étu":"Coût pédagogique par étudiant/an, HORS salaires des intervenants (supports, licences, LMS, jury/examens, certifications). 350-670 € selon le domaine.",
+ "Concept":"Notion du modèle Excel à transposer dans Tagetik.",
+ "Objet Tagetik":"Objet CCH Tagetik correspondant (dimension, hiérarchie, règle de calcul, workflow…).",
+ "Détail":"Précision sur la correspondance et le paramétrage Tagetik.",
  # 12 Sensibilite
  "Levier (pas)":"Levier testé et son incrément.","Impact EBITDA":"Effet € sur l'EBITDA d'un pas du levier (approximation vivante).","Lecture":"Interprétation.",
  # 13 Simulation
@@ -763,6 +786,35 @@ for rr,tx in lev_notes.items(): add_note(ws.cell(row=rr,column=2),tx)
 for col,tx in {"D":"Valeurs du scénario Cadrage (central).","E":"Valeurs du scénario Optimiste.","F":"Valeurs du scénario Prudent.","G":"Valeur ACTIVE = celle du scénario sélectionné en C3."}.items():
     add_note(ws[f"{col}5"],tx)
 add_note(ws["C3"],"Scénario actif : change cette cellule et TOUT le budget se recalcule.")
+
+# ---- OBJET DE L'ONGLET : une note explicite sur le titre de CHAQUE feuille (pour guider le consultant) ----
+OBJET={
+ "00_Notice":"Sommaire et mode d'emploi du classeur : rôle de chaque feuille, légende des couleurs, périmètre. Commence ici.",
+ "01_Objectifs":"Cadrage TOP-DOWN : la direction saisit les cibles CA/EBITDA ; la feuille affiche l'écart avec le budget CONSTRUIT par les leviers.",
+ "02_Leviers":"Poste de pilotage : régler les hypothèses (en %), choisir le scénario, et voir les constantes de référence (mesuré vs repli). Tout le budget se recalcule à partir d'ici.",
+ "03_Coeff_Strateg":"Moduler l'intensité MARKETING et PRIX par marque ET par campus : effort appliqué = levier (feuille 02) × coefficient.",
+ "04_Referentiel":"Dimensions et plan de comptes du modèle (entités Groupe→Marque→Campus, comptes fixe/variable) — le socle de structuration.",
+ "05_Param_Prog_Annee":"Données de référence UNITAIRES par programme × année (capacité, heures, taux, pédago, CAC, passage) qui alimentent le moteur. À charger avec le réel.",
+ "06_Historique":"Réalisé N-1 par cellule (funnel + cohorte) et historique marketing N-2/N-1 servant à MESURER la conversion, le passage et l'élasticité (pas d'invention).",
+ "07_Structure":"Réalisé N-1 par CAMPUS (loyers, ETP permanents, D&A, m²) : la base des coûts de structure.",
+ "08_Moteur":"CŒUR DE CALCUL : construit le budget de CHAQUE cellule (cohortes, marketing→volume, tarif, financement alternance, point mort). Toutes les feuilles de résultat en découlent.",
+ "09_Allocation":"Répartir les frais de structure FIXES sur les campus selon un driver (effectifs / CA / m²).",
+ "10_PnL":"Compte de résultat consolidé N-1 vs Budget + PONT d'explication du CA (volume / tarif / sécurisation / frais).",
+ "11_Simulateur":"BAC À SABLE de décisions à la maille PROMO (ouvrir / fermer / regrouper) → impact EBITDA AVANT/APRÈS. N'affecte PAS le budget officiel.",
+ "11b_Mutualisation":"BAC À SABLE à la maille CAMPUS × CYCLE : combien de classes / € récupérables en mutualisant le tronc commun, sans dépasser la capacité.",
+ "11c_Cascade":"BAC À SABLE : allocation de la structure EN CASCADE (marque→campus→classe) et démonstration de QUAND fermer une promo est bénéfique ou non, sur un vrai campus.",
+ "12_Sensibilite":"Classer les LEVIERS par impact € sur l'EBITDA, pour savoir lequel actionner afin de combler l'écart de cadrage.",
+ "13_Simulation":"TABLEAU DE BORD : KPIs clés Budget vs N-1 (effectif, CA, EBITDA, taux d'alternance, sécurisation, € à sécuriser).",
+ "14_Mapping_Tagetik":"PASSERELLE : correspondance entre les objets du modèle Excel et leur implémentation dans CCH Tagetik.",
+}
+for shname,obj in OBJET.items():
+    ws=wb[shname]; placed=False
+    for r in range(1,4):
+        for col in range(1,6):
+            cell=ws.cell(row=r,column=col)
+            if isinstance(cell.value,str) and len(cell.value)>12 and not cell.value.startswith("="):
+                cm=Comment("OBJET DE L'ONGLET — "+obj,"Guide"); cm.width=340; cm.height=170; cell.comment=cm; placed=True; break
+        if placed: break
 
 try: wb.calculation.fullCalcOnLoad=True
 except Exception:
