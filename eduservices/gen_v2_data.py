@@ -47,9 +47,10 @@ def tarif(t,mod):
 def lvl_factor(t,niv):
     return {"BAC":{"B1":1.00,"B2":0.85,"B3":0.75},"MAST":{"M1":0.60,"M2":0.54},"BTS":{"1":0.80,"2":0.70}}[t][niv]
 
-# constantes calibrées
-CAP_D,HRS_D,TXH_D,PEDA_D,ETPC,FRAIS,DA_PCT=30,550,60,400,58000,90,0.03  # ETP chargé 58 k€
+# constantes calibrées sur les COMPTES CONSOLIDÉS EDUSERVICES 4.0 (CA 345,8M€, EBITDA 14,6%, D&A 6%)
+CAP_D,HRS_D,TXH_D,PEDA_D,ETPC,FRAIS,DA_PCT=30,550,60,400,58000,90,0.06  # ETP chargé 58 k€ ; D&A 6% du CA (réel)
 CONV_N1,ADM_N1=0.372,0.62
+AUTRES_ETU=380   # autres charges d'exploitation / étudiant (achats, sous-traitance, IT, missions) -> cale l'EBITDA à ~14,6%
 STRUCT_FIXE=2000000   # frais de structure & marketing groupe : montant FIXE (siège, IT, marque, équipe centrale)
 SECU_N1,RECOUV=0.86,1.00
 ELAST_DEF=0.5    # élasticité marketing par défaut (repli si historique mince)

@@ -62,7 +62,8 @@ for r in rows:
     ens=sum(x["classes"]*x["heures"]*x["taux"] for x in cells)
     ped=sum(x["eff"]*x["pedago"] for x in cells)
     mkt=sum(x["nouv"]*x["cacv"] for x in cells)   # variable par programme uniquement (le global est fixe, en structure)
-    contrib=ca-ens-ped-mkt
+    autres=eff*AUTRES_ETU
+    contrib=ca-ens-ped-mkt-autres
     loyer=round(0.11*ca/1000)*1000; etp=round(eff/28)+2; da=round(DA_PCT*ca/1000)*1000; m2=eff*8
     campus.append(dict(marque=r["marque"],ville=r["ville"],eff=eff,nouv=nouv,ca=ca,contrib=contrib,loyer=loyer,etp=etp,da=da,m2=m2))
 CG=len(campus)
@@ -74,7 +75,7 @@ print("[py] CA N-1=%.0f EBITDA N-1=%.0f (%.1f%%)"%(grp_ca_n1,grp_ebitda_n1,grp_e
 # ============================================================ refs paramètres
 P=lambda a:f"'02_Leviers'!{a}"
 PMKT,PPRIX,PDCONV,PSECU,PPASS,PINFL,PSAL=P("$G$6"),P("$G$7"),P("$G$8"),P("$G$9"),P("$G$10"),P("$G$11"),P("$G$12")
-KETPC,KFRAIS,KSTRUCT,KRECOUV,KSECUN1,KELAST,KCONV=(P("$D$15"),P("$D$16"),P("$D$17"),P("$D$18"),P("$D$19"),P("$D$20"),P("$D$21"))
+KETPC,KFRAIS,KSTRUCT,KRECOUV,KAUTRES,KSECUN1,KELAST,KCONV=(P("$D$15"),P("$D$16"),P("$D$17"),P("$D$18"),P("$D$19"),P("$D$20"),P("$D$21"),P("$D$22"))
 
 # ============================================================ 00_Notice
 ws=wb.active; ws.title="00_Notice"; ws.sheet_view.showGridLines=False
@@ -134,6 +135,7 @@ consts=[("Coût chargé / ETP permanent","€",ETPC,EUR,"réel (SIRH)"),
  ("Frais de dossier / nouvel inscrit","€",FRAIS,EUR,"réel"),
  ("Frais de structure & marketing groupe (€ FIXE)","€",STRUCT_FIXE,EUR,"réel (siège, IT, marque)"),
  ("Recouvrement reste à charge (employeur)","%",RECOUV,PCT,"hypothèse (100% légal)"),
+ ("Autres charges d'exploitation / étudiant","€",AUTRES_ETU,EUR,"réel (achats, sous-traitance, IT)"),
  ("Sécurisation N-1 — REPLI","%",SECU_N1,PCT,"repli (sinon mesuré par programme)"),
  ("Élasticité marketing — REPLI","x",ELAST_DEF,X2,"repli (sinon mesurée N-2/N-1)"),
  ("Conversion candidature→inscrit — REPLI","%",CONV_N1,PCT,"repli (sinon mesurée par cellule)")]
@@ -143,10 +145,10 @@ for lib,u,val,fmt,note in consts:
     C(ws,f"D{r}",val,(CINB if ('hypothèse' in note or 'repli' in note) else CIN),(FYEL if ('hypothèse' in note or 'repli' in note) else None),fmt=fmt,align=AC,border=True)
     C(ws,f"E{r}",note,CIT,align=AL,border=True); ws.merge_cells(f"E{r}:F{r}")
     C(ws,f"G{r}",f"=D{r}",CF,FLIGHT,fmt=fmt,align=AC,border=True); r+=1
-C(ws,"B23","Driver d'allocation :",CB,align=AR); ws.merge_cells("B23:C23")
-C(ws,"D23","Effectifs",CINB,FYEL,align=AC,border=True)
-dv2=DataValidation(type="list",formula1='"Effectifs,Chiffre d\'affaires,Surface m2"',allow_blank=False); ws.add_data_validation(dv2); dv2.add(ws["D23"])
-DRIVER="'02_Leviers'!$D$23"
+C(ws,"B24","Driver d'allocation :",CB,align=AR); ws.merge_cells("B24:C24")
+C(ws,"D24","Effectifs",CINB,FYEL,align=AC,border=True)
+dv2=DataValidation(type="list",formula1='"Effectifs,Chiffre d\'affaires,Surface m2"',allow_blank=False); ws.add_data_validation(dv2); dv2.add(ws["D24"])
+DRIVER="'02_Leviers'!$D$24"
 
 # ============================================================ 03_Coeff_Strateg
 ws=wb.create_sheet("03_Coeff_Strateg"); ws.sheet_view.showGridLines=False
@@ -301,7 +303,7 @@ for idx in range(N):
     C(ws,f"AJ{r}",f"=AI{r}*U{r}",CF,fmt=EUR,align=AR,border=True)
     C(ws,f"AK{r}",f"=AD{r}*R{r}*(1+{PINFL})",CF,fmt=EUR,align=AR,border=True)
     C(ws,f"AL{r}",f"=H{r}*S{r}*(1+Y{r})",CF,fmt=EUR,align=AR,border=True)  # marketing variable (achat de leads) × (1+effort) ; le global est en structure fixe
-    C(ws,f"AM{r}",f"=AH{r}-AJ{r}-AK{r}-AL{r}",CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"AM{r}",f"=AH{r}-AJ{r}-AK{r}-AL{r}-AD{r}*{KAUTRES}*(1+{PINFL})",CFB,fmt=EUR,align=AR,border=True)
     C(ws,f"AN{r}",f"=IFERROR(AD{r}/(AI{r}*O{r}),0)",CF,fmt=PCT,align=AC,border=True)
     C(ws,f"AO{r}",f"=IFERROR(AM{r}/AD{r},0)",CF,fmt=EUR,align=AC,border=True)
     C(ws,f"AP{r}",f"=IFERROR(AI{r}*U{r}/(AE{r}*AF{r}-R{r}*(1+{PINFL})),0)",CF,fmt=NB,align=AC,border=True)
@@ -360,7 +362,7 @@ def pl(r,lib,n1,bud,fmt,bold,pct=False):
 r=6
 pl(r,"Effectifs",f"={n1_eff}",f"={msum('AD')}",NB,False); r+=1
 pl(r,"Chiffre d'affaires",f"={n1_ca}",f"={msum('AH')}",EUR,True); r+=1
-pl(r,"  Coûts directs (ens.+pédago+mktg)",f"=-({n1_ca}-{n1_ctb})",f"=-({msum('AJ')}+{msum('AK')}+{msum('AL')})",EUR,False); r+=1
+pl(r,"  Coûts directs (ens.+pédago+mktg+autres)",f"=-({n1_ca}-{n1_ctb})",f"=-({msum('AJ')}+{msum('AK')}+{msum('AL')}+{KAUTRES}*(1+{PINFL})*{msum('AD')})",EUR,False); r+=1
 pl(r,"Marge de contribution",f"={n1_ctb}",f"={msum('AM')}",EUR,True); r+=1
 pl(r,"  Loyers",f"=-{n1_loy}",f"=-{ALc('E')}",EUR,False); r+=1
 pl(r,"  Personnel permanent",f"=-{n1_perm}",f"=-{ALc('F')}",EUR,False); r+=1
