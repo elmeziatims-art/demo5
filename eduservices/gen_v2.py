@@ -400,41 +400,43 @@ ws.merge_cells("B12:E14")
 C(ws,"B12","Cibles en JAUNE (saisie direction). Le budget construit vient du moteur (feuille 08) et bouge avec tes leviers. "
  "Utilise la feuille 12_Sensibilite pour savoir quels leviers actionner afin de combler l'écart.",CIT,align=ALW)
 
-# ============================================================ 11_Simulateur (logique CFO : décision sur la CONTRIBUTION)
+# ============================================================ 11_Simulateur (logique CFO 360° : dilution symétrique)
 ws=wb.create_sheet("11_Simulateur"); ws.sheet_view.showGridLines=False
-sc=["Marque","Ville","Programme","Année","Effectif","CA","Coûts directs\névitables","MARGE DE\nCONTRIBUTION","Structure allouée\n(après, dilution)","Résultat tout\ncompris (après)","Rempl.","🤖 Reco","Motif","Décision","Contribution\naprès","Δ EBITDA"]
-for i,w in enumerate([13,9,15,6,8,11,12,13,11,12,7,17,42,17,12,11]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells("A1:P1"); C(ws,"A1","Simulateur & conseil de décisions — logique CFO : on décide sur la MARGE DE CONTRIBUTION (col. H)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
+sc=["Marque","Ville","Programme","Année","Effectif","CA","Coûts directs\névitables","MARGE DE\nCONTRIBUTION","Rempl.","🤖 Reco","Motif","Décision",
+ "Effectif\naprès","Contribution\naprès","Structure allouée\n(après, dilution)","Résultat tout\ncompris (après)","Δ EBITDA"]
+for i,w in enumerate([13,9,15,6,8,11,12,13,7,19,40,17,9,12,12,12,11]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells("A1:Q1"); C(ws,"A1","Simulateur & conseil de décisions — logique CFO 360° : décider sur la CONTRIBUTION ; ouvrir/fermer redilue la structure sur TOUS",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
 DR0=6; last=DR0+N-1
 STRUCT_TOT=f"({ALc('E')}+{ALc('F')}+{ALc('I')})"; STRUCT_ETU=f"{STRUCT_TOT}/{msum('AD')}"
-EFF_AP=f'SUMPRODUCT((N{DR0}:N{last}<>"Ne pas ouvrir")*E{DR0}:E{last})'
-# bandeau synthèse
+EFF_AP=f"SUM(M{DR0}:M{last})"   # effectif total APRÈS décisions (pilote la dilution, dans les deux sens)
 C(ws,"A2","EBITDA groupe AVANT :",CB,align=AR); ws.merge_cells("A2:C2"); C(ws,"D2",f"={ALc('J')}",CFB,fmt=EUR,align=AR,border=True)
-C(ws,"E2","Σ Δ décisions :",CB,align=AR); ws.merge_cells("E2:F2"); C(ws,"G2",f"=SUM(P{DR0}:P{last})",CFB,fmt=EUR,align=AR,border=True); ws.merge_cells("G2:H2")
+C(ws,"E2","Σ Δ décisions :",CB,align=AR); ws.merge_cells("E2:F2"); C(ws,"G2",f"=SUM(Q{DR0}:Q{last})",CFB,fmt=EUR,align=AR,border=True); ws.merge_cells("G2:H2")
 C(ws,"I2","EBITDA groupe APRÈS :",CB,align=AR); ws.merge_cells("I2:J2"); C(ws,"K2","=D2+G2",CFB,FTOT,fmt=EUR,align=AR,border=True); ws.merge_cells("K2:L2")
 C(ws,"A3","Structure / étudiant — AVANT :",CB,align=AR); ws.merge_cells("A3:C3"); C(ws,"D3",f"={STRUCT_ETU}",CFB,fmt=EUR,align=AR,border=True)
-C(ws,"E3","APRÈS (dilution) :",CB,align=AR); ws.merge_cells("E3:F3"); C(ws,"G3",f"=IFERROR({STRUCT_TOT}/{EFF_AP},0)",CFB,FRISK,fmt=EUR,align=AR,border=True); ws.merge_cells("G3:H3")
-C(ws,"I3","🔴 promos contribution < 0 :",CB,align=AR); ws.merge_cells("I3:J3"); C(ws,"K3",f"=SUMPRODUCT(--({mrng('AM')}<0))",CFB,FRISK,fmt=NB,align=AC,border=True)
-C(ws,"M3","⚠ Fermer une promo n'économise PAS la structure (loyer, permanents, siège) : elle RESTE et se redilue sur les autres → on ferme UNIQUEMENT si la contribution (H) est négative.",CIT,align=ALW); ws.merge_cells("M3:P3"); ws.row_dimensions[3].height=28
+C(ws,"E3","APRÈS :",CB,align=AR); ws.merge_cells("E3:F3"); C(ws,"G3",f"=IFERROR({STRUCT_TOT}/{EFF_AP},0)",CFB,FRISK,fmt=EUR,align=AR,border=True); ws.merge_cells("G3:H3")
+C(ws,"I3","Effectif total APRÈS :",CB,align=AR); ws.merge_cells("I3:J3"); C(ws,"K3",f"={EFF_AP}",CFB,fmt=NB,align=AC,border=True)
+C(ws,"M3","⚠ Fermer retire des étudiants → structure/étudiant ↑ (tous absorbent +). Ouvrir en capte → structure/étudiant ↓ (tous s'enrichissent). La structure totale ne bouge pas ; l'EBITDA groupe ne varie que des contributions.",CIT,align=ALW); ws.merge_cells("M3:Q3"); ws.row_dimensions[3].height=30
 for i,h in enumerate(sc): C(ws,f"{GL(1+i)}5",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[5].height=34
 dvd=DataValidation(type="list",formula1='"Maintenir,Ne pas ouvrir,Ouvrir +1 classe,Économiser 1 classe"',allow_blank=False); ws.add_data_validation(dvd)
 for idx in range(N):
     r=DR0+idx; mr=MR0+idx
-    am=MO('AM')+str(mr); an=MO('AN')+str(mr); u=MO('U')+str(mr); ai=MO('AI')+str(mr)
+    am=MO('AM')+str(mr); an=MO('AN')+str(mr); u=MO('U')+str(mr); ai=MO('AI')+str(mr); cap=MO('O')+str(mr)
+    metu=f"({MO('AE')+str(mr)}*{MO('AF')+str(mr)}-({MO('R')+str(mr)}+{KAUTRES})*(1+{PINFL})-{MO('S')+str(mr)})"  # contribution marginale / étudiant capté
     C(ws,f"A{r}",f"={MO('A')+str(mr)}",CL,align=AL,border=True); C(ws,f"B{r}",f"={MO('B')+str(mr)}",CL,align=AC,border=True)
     C(ws,f"C{r}",f"={MO('C')+str(mr)}",CL,align=AL,border=True); C(ws,f"D{r}",f"={MO('D')+str(mr)}",CL,align=AC,border=True)
     C(ws,f"E{r}",f"={MO('AD')+str(mr)}",CL,fmt=NB,align=AC,border=True); C(ws,f"F{r}",f"={MO('AH')+str(mr)}",CL,fmt=EUR,align=AR,border=True)
     C(ws,f"G{r}",f"=F{r}-{am}",CF,fmt=EUR,align=AR,border=True)                       # coûts directs évitables
     C(ws,f"H{r}",f"={am}",CFB,FLIGHT,fmt=EUR,align=AR,border=True)                     # CONTRIBUTION (métrique de décision)
-    C(ws,f"I{r}",f'=IF(N{r}="Ne pas ouvrir",0,E{r})*IFERROR({STRUCT_TOT}/{EFF_AP},0)',CF,fmt=EUR,align=AR,border=True)  # structure allouée APRÈS décisions (dilution)
-    C(ws,f"J{r}",f"=O{r}-I{r}",CF,fmt=EUR,align=AR,border=True)                        # résultat tout compris APRÈS (contribution après − structure diluée)
-    C(ws,f"K{r}",f"={an}",CL,fmt=PCT,align=AC,border=True)
-    C(ws,f"L{r}",f'=IF(H{r}<0,"🔴 Ne pas ouvrir",IF(K{r}>=0.95,"🟢 Ouvrir +1 classe",IF(K{r}<0.55,"🟡 Surveiller","🟢 Maintenir")))',CF,align=AL,border=True)
-    C(ws,f"M{r}",f'=IF(H{r}<0,"Contribution négative : la fermer améliore l\'EBITDA",IF(K{r}>=0.95,"Quasi saturé : +1 classe capte la demande",IF(K{r}<0.55,"Sous-rempli MAIS contribution positive → GARDER (fermer perdrait la marge, la structure resterait)","Sain")))',CIT,align=ALW,border=True)
-    C(ws,f"N{r}","Maintenir",CINB,FYEL,align=AC,border=True); dvd.add(ws[f"N{r}"])
-    C(ws,f"O{r}",f'=IF(N{r}="Ne pas ouvrir",0,IF(N{r}="Ouvrir +1 classe",H{r}-{u},IF(N{r}="Économiser 1 classe",H{r}+({ai}-MAX(1,{ai}-1))*{u},H{r})))',CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"P{r}",f"=O{r}-H{r}",CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"I{r}",f"={an}",CL,fmt=PCT,align=AC,border=True)
+    C(ws,f"J{r}",f'=IF(H{r}<0,"🔴 Ne pas ouvrir",IF(I{r}>=0.95,"🟢 Ouvrir +1 (capter+diluer)",IF(I{r}<0.55,"🟡 Surveiller","🟢 Maintenir")))',CF,align=AL,border=True)
+    C(ws,f"K{r}",f'=IF(H{r}<0,"Contribution négative → fermer améliore l\'EBITDA",IF(I{r}>=0.95,"Saturé → ouvrir capte des étudiants ET dilue la structure pour tous",IF(I{r}<0.55,"Sous-rempli mais contribution positive → GARDER","Sain")))',CIT,align=ALW,border=True)
+    C(ws,f"L{r}","Maintenir",CINB,FYEL,align=AC,border=True); dvd.add(ws[f"L{r}"])
+    C(ws,f"M{r}",f'=IF(L{r}="Ne pas ouvrir",0,IF(L{r}="Ouvrir +1 classe",E{r}+{cap},E{r}))',CF,fmt=NB,align=AC,border=True)   # effectif après
+    C(ws,f"N{r}",f'=IF(L{r}="Ne pas ouvrir",0,IF(L{r}="Ouvrir +1 classe",H{r}+{cap}*{metu}-{u},IF(L{r}="Économiser 1 classe",H{r}+({ai}-MAX(1,{ai}-1))*{u},H{r})))',CF,fmt=EUR,align=AR,border=True)  # contribution après
+    C(ws,f"O{r}",f"=M{r}*IFERROR({STRUCT_TOT}/{EFF_AP},0)",CF,fmt=EUR,align=AR,border=True)   # structure allouée après (dilution symétrique)
+    C(ws,f"P{r}",f"=N{r}-O{r}",CF,fmt=EUR,align=AR,border=True)                        # résultat tout compris après
+    C(ws,f"Q{r}",f"=N{r}-H{r}",CFB,fmt=EUR,align=AR,border=True)                       # Δ EBITDA groupe (= Δ contribution)
 ws.freeze_panes="E6"
 
 # ============================================================ 12_Sensibilite
