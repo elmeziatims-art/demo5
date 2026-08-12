@@ -1,7 +1,7 @@
 # EDUSERVICES GROUP — Modèle de pilotage budgétaire (v2)
 
 Modèle Excel de pilotage budgétaire à maille fine, préparé avant implémentation dans **CCH Tagetik**.
-Générateur : `gen_v2.py` (+ socle de données `gen_v2_data.py`). Livrable : **`EDUSERVICES_Modele_Pilotage_Budget.xlsx`** (17 feuilles).
+Générateur : `gen_v2.py` (+ socle de données `gen_v2_data.py`). Livrable : **`EDUSERVICES_Modele_Pilotage_Budget.xlsx`** (15 feuilles).
 
 ## Maille
 Marque × Campus × Programme × **Année d'études** × Modalité (initial/alternance) — ~58 cellules, 14 campus, **~82 % alternance**.
@@ -10,9 +10,7 @@ Marque × Campus × Programme × **Année d'études** × Modalité (initial/alte
 | # | Feuille | Rôle |
 |---|---|---|
 | 00 | Notice | Guide + légende |
-| 01 | **Objectifs** | Cadrage top-down : CA & EBITDA **cibles €** → écart vs budget construit |
-| 02 | Leviers | Hypothèses de pilotage + scénario + constantes de référence |
-| 03 | Coeff_Strateg | Coefficients stratégiques **par marque × campus** (marketing / prix) |
+| 01 | **Cadrage** | **Poste de commande CFO** : cadrage top-down (N-2 · atterrissage N · objectif · budget construit · écart · reste à trouver) + leviers %/scénarios + coefficients marque×campus + graphes |
 | 04 | Referentiel | Dimensions, comptes (fixe/variable) |
 | 05 | **Param_Prog_Annee** | Données de référence **par programme × année** (capacité, heures, taux, pédago, CAC variable, taux de passage) |
 | 06 | Historique | Réalisé N-1 par cellule + **historique marketing N-2/N-1 → élasticité mesurée** |
@@ -26,6 +24,9 @@ Marque × Campus × Programme × **Année d'études** × Modalité (initial/alte
 | 12 | **Sensibilite** | Impact € sur l'EBITDA **par levier** (sens unique) |
 | 13 | Simulation | KPIs, taux d'alternance/sécurisation, **€ à sécuriser** |
 | 14 | Mapping_Tagetik | Passerelle Tagetik |
+
+## Base temporelle (principe contrôle de gestion)
+On ne budgète **pas** sur un **N-1 clôturé** (il ne l'est pas au moment du budget). Base de projection = **dernier atterrissage de l'année en cours** (réel YTD + reprévision) ; **N-2 réel** = référence de tendance ; **Budget N+1** = cible construite. Le volume se pilote par le **funnel d'admissions** (réinscrits connus + entrants du pipeline), pas par les comptes clôturés. Le poste de commande (01_Cadrage) affiche N-2 · atterrissage · objectif · budget · écart.
 
 ## Logique clé (tout est mesuré / lié)
 - **Cohortes** : effectif d'une année budget = effectif de l'année inférieure N-1 × **taux de passage** (réinscription **dès la 2ᵉ année**, rétention **93–96 %**). Les entrants (B1/M1/BTS1) viennent du funnel marketing.
