@@ -418,9 +418,11 @@ C(ws,"I3","Effectif total APRÈS :",CB,align=AR); ws.merge_cells("I3:J3"); C(ws,
 C(ws,"M3","⚠ Fermer retire des étudiants → structure/étudiant ↑ (tous absorbent +). Ouvrir en capte → structure/étudiant ↓ (tous s'enrichissent). La structure totale ne bouge pas ; l'EBITDA groupe ne varie que des contributions.",CIT,align=ALW); ws.merge_cells("M3:Q3"); ws.row_dimensions[3].height=30
 for i,h in enumerate(sc): C(ws,f"{GL(1+i)}5",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[5].height=34
-dvd=DataValidation(type="list",formula1='"Maintenir,Ne pas ouvrir,Ouvrir +1 classe,Économiser 1 classe"',allow_blank=False); ws.add_data_validation(dvd)
+# deux jeux de décisions : ENTRÉE (recrutement décidable) vs POURSUITE (cohorte déjà inscrite → seulement l'organisation des classes)
+dv_ent=DataValidation(type="list",formula1='"Maintenir,Ne pas lancer,Ouvrir +1 classe,Regrouper (-1 classe)"',allow_blank=False); ws.add_data_validation(dv_ent)
+dv_pou=DataValidation(type="list",formula1='"Maintenir,Regrouper (-1 classe)"',allow_blank=False); ws.add_data_validation(dv_pou)
 for idx in range(N):
-    r=DR0+idx; mr=MR0+idx
+    r=DR0+idx; mr=MR0+idx; entry=rows[idx]["entry"]
     am=MO('AM')+str(mr); an=MO('AN')+str(mr); u=MO('U')+str(mr); ai=MO('AI')+str(mr); cap=MO('O')+str(mr)
     metu=f"({MO('AE')+str(mr)}*{MO('AF')+str(mr)}-({MO('R')+str(mr)}+{KAUTRES})*(1+{PINFL})-{MO('S')+str(mr)})"  # contribution marginale / étudiant capté
     C(ws,f"A{r}",f"={MO('A')+str(mr)}",CL,align=AL,border=True); C(ws,f"B{r}",f"={MO('B')+str(mr)}",CL,align=AC,border=True)
@@ -429,11 +431,19 @@ for idx in range(N):
     C(ws,f"G{r}",f"=F{r}-{am}",CF,fmt=EUR,align=AR,border=True)                       # coûts directs évitables
     C(ws,f"H{r}",f"={am}",CFB,FLIGHT,fmt=EUR,align=AR,border=True)                     # CONTRIBUTION (métrique de décision)
     C(ws,f"I{r}",f"={an}",CL,fmt=PCT,align=AC,border=True)
-    C(ws,f"J{r}",f'=IF(H{r}<0,"🔴 Ne pas ouvrir",IF(I{r}>=0.95,"🟢 Ouvrir +1 (capter+diluer)",IF(I{r}<0.55,"🟡 Surveiller","🟢 Maintenir")))',CF,align=AL,border=True)
-    C(ws,f"K{r}",f'=IF(H{r}<0,"Contribution négative → fermer améliore l\'EBITDA",IF(I{r}>=0.95,"Saturé → ouvrir capte des étudiants ET dilue la structure pour tous",IF(I{r}<0.55,"Sous-rempli mais contribution positive → GARDER","Sain")))',CIT,align=ALW,border=True)
-    C(ws,f"L{r}","Maintenir",CINB,FYEL,align=AC,border=True); dvd.add(ws[f"L{r}"])
-    C(ws,f"M{r}",f'=IF(L{r}="Ne pas ouvrir",0,IF(L{r}="Ouvrir +1 classe",E{r}+{cap},E{r}))',CF,fmt=NB,align=AC,border=True)   # effectif après
-    C(ws,f"N{r}",f'=IF(L{r}="Ne pas ouvrir",0,IF(L{r}="Ouvrir +1 classe",H{r}+{cap}*{metu}-{u},IF(L{r}="Économiser 1 classe",H{r}+({ai}-MAX(1,{ai}-1))*{u},H{r})))',CF,fmt=EUR,align=AR,border=True)  # contribution après
+    if entry:  # année d'entrée : recrutement décidable
+        reco=f'=IF(H{r}<0,"🔴 Ne pas lancer",IF(I{r}>=0.95,"🟢 Ouvrir +1 (capter+diluer)",IF(I{r}<0.55,"🟡 Surveiller","🟢 Maintenir")))'
+        motif=f'=IF(H{r}<0,"Entrée à contribution négative → ne pas lancer cette cohorte",IF(I{r}>=0.95,"Saturé → ouvrir capte des étudiants ET dilue la structure pour tous",IF(I{r}<0.55,"Sous-rempli mais contribution positive → garder","Sain")))'
+        dv=dv_ent
+    else:      # année de poursuite : cohorte inscrite → seule l'organisation des classes est décidable
+        reco=f'=IF(H{r}<0,"🔴 Restructurer (mutualiser)",IF(I{r}<0.55,"🟡 Regrouper les classes","🟢 Maintenir"))'
+        motif=f'="Poursuite : cohorte déjà inscrite (issue de l\'année inférieure) → ni lancement ni capture ; seul levier = regrouper / mutualiser les classes"'
+        dv=dv_pou
+    C(ws,f"J{r}",reco,CF,align=AL,border=True)
+    C(ws,f"K{r}",motif,CIT,align=ALW,border=True)
+    C(ws,f"L{r}","Maintenir",CINB,FYEL,align=AC,border=True); dv.add(ws[f"L{r}"])
+    C(ws,f"M{r}",f'=IF(L{r}="Ne pas lancer",0,IF(L{r}="Ouvrir +1 classe",E{r}+{cap},E{r}))',CF,fmt=NB,align=AC,border=True)   # effectif après
+    C(ws,f"N{r}",f'=IF(L{r}="Ne pas lancer",0,IF(L{r}="Ouvrir +1 classe",H{r}+{cap}*{metu}-{u},IF(L{r}="Regrouper (-1 classe)",H{r}+({ai}-MAX(1,{ai}-1))*{u},H{r})))',CF,fmt=EUR,align=AR,border=True)  # contribution après
     C(ws,f"O{r}",f"=M{r}*IFERROR({STRUCT_TOT}/{EFF_AP},0)",CF,fmt=EUR,align=AR,border=True)   # structure allouée après (dilution symétrique)
     C(ws,f"P{r}",f"=N{r}-O{r}",CF,fmt=EUR,align=AR,border=True)                        # résultat tout compris après
     C(ws,f"Q{r}",f"=N{r}-H{r}",CFB,fmt=EUR,align=AR,border=True)                       # Δ EBITDA groupe (= Δ contribution)
