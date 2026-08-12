@@ -29,7 +29,7 @@ sectoriels sourcés. Générateur : `generer_modele_pilotage.py`.
 ### La logique (tout est lié)
 1. **Note de cadrage** (% volume & prix globaux) × **coefficients stratégiques** par marque → % appliqué à chaque cellule.
 2. **Funnel CRM** : candidatures × croissance × (conversion N-1 + gain conversion) → nouveaux inscrits (on **inscrit d'abord**).
-3. **Alternance (~82 % des effectifs)** : financement en **prorata-temporis** (réforme NPEC 1/7/2025). Le **taux de signature** ET le **délai moyen de signature** pilotent le **revenu** (l'OPCO ne paie que les jours du contrat). Le **taux de récupération du gap** pré-contrat (défaut 70 %) est un paramètre ajustable. C'est un levier de revenu, pas de volume.
+3. **Alternance (~82 % des effectifs)** : financement selon la règle légale de la **fenêtre de 3 mois** (art. L. 6222-12) — contrat sécurisé dans les 3 mois → **OPCO rétroactif à 100 %** ; au-delà/jamais → à risque. Le **taux de sécurisation ≤ 3 mois** pilote le **revenu** ; le **reste à charge** est **toujours à l'employeur** (recouvrement paramétrable, défaut 85 %), jamais l'étudiant. Un KPI **« € à risque »** chiffre l'enjeu.
 4. **Effectif** = réinscrits + nouveaux → **nombre de classes dérivé** (capacité cible) → coûts d'enseignement.
 5. **Contribution** par cellule → **EBITDA** après loyers, personnel permanent, structure allouée.
 6. **Décision** : classes nécessaires vs actuelles → signal ouvrir/fermer chiffré ; point mort et scoring par cellule.
@@ -39,11 +39,11 @@ Frais de scolarité 8–11 k€ (initial) · NPEC alternance ~7–10 k€ · **~
 CAC ~0,8–2 k€ · marge EBITDA cible ~20 % · capacité classe ~30. Marques et campus **réels** EDUSERVICES ; montants **illustratifs**.
 
 ### Vérifications
-- **0 erreur** sur 4 949 cellules (moteur de calcul `formulas`).
+- **0 erreur** sur 4 932 cellules (moteur de calcul `formulas`).
 - Paramètres opérationnels **lus par programme** dans le moteur (capacité, heures, taux, pédago par cellule).
-- P&L et **pont Chiffre d'affaires à 4 effets** (Volume / Tarif / **Signature** / Frais) réconcilient exactement.
-- Bascule scénario : Cadrage 19,2 % · Optimiste 26,5 % · Prudent 10,2 %.
-- Sensibilité prorata : délai de signature 1 mois → EBITDA 4,17 M€ vs 4 mois → 3,15 M€ (~1 M€ d'écart).
+- P&L et **pont Chiffre d'affaires à 4 effets** (Volume / Tarif / **Sécurisation** / Frais) réconcilient exactement.
+- Bascule scénario : Cadrage 20,3 % · Optimiste 26,2 % · Prudent 13,7 %.
+- Impact sécurisation (KPI « € à risque ») : 80 % → 519 k€ à risque · 88 % → 312 k€ · 93 % → 182 k€.
 - Recalcul automatique à l'ouverture activé (Excel calcule les valeurs dès l'ouverture).
 
 ## 📄 Version simple (annuelle) — `EDUSERVICES_Budget_Simulation.xlsx`

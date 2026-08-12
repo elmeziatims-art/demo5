@@ -75,7 +75,7 @@ PROGS={  # EDUSERVICES ~76% alternance : B1 souvent initial, montée en alternan
 # constantes globales : DÉFAUTS / repli (les valeurs fines sont par programme, voir PROG_PARAMS)
 CAP,SEUIL,HRS,TXH,PEDA,ETPC,FRAIS,PROGREF,PSTRUCT = 30,15,550,60,400,48000,90,0.84,0.08
 CONV_N1, ADM_N1, CAC_N1, DA_PCT = 0.372, 0.62, 950, 0.03
-SIGN_N1, DELAI_N1, RECUP = 0.82, 2.5, 0.70  # signature N-1 ; délai moyen (mois) ; taux de récupération du gap pré-contrat
+SECU_N1, RECOUV = 0.86, 0.85  # part sécurisée ≤3 mois N-1 ; recouvrement du reste à charge auprès de l'EMPLOYEUR
 # paramètres OPÉRATIONNELS par programme : capacité, seuil, heures/classe, taux horaire chargé, coût pédago/étudiant
 PROG_PARAMS={
  "Bachelor Management":  (32,16,560,58,400),
@@ -88,10 +88,9 @@ PROG_PARAMS={
  "Bachelor Tourisme":    (30,15,560,55,450),
 }
 def pp(prog,i): return PROG_PARAMS.get(prog,(CAP,SEUIL,HRS,TXH,PEDA))[i]  # 0=cap 1=seuil 2=heures 3=taux 4=pédago
-def sf(mod, sign, delai=DELAI_N1, recup=RECUP):  # facteur de revenu alternance (financement, prorata-temporis)
-    if mod!="ALT": return 1.0
-    couv=(12-delai)/12.0
-    return sign*couv + (1-sign*couv)*recup
+def sf(mod, secu, recouv=RECOUV):  # facteur de revenu alternance
+    # sécurisé ≤3 mois -> 100% financé (rétroactif) ; non sécurisé -> reste à charge recouvré auprès de l'employeur
+    return 1.0 if mod!="ALT" else secu + (1-secu)*recouv
 
 def tarif(t,mod):
     if t=="BTS":  return 7000 if mod=="ALT" else 6500
@@ -132,12 +131,12 @@ for r in rows:
     seen.add(key)
     cells=[x for x in rows if (x["marque"],x["ville"])==key]
     eff=sum(x["eff"] for x in cells); nouv=sum(x["nouv"] for x in cells)
-    ca=sum(x["eff"]*x["tarif"]*sf(x["mod"],SIGN_N1)+x["nouv"]*FRAIS for x in cells)
+    ca=sum(x["eff"]*x["tarif"]*sf(x["mod"],SECU_N1)+x["nouv"]*FRAIS for x in cells)
     ens=sum(x["classes"]*pp(x["prog"],2)*pp(x["prog"],3) for x in cells)
     ped=sum(x["eff"]*pp(x["prog"],4) for x in cells); mkt=nouv*CAC_N1
     contrib=ca-ens-ped-mkt
     loyer=round(0.11*ca/1000)*1000
-    etp=round(eff/28)+2; perm=etp*ETPC
+    etp=round(eff/25)+2; perm=etp*ETPC
     da=round(DA_PCT*ca/1000)*1000; m2=eff*8
     campus.append(dict(marque=r["marque"],ville=r["ville"],eff=eff,nouv=nouv,ca=ca,ens=ens,ped=ped,
         mkt=mkt,contrib=contrib,loyer=loyer,etp=etp,perm=perm,da=da,m2=m2))
@@ -201,12 +200,11 @@ C(ws,"B11","Levier",CHDR,FN_BLUE,align=AL,border=True); C(ws,"C11","Valeur",CHDR
 hyp=[("Croissance recrutement (volume)","='02_Parametres'!D6",PCT,"Croissance des candidatures, avant coefficient stratégique par marque."),
  ("Hausse tarifaire (prix)","='02_Parametres'!D7",PCT,"Revalorisation moyenne, modulée par marque."),
  ("Gain de conversion admissions","='02_Parametres'!D8",PCT,"Points de conversion candidature→inscrit gagnés (pilotage admissions)."),
- ("Taux de signature contrat (alternance)","='02_Parametres'!D9",PCT,"Part des alternants avec contrat signé → financés OPCO/NPEC. Levier de REVENU."),
- ("Délai moyen de signature (mois)","='02_Parametres'!D10",NB1,"Retard de signature → NPEC versé au prorata des jours → couverture réduite."),
- ("Taux de réinscription","='02_Parametres'!D11",PCT,"Progression des étudiants d'une année sur l'autre."),
- ("Inflation des charges","='02_Parametres'!D12",PCT,"Loyers, pédagogie, autres charges."),
- ("Politique salariale","='02_Parametres'!D13",PCT,"Revalorisation des rémunérations chargées."),
- ("Coût d'acquisition (CAC)","='02_Parametres'!D14",EUR,"Dépense marketing par nouvel inscrit.")]
+ ("Taux de sécurisation contrat (≤ 3 mois)","='02_Parametres'!D9",PCT,"Part des alternants dont le contrat est signé dans la fenêtre légale de 3 mois → financement OPCO rétroactif à 100%."),
+ ("Taux de réinscription","='02_Parametres'!D10",PCT,"Progression des étudiants d'une année sur l'autre."),
+ ("Inflation des charges","='02_Parametres'!D11",PCT,"Loyers, pédagogie, autres charges."),
+ ("Politique salariale","='02_Parametres'!D12",PCT,"Revalorisation des rémunérations chargées."),
+ ("Coût d'acquisition (CAC)","='02_Parametres'!D13",EUR,"Dépense marketing par nouvel inscrit.")]
 r=12
 for lib,f,fmt,com in hyp:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True); C(ws,f"C{r}",f,CL,fmt=fmt,align=AC,border=True); C(ws,f"D{r}",com,CIT,align=ALW,border=True); ws.row_dimensions[r].height=28; r+=1
@@ -231,8 +229,7 @@ C(ws,"G5","ACTIF",CHDR,FN_NAVY,align=AC,border=True)
 levs=[("Croissance recrutement (volume)","%",0.04,0.09,-0.02,PCT),
  ("Hausse tarifaire (prix)","%",0.03,0.04,0.02,PCT),
  ("Gain de conversion admissions","pts",0.015,0.04,0.0,PCT),
- ("Taux de signature contrat (alternance)","%",0.85,0.92,0.75,PCT),
- ("Délai moyen de signature contrat","mois",2.0,1.5,3.0,NB1),
+ ("Taux de sécurisation contrat (≤ 3 mois)","%",0.88,0.93,0.80,PCT),
  ("Taux de réinscription","%",0.84,0.87,0.80,PCT),
  ("Inflation des charges","%",0.02,0.015,0.03,PCT),
  ("Politique salariale","%",0.025,0.02,0.03,PCT),
@@ -242,27 +239,26 @@ for lib,u,cad,opt,pru,fmt in levs:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True); C(ws,f"C{r}",u,CREG,align=AC,border=True)
     C(ws,f"D{r}",cad,CIN,fmt=fmt,align=AC,border=True); C(ws,f"E{r}",opt,CIN,fmt=fmt,align=AC,border=True); C(ws,f"F{r}",pru,CIN,fmt=fmt,align=AC,border=True)
     C(ws,f"G{r}",f"=INDEX(D{r}:F{r},MATCH($C$3,$D$5:$F$5,0))",CF,FN_LIGHT,fmt=fmt,align=AC,border=True); r+=1
-C(ws,"B16","Constantes de politique (globales)",CHDR,FN_BLUE,align=AL,border=True)
-for col in ("C","D","E","F","G"): C(ws,f"{col}16"," ",fill=FN_BLUE,border=True)
+C(ws,"B15","Constantes de politique (globales)",CHDR,FN_BLUE,align=AL,border=True)
+for col in ("C","D","E","F","G"): C(ws,f"{col}15"," ",fill=FN_BLUE,border=True)
 consts=[("Capacité cible / classe (défaut)","nb",CAP,NB),("Seuil d'ouverture / classe (défaut)","nb",SEUIL,NB),
  ("Heures d'enseignement / classe (défaut)","h",HRS,NB),("Taux horaire chargé (défaut)","€",TXH,EUR),
  ("Coût pédagogique / étudiant (défaut)","€",PEDA,EUR),("Coût chargé / ETP permanent","€",ETPC,EUR),
  ("Frais de dossier / nouvel inscrit","€",FRAIS,EUR),("Réf. taux de réinscription","%",PROGREF,PCT),
  ("Frais de structure groupe (% CA)","%",PSTRUCT,PCT),
- ("Taux de récupération du gap pré-contrat","%",RECUP,PCT),
- ("Réf. taux de signature contrat N-1","%",SIGN_N1,PCT),
- ("Réf. délai moyen de signature N-1","mois",DELAI_N1,NB1)]
-r=17
+ ("Recouvrement reste à charge (employeur)","%",RECOUV,PCT),
+ ("Réf. taux de sécurisation contrat N-1","%",SECU_N1,PCT)]
+r=16
 for lib,u,val,fmt in consts:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True); C(ws,f"C{r}",u,CREG,align=AC,border=True)
     C(ws,f"D{r}",val,CIN,fmt=fmt,align=AC,border=True)
     for col in ("E","F"): C(ws,f"{col}{r}"," ",border=True)
     C(ws,f"G{r}",f"=D{r}",CF,FN_LIGHT,fmt=fmt,align=AC,border=True); r+=1
-C(ws,"B29","Les paramètres capacité/heures/taux/pédago sont affinés PAR PROGRAMME (feuille 04_Param_Prog). Ci-dessus = valeurs de repli.",CIT); ws.merge_cells("B29:G29")
-C(ws,"B31","Driver d'allocation des frais de structure :",CB,align=AR); ws.merge_cells("B31:C31")
-C(ws,"D31","Effectifs",CINB,FN_YEL,align=AC,border=True)
-dv2=DataValidation(type="list",formula1='"Effectifs,Chiffre d\'affaires,Surface m2"',allow_blank=False); ws.add_data_validation(dv2); dv2.add(ws["D31"])
-C(ws,"E31","◄ change la clé de répartition (feuille 08)",CIT); ws.merge_cells("E31:G31")
+C(ws,"B28","Les paramètres capacité/heures/taux/pédago sont affinés PAR PROGRAMME (feuille 04_Param_Prog). Ci-dessus = valeurs de repli.",CIT); ws.merge_cells("B28:G28")
+C(ws,"B30","Driver d'allocation des frais de structure :",CB,align=AR); ws.merge_cells("B30:C30")
+C(ws,"D30","Effectifs",CINB,FN_YEL,align=AC,border=True)
+dv2=DataValidation(type="list",formula1='"Effectifs,Chiffre d\'affaires,Surface m2"',allow_blank=False); ws.add_data_validation(dv2); dv2.add(ws["D30"])
+C(ws,"E30","◄ change la clé de répartition (feuille 08)",CIT); ws.merge_cells("E30:G30")
 
 # ================================================================ 03_Coeff_Strateg
 ws=wb.create_sheet("03_Coeff_Strateg"); ws.sheet_view.showGridLines=False
@@ -284,10 +280,10 @@ C(ws,f"B{r+1}","Coefficient 1,00 = on applique le cadrage tel quel · >1 = on po
 
 # refs paramètres / coeff
 P=lambda a:f"'02_Parametres'!{a}"
-PVOL,PPRIX,PDCONV,PSIGN,PDELAI,PPROG,PINFL,PSAL,PCAC = (P("$G$6"),P("$G$7"),P("$G$8"),P("$G$9"),P("$G$10"),
-    P("$G$11"),P("$G$12"),P("$G$13"),P("$G$14"))
-KCAPd,KSEUILd,KHRSd,KTXHd,KPEDAd,KETPC,KFRAIS,KPROGREF,KPSTRUCT,KRECUP,KSIGNN1,KDELAIN1 = (P("$D$17"),P("$D$18"),
-    P("$D$19"),P("$D$20"),P("$D$21"),P("$D$22"),P("$D$23"),P("$D$24"),P("$D$25"),P("$D$26"),P("$D$27"),P("$D$28"))
+PVOL,PPRIX,PDCONV,PSECU,PPROG,PINFL,PSAL,PCAC = (P("$G$6"),P("$G$7"),P("$G$8"),P("$G$9"),
+    P("$G$10"),P("$G$11"),P("$G$12"),P("$G$13"))
+KCAPd,KSEUILd,KHRSd,KTXHd,KPEDAd,KETPC,KFRAIS,KPROGREF,KPSTRUCT,KRECOUV,KSECUN1 = (P("$D$16"),P("$D$17"),
+    P("$D$18"),P("$D$19"),P("$D$20"),P("$D$21"),P("$D$22"),P("$D$23"),P("$D$24"),P("$D$25"),P("$D$26"))
 CVRANGE=f"'03_Coeff_Strateg'!$C${CO0}:$C${CON}"; CPRANGE=f"'03_Coeff_Strateg'!$D${CO0}:$D${CON}"; CMRANGE=f"'03_Coeff_Strateg'!$B${CO0}:$B${CON}"
 
 # ================================================================ 04_Referentiel
@@ -426,9 +422,9 @@ for idx in range(N):
     C(ws,f"AG{r}",f"=IFERROR(INDEX({PPPED},MATCH(C{r},{PPKEY},0)),{KPEDAd})",CF,fmt=EUR,align=AC,border=True)
     C(ws,f"AH{r}",f"=IFERROR(INDEX({PPSEUIL},MATCH(C{r},{PPKEY},0)),{KSEUILd})",CF,fmt=NB,align=AC,border=True)
     C(ws,f"AI{r}",f"=AE{r}*AF{r}*(1+{PSAL})",CF,fmt=EUR,align=AC,border=True)                     # coût / classe
-    # facteur de financement alternance = prorata-temporis (signature × couverture + gap récupéré)
-    C(ws,f"AB{r}",f'=IF(E{r}="ALT",{KSIGNN1}*((12-{KDELAIN1})/12)+(1-{KSIGNN1}*((12-{KDELAIN1})/12))*{KRECUP},1)',CF,fmt=XCOEF,align=AC,border=True)
-    C(ws,f"AC{r}",f'=IF(E{r}="ALT",{PSIGN}*((12-{PDELAI})/12)+(1-{PSIGN}*((12-{PDELAI})/12))*{KRECUP},1)',CF,fmt=XCOEF,align=AC,border=True)
+    # facteur de financement alternance : sécurisé ≤3 mois = 100% (rétroactif) ; non sécurisé = reste à charge recouvré employeur
+    C(ws,f"AB{r}",f'=IF(E{r}="ALT",{KSECUN1}+(1-{KSECUN1})*{KRECOUV},1)',CF,fmt=XCOEF,align=AC,border=True)
+    C(ws,f"AC{r}",f'=IF(E{r}="ALT",{PSECU}+(1-{PSECU})*{KRECOUV},1)',CF,fmt=XCOEF,align=AC,border=True)
     C(ws,f"T{r}",f"=R{r}*S{r}*AC{r}+P{r}*{KFRAIS}",CF,fmt=EUR,align=AR,border=True)              # CA bud (financement inclus)
     C(ws,f"U{r}",f"=IF(R{r}<=0,0,MAX(1,ROUNDUP(R{r}/AD{r},0)))",CF,fmt=NB,align=AC,border=True)  # classes besoin
     C(ws,f"V{r}",f"=U{r}*AI{r}",CF,fmt=EUR,align=AR,border=True)                                 # enseignement
@@ -456,7 +452,7 @@ def msum(col): return f"SUM({mrng(col)})"
 ws=wb.create_sheet("08_Allocation"); ws.sheet_view.showGridLines=False
 for c,w in {"A":2,"B":16,"C":11,"D":13,"E":11,"F":13,"G":12,"H":13,"I":11,"J":13,"K":11,"L":13}.items(): ws.column_dimensions[c].width=w
 ws.merge_cells("B2:L2"); C(ws,"B2","Allocation des frais de structure groupe par driver",CTIT,FN_NAVY,align=AL); ws.row_dimensions[2].height=26
-C(ws,"B3","Driver actif :",CB,align=AR); C(ws,"C3","='02_Parametres'!D31",CL,FN_YEL,align=AC,border=True)
+C(ws,"B3","Driver actif :",CB,align=AR); C(ws,"C3","='02_Parametres'!D30",CL,FN_YEL,align=AC,border=True)
 C(ws,"E3","Frais de structure groupe à allouer :",CB,align=AR); ws.merge_cells("E3:H3")
 C(ws,"I3",f"={KPSTRUCT}*{msum('T')}",CFB,fmt=EUR,align=AR,border=True); ws.merge_cells("I3:J3")
 hd=["Marque","Ville","Contribution Bud","Loyer Bud","Masse perm. Bud","Valeur driver","Part driver","Frais alloués","EBITDA campus","D&A","EBIT campus"]
@@ -543,7 +539,7 @@ fraisf=f"=SUMPRODUCT({mrng('P')})*{KFRAIS}-SUMPRODUCT({mrng('G')})*{KFRAIS}"
 C(ws,f"B{r}","CA Réalisé N-1",CREG,align=AL,border=True); C(ws,f"C{r}",f"={n1_ca}",CL,fmt=EUR,align=AR,border=True); r+=1
 C(ws,f"B{r}","  + Effet Volume (Δ effectif)",CREG,align=AL,border=True); C(ws,f"C{r}",volf,CF,fmt=EUR,align=AR,border=True); r+=1
 C(ws,f"B{r}","  + Effet Tarif (hausse prix)",CREG,align=AL,border=True); C(ws,f"C{r}",tarf,CF,fmt=EUR,align=AR,border=True); r+=1
-C(ws,f"B{r}","  + Effet Signature (financement OPCO)",CREG,align=AL,border=True); C(ws,f"C{r}",sigf,CF,fmt=EUR,align=AR,border=True); r+=1
+C(ws,f"B{r}","  + Effet Sécurisation contrats (financement OPCO)",CREG,align=AL,border=True); C(ws,f"C{r}",sigf,CF,fmt=EUR,align=AR,border=True); r+=1
 C(ws,f"B{r}","  + Effet Frais de dossier",CREG,align=AL,border=True); C(ws,f"C{r}",fraisf,CF,fmt=EUR,align=AR,border=True); r+=1
 C(ws,f"B{r}","CA Budget N+1",CFB,FN_TOT,align=AL,border=True); C(ws,f"C{r}",f"={msum('T')}",CFB,FN_TOT,fmt=EUR,align=AR,border=True); r+=1
 
@@ -603,7 +599,8 @@ kpis=[("Effectif total",f"={msum('R')}",f"={n1_eff}",NB),
  ("Nombre de classes",f"={msum('U')}",f"={msum('K')}",NB),
  ("Nouveaux inscrits",f"={msum('P')}",f"={msum('G')}",NB),
  ("Taux d'alternance",f"=IFERROR(SUMIF({mrng('E')},\"ALT\",{mrng('R')})/{msum('R')},0)",f"=IFERROR(SUMIF({mrng('E')},\"ALT\",{mrng('F')})/{msum('F')},0)",PCT),
- ("Taux de signature contrat",f"={PSIGN}",f"={KSIGNN1}",PCT)]
+ ("Taux de sécurisation contrat",f"={PSECU}",f"={KSECUN1}",PCT),
+ ("€ à risque (contrats non sécurisés)",f'=SUMPRODUCT(({mrng("E")}="ALT")*{mrng("R")}*{mrng("S")})*(1-{PSECU})*(1-{KRECOUV})',f'=SUMPRODUCT(({mrng("E")}="ALT")*{mrng("F")}*{mrng("J")})*(1-{KSECUN1})*(1-{KRECOUV})',EUR)]
 r=8
 for lib,bud,n1,fmt in kpis:
     C(ws,f"B{r}",lib,CB,align=AL,border=True); C(ws,f"C{r}",bud,CF,fmt=fmt,align=AC,border=True)
@@ -614,8 +611,8 @@ C(ws,f"B{r}","Levier",CHDR,FN_BLUE,align=AL,border=True)
 for col,n in (("C","Cadrage"),("D","Optimiste"),("E","Prudent"),("F","Actif")): C(ws,f"{col}{r}",n,CHDR,(FN_NAVY if col=="F" else FN_BLUE),align=AC,border=True)
 r+=1
 for lib,pr,fmt in [("Croissance recrutement",6,PCT),("Hausse tarifaire",7,PCT),("Gain conversion",8,PCT),
- ("Taux signature contrat",9,PCT),("Délai signature (mois)",10,NB1),("Taux réinscription",11,PCT),
- ("Inflation charges",12,PCT),("Politique salariale",13,PCT),("CAC",14,EUR)]:
+ ("Taux sécurisation ≤3 mois",9,PCT),("Taux réinscription",10,PCT),
+ ("Inflation charges",11,PCT),("Politique salariale",12,PCT),("CAC",13,EUR)]:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True)
     C(ws,f"C{r}",f"='02_Parametres'!D{pr}",CL,fmt=fmt,align=AC,border=True); C(ws,f"D{r}",f"='02_Parametres'!E{pr}",CL,fmt=fmt,align=AC,border=True)
     C(ws,f"E{r}",f"='02_Parametres'!F{pr}",CL,fmt=fmt,align=AC,border=True); C(ws,f"F{r}",f"='02_Parametres'!G{pr}",CFB,FN_LIGHT,fmt=fmt,align=AC,border=True); r+=1
