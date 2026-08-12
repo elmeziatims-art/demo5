@@ -1,59 +1,45 @@
-# EDUSERVICES GROUP — Modèles budgétaires (pré-Tagetik)
+# EDUSERVICES GROUP — Modèle de pilotage budgétaire (v2)
 
-Modélisation Excel préparée avant l'implémentation dans **CCH Tagetik**.
+Modèle Excel de pilotage budgétaire à maille fine, préparé avant implémentation dans **CCH Tagetik**.
+Générateur : `gen_v2.py` (+ socle de données `gen_v2_data.py`). Livrable : **`EDUSERVICES_Modele_Pilotage_Budget.xlsx`** (15 feuilles).
 
-## 🎯 Livrable principal — `EDUSERVICES_Modele_Pilotage_Budget.xlsx`
+## Maille
+Marque × Campus × Programme × **Année d'études** × Modalité (initial/alternance) — ~58 cellules, 14 campus, **~82 % alternance**.
 
-Modèle de **pilotage budgétaire à maille fine**, tout lié, calibré sur des ordres de grandeur
-sectoriels sourcés. Générateur : `generer_modele_pilotage.py`.
+## Les feuilles
+| # | Feuille | Rôle |
+|---|---|---|
+| 00 | Notice | Guide + légende |
+| 01 | **Objectifs** | Cadrage top-down : CA & EBITDA **cibles €** → écart vs budget construit |
+| 02 | Leviers | Hypothèses de pilotage + scénario + constantes de référence |
+| 03 | Coeff_Strateg | Coefficients stratégiques par marque (marketing / prix) |
+| 04 | Referentiel | Dimensions, comptes (fixe/variable) |
+| 05 | **Param_Prog_Annee** | Données de référence **par programme × année** (capacité, heures, taux, pédago, CAC variable, taux de passage) |
+| 06 | Historique | Réalisé N-1 par cellule + **historique marketing N-2/N-1 → élasticité mesurée** |
+| 07 | Structure | Réalisé par campus |
+| 08 | Moteur | Budget par cellule : **cohortes**, **marketing→volume**, seuil = **point mort** |
+| 09 | Allocation | Frais de structure alloués par driver |
+| 10 | PnL | P&L consolidé N-1 vs Budget + **pont à 4 effets** |
+| 11 | **Simulateur** | Décisions ouvrir/fermer/redistribuer → **EBITDA AVANT → APRÈS** |
+| 12 | **Sensibilite** | Impact € sur l'EBITDA **par levier** (sens unique) |
+| 13 | Simulation | KPIs, taux d'alternance/sécurisation, **€ à sécuriser** |
+| 14 | Mapping_Tagetik | Passerelle Tagetik |
 
-**Maille :** Marque × Campus × Programme × Niveau × Modalité (initial/alternance) — 58 cellules fines, 14 campus.
+## Logique clé (tout est mesuré / lié)
+- **Cohortes** : effectif d'une année budget = effectif de l'année inférieure N-1 × **taux de passage** (réinscription **dès la 2ᵉ année**). Les entrants (B1/M1/BTS1) viennent du funnel marketing.
+- **Marketing → volume, mesuré sur l'historique** : `élasticité = %Δ candidatures ÷ %Δ marketing` (N-2→N-1). Augmenter le budget marketing → + candidatures → + inscrits → **ROI net** visible.
+- **CAC en deux composantes** : global partagé (groupe) + variable par programme (achat de leads).
+- **Seuil d'ouverture = point mort calculé** (pas un chiffre en dur).
+- **Alternance / financement** : sécurisation ≤ 3 mois → OPCO rétroactif 100 % ; reste à charge **employeur** (recouvrement paramétrable, défaut **100 % légal**). Le **taux de sécurisation** pilote l'**exposition** (« € à sécuriser ») ; son effet **EBITDA** n'apparaît que si le recouvrement < 100 %.
+- **Cadrage top-down** : cibles CA/EBITDA € → écart → à combler via les leviers (voir Sensibilité).
 
-| Feuille | Rôle |
-|---|---|
-| `00_Notice` | Guide + légende + avertissement |
-| `01_Note_cadrage` | Objectifs et hypothèses directrices |
-| `02_Parametres` | Sélecteur de scénario + leviers + constantes + driver d'allocation |
-| `03_Coeff_Strateg` | Coefficients stratégiques par marque (challenger + ou –) |
-| `04_Referentiel` | Dimensions : entités, comptes (fixe/variable) — mapping Tagetik |
-| `04_Param_Prog` | **Paramètres opérationnels par programme** (capacité, seuil, heures/classe, taux horaire, coût pédago) |
-| `05_Historique` | Réalisé N-1 par cellule : **funnel CRM** (candidatures→inscrits) + effectifs + classes |
-| `06_Structure` | Réalisé par campus : loyers, ETP permanents, D&A, m² |
-| `07_Moteur` | Moteur de budget par cellule (100 % formules) |
-| `08_Allocation` | Frais de structure groupe **alloués par driver** (effectif / CA / m²) |
-| `09_PnL` | P&L consolidé N-1 vs Budget + **pont Prix/Volume** |
-| `10_Decision` | **Ouvrir/fermer une classe**, remplissage, point mort, scoring 🟢🟡🔴 |
-| `11_Simulation` | Tableau de bord : KPIs, scénarios, levier conversion |
-| `12_Mapping_Tagetik` | Passerelle : dimensions, versions/snapshot, workflow bottom-up |
-
-### La logique (tout est lié)
-1. **Note de cadrage** (% volume & prix globaux) × **coefficients stratégiques** par marque → % appliqué à chaque cellule.
-2. **Funnel CRM** : candidatures × croissance × (conversion N-1 + gain conversion) → nouveaux inscrits (on **inscrit d'abord**).
-3. **Alternance (~82 % des effectifs)** : financement selon la règle légale de la **fenêtre de 3 mois** (art. L. 6222-12) — contrat sécurisé dans les 3 mois → **OPCO rétroactif à 100 %** ; au-delà/jamais → à risque. Le **taux de sécurisation ≤ 3 mois** pilote le **revenu** ; le **reste à charge** est **toujours à l'employeur** (recouvrement paramétrable, défaut 85 %), jamais l'étudiant. Un KPI **« € à risque »** chiffre l'enjeu.
-4. **Effectif** = réinscrits + nouveaux → **nombre de classes dérivé** (capacité cible) → coûts d'enseignement.
-5. **Contribution** par cellule → **EBITDA** après loyers, personnel permanent, structure allouée.
-6. **Décision** : classes nécessaires vs actuelles → signal ouvrir/fermer chiffré ; point mort et scoring par cellule.
-
-### Calibrage (sourcé)
-Frais de scolarité 8–11 k€ (initial) · NPEC alternance ~7–10 k€ · **~76 % d'alternance** (EDUSERVICES : 32 000/42 000) ·
-CAC ~0,8–2 k€ · marge EBITDA cible ~20 % · capacité classe ~30. Marques et campus **réels** EDUSERVICES ; montants **illustratifs**.
-
-### Vérifications
-- **0 erreur** sur 4 932 cellules (moteur de calcul `formulas`).
-- Paramètres opérationnels **lus par programme** dans le moteur (capacité, heures, taux, pédago par cellule).
-- P&L et **pont Chiffre d'affaires à 4 effets** (Volume / Tarif / **Sécurisation** / Frais) réconcilient exactement.
-- Bascule scénario : Cadrage 20,3 % · Optimiste 26,2 % · Prudent 13,7 %.
-- Impact sécurisation (KPI « € à risque ») : 80 % → 519 k€ à risque · 88 % → 312 k€ · 93 % → 182 k€.
-- Recalcul automatique à l'ouverture activé (Excel calcule les valeurs dès l'ouverture).
-
-## 📄 Version simple (annuelle) — `EDUSERVICES_Budget_Simulation.xlsx`
-Première version : budget annuel par campus, plus simple. Générateur : `generer_modele.py`.
-
-## Utilisation
-1. Renseigner le réalisé (`05_Historique`, `06_Structure`).
-2. Fixer les hypothèses (`02_Parametres`) et les coefficients (`03_Coeff_Strateg`).
-3. Choisir le scénario en `02_Parametres!C3` → tout se recalcule.
-4. Lire `09_PnL`, `10_Decision`, `11_Simulation`. Basculer vers Tagetik via `12_Mapping_Tagetik`.
+## Vérifications
+- **0 erreur** sur 5 273 cellules (moteur `formulas`).
+- Marge EBITDA **N-1 19,1 % · Budget 20,0 %** ; scénarios Cadrage 20 % · Optimiste 27 % · Prudent 19 %.
+- Pont CA (Volume/Tarif/Sécurisation/Frais) **réconcilie exactement**.
+- Élasticité marketing **mesurée** (~0,5) ; simulateur et marketing→volume **dynamiques** ; recalcul auto à l'ouverture.
 
 ## Convention de couleurs
-🔵 saisie · ⚫ formule · 🟢 lien inter-feuilles · 🟡 hypothèse clé.
+🔵 saisie · ⚫ formule · 🟢 lien inter-feuilles · 🟡 hypothèse à remplir.
+
+> Marques/campus **réels** EDUSERVICES, montants **illustratifs** calibrés sur des ordres de grandeur sourcés (scolarité 8-11 k€, NPEC ~7-10 k€, marge ~20 %, classe ~30). À remplacer par le réel.
