@@ -437,14 +437,14 @@ for idx in range(N):
         motif=f'=IF(H{r}<0,"Entrée à contribution négative → ne pas lancer cette cohorte",IF(I{r}>=0.95,"Saturé → ouvrir capte des étudiants ET dilue la structure pour tous",IF(I{r}<0.55,"Sous-rempli mais contribution positive → garder","Sain")))'
         dv=dv_ent
     else:      # année de poursuite : cohorte inscrite → seule l'organisation des classes est décidable
-        reco=f'=IF(H{r}<0,"🔴 Restructurer (mutualiser)",IF(I{r}<0.55,"🟡 Regrouper les classes","🟢 Maintenir"))'
-        motif=f'="Poursuite : cohorte déjà inscrite (issue de l\'année inférieure) → ni lancement ni capture ; seul levier = regrouper / mutualiser les classes"'
+        reco=f'=IF(H{r}<0,"🔴 Restructurer (mutualiser)",IF(AND({ai}>=2,E{r}<=({ai}-1)*{cap}*1.1),"🟡 Regroupable (−1 classe tient en capacité)",IF(I{r}<0.55,"🟠 Sous-rempli mais −1 classe déborderait","🟢 Maintenir")))'
+        motif=f'="Poursuite : cohorte déjà inscrite → seul levier = regrouper. −1 classe créditée uniquement si l\'effectif tient dans les classes restantes (capacité +10% tolérée). Remplissage si −1 classe : "&IF({ai}>=2,TEXT(IFERROR(E{r}/(({ai}-1)*{cap}),0),"0%"),"n/a (1 seule classe)")'
         dv=dv_pou
     C(ws,f"J{r}",reco,CF,align=AL,border=True)
     C(ws,f"K{r}",motif,CIT,align=ALW,border=True)
     C(ws,f"L{r}","Maintenir",CINB,FYEL,align=AC,border=True); dv.add(ws[f"L{r}"])
     C(ws,f"M{r}",f'=IF(L{r}="Ne pas lancer",0,IF(L{r}="Ouvrir +1 classe",E{r}+{cap},E{r}))',CF,fmt=NB,align=AC,border=True)   # effectif après
-    C(ws,f"N{r}",f'=IF(L{r}="Ne pas lancer",0,IF(L{r}="Ouvrir +1 classe",H{r}+{cap}*{metu}-{u},IF(L{r}="Regrouper (-1 classe)",H{r}+({ai}-MAX(1,{ai}-1))*{u},H{r})))',CF,fmt=EUR,align=AR,border=True)  # contribution après
+    C(ws,f"N{r}",f'=IF(L{r}="Ne pas lancer",0,IF(L{r}="Ouvrir +1 classe",H{r}+{cap}*{metu}-{u},IF(L{r}="Regrouper (-1 classe)",IF(AND({ai}>=2,E{r}<=({ai}-1)*{cap}*1.1),H{r}+{u},H{r}),H{r})))',CF,fmt=EUR,align=AR,border=True)  # contribution après : -1 classe créditée SEULEMENT si l'effectif tient dans les classes restantes (capacité +10%)
     C(ws,f"O{r}",f"=M{r}*IFERROR({STRUCT_TOT}/{EFF_AP},0)",CF,fmt=EUR,align=AR,border=True)   # structure allouée après (dilution symétrique)
     C(ws,f"P{r}",f"=N{r}-O{r}",CF,fmt=EUR,align=AR,border=True)                        # résultat tout compris après
     C(ws,f"Q{r}",f"=N{r}-H{r}",CFB,fmt=EUR,align=AR,border=True)                       # Δ EBITDA groupe (= Δ contribution)
@@ -599,7 +599,7 @@ GLOSS={
  "🤖 Reco":"Recommandation automatique (contribution + remplissage). Dépend de l'année : entrée (lancer/capter) vs poursuite (regrouper).",
  "Motif":"Explication de la recommandation.","Décision":"Ton choix. Menu restreint selon l'année : entrée = lancer/capter ; poursuite = seulement regrouper.",
  "Effectif après":"Effectif après ta décision (0 si 'ne pas lancer' ; +1 classe captée si 'ouvrir').",
- "Contribution après":"Contribution recalculée selon ta décision.",
+ "Contribution après":"Contribution recalculée selon ta décision. Regrouper (−1 classe) n'est crédité (économie d'une classe) QUE si l'effectif tient dans les classes restantes : effectif ≤ (classes−1) × capacité × 1,10 (tolérance salle +10%). Sinon aucune économie : le regroupement déborderait la capacité.",
  "Δ EBITDA":"Impact sur l'EBITDA groupe = contribution après − contribution avant.",
  # 12 Sensibilite
  "Levier (pas)":"Levier testé et son incrément.","Impact EBITDA":"Effet € sur l'EBITDA d'un pas du levier (approximation vivante).","Lecture":"Interprétation.",
