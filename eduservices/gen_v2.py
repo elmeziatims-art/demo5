@@ -416,6 +416,7 @@ C(ws,"A3","Structure / étudiant — AVANT :",CB,align=AR); ws.merge_cells("A3:C
 C(ws,"E3","APRÈS :",CB,align=AR); ws.merge_cells("E3:F3"); C(ws,"G3",f"=IFERROR({STRUCT_TOT}/{EFF_AP},0)",CFB,FRISK,fmt=EUR,align=AR,border=True); ws.merge_cells("G3:H3")
 C(ws,"I3","Effectif total APRÈS :",CB,align=AR); ws.merge_cells("I3:J3"); C(ws,"K3",f"={EFF_AP}",CFB,fmt=NB,align=AC,border=True)
 C(ws,"M3","⚠ Fermer retire des étudiants → structure/étudiant ↑ (tous absorbent +). Ouvrir en capte → structure/étudiant ↓ (tous s'enrichissent). La structure totale ne bouge pas ; l'EBITDA groupe ne varie que des contributions.",CIT,align=ALW); ws.merge_cells("M3:Q3"); ws.row_dimensions[3].height=30
+C(ws,"A4","🧪 BAC À SABLE : ces décisions montrent un impact SIMULÉ (encadré ci-dessus) — elles n'affectent PAS le budget officiel (feuilles 09_Allocation / 10_PnL / 13_Simulation), qui se pilote via les LEVIERS (feuille 02_Leviers).",CITB if False else Font(name=F,italic=True,bold=True,color="C00000"),align=AL); ws.merge_cells("A4:Q4"); ws.row_dimensions[4].height=16
 for i,h in enumerate(sc): C(ws,f"{GL(1+i)}5",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[5].height=34
 # deux jeux de décisions : ENTRÉE (recrutement décidable) vs POURSUITE (cohorte déjà inscrite → seulement l'organisation des classes)
