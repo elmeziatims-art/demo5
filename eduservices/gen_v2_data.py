@@ -36,7 +36,7 @@ def op_params(prog, ptype, niveau, domaine):
     if ptype=="BTS": ped=350
     if ptype=="MAST": ped+=120
     cacv={"BTS":250,"BAC":320,"MAST":600}[ptype]          # CAC variable (achat de leads) / inscrit
-    passage=0 if niveau in ENTRY else {"B2":0.82,"B3":0.88,"M2":0.90,"2":0.85}[niveau]
+    passage=0 if niveau in ENTRY else {"B2":0.85,"B3":0.90,"M2":0.92,"2":0.90}[niveau]
     return dict(cap=cap,heures=heures,taux=taux,pedago=ped,cacv=cacv,passage=passage)
 
 def tarif(t,mod):
@@ -48,10 +48,13 @@ def lvl_factor(t,niv):
     return {"BAC":{"B1":1.00,"B2":0.85,"B3":0.75},"MAST":{"M1":0.60,"M2":0.54},"BTS":{"1":0.80,"2":0.70}}[t][niv]
 
 # constantes calibrées
-CAP_D,HRS_D,TXH_D,PEDA_D,ETPC,FRAIS,PROGREF,PSTRUCT=30,550,60,400,48000,90,0.84,0.08
-CONV_N1,ADM_N1,CAC_GLOBAL,DA_PCT=0.372,0.62,450,0.03  # CAC_GLOBAL = marketing partagé /inscrit
+CAP_D,HRS_D,TXH_D,PEDA_D,ETPC,FRAIS,DA_PCT=30,550,60,400,58000,90,0.03  # ETP chargé 58 k€
+CONV_N1,ADM_N1=0.372,0.62
+STRUCT_FIXE=2000000   # frais de structure & marketing groupe : montant FIXE (siège, IT, marque, équipe centrale)
 SECU_N1,RECOUV=0.86,1.00
-ELAST_DEF=0.5    # élasticité marketing par défaut (fallback)
+ELAST_DEF=0.5    # élasticité marketing par défaut (repli si historique mince)
+# taux de sécurisation ≤3 mois N-1, mesuré PAR PROGRAMME (issu de l'historique)
+def secu_prog(dom): return {"Management":0.88,"Communication":0.85,"Commerce":0.87,"Commerce/RH":0.84,"Tourisme":0.83}.get(dom,SECU_N1)
 
 def sf(mod,secu,recouv=RECOUV): return 1.0 if mod!="ALT" else secu+(1-secu)*recouv
 
@@ -89,7 +92,7 @@ mkt_hist={}
 for (m,pnom,ptype,dom) in prog_list:
     cells=[r for r in rows if r["marque"]==m and r["prog"]==pnom and r["entry"]==1]
     cand_n1=sum(c["cand"] for c in cells)
-    mkt_n1=sum(c["nouv"]*(CAC_GLOBAL+c["cacv"]) for c in cells)
+    mkt_n1=sum(c["nouv"]*c["cacv"] for c in cells)
     # N-2 : légèrement plus bas (candidatures +5% et marketing +10% entre N-2 et N-1 -> élasticité 0,5)
     cand_n2=round(cand_n1/1.05); mkt_n2=round(mkt_n1/1.10)
     mkt_hist[(m,pnom)]=dict(cand_n1=cand_n1,cand_n2=cand_n2,mkt_n1=round(mkt_n1),mkt_n2=mkt_n2)

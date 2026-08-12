@@ -61,21 +61,20 @@ for r in rows:
     ca=sum(x["eff"]*x["tarif"]*sf(x["mod"],SECU_N1)+x["nouv"]*FRAIS for x in cells)
     ens=sum(x["classes"]*x["heures"]*x["taux"] for x in cells)
     ped=sum(x["eff"]*x["pedago"] for x in cells)
-    mkt=sum(x["nouv"]*(CAC_GLOBAL+x["cacv"]) for x in cells)
+    mkt=sum(x["nouv"]*x["cacv"] for x in cells)   # variable par programme uniquement (le global est fixe, en structure)
     contrib=ca-ens-ped-mkt
-    loyer=round(0.11*ca/1000)*1000; etp=round(eff/22)+2; da=round(DA_PCT*ca/1000)*1000; m2=eff*8
+    loyer=round(0.11*ca/1000)*1000; etp=round(eff/28)+2; da=round(DA_PCT*ca/1000)*1000; m2=eff*8
     campus.append(dict(marque=r["marque"],ville=r["ville"],eff=eff,nouv=nouv,ca=ca,contrib=contrib,loyer=loyer,etp=etp,da=da,m2=m2))
 CG=len(campus)
 MARQUES=list(BRANDS.keys())
 grp_ca_n1=sum(c["ca"] for c in campus)
-grp_ebitda_n1=sum(c["contrib"] for c in campus)-sum(c["loyer"] for c in campus)-sum(c["etp"]*ETPC for c in campus)-round(PSTRUCT*grp_ca_n1)
+grp_ebitda_n1=sum(c["contrib"] for c in campus)-sum(c["loyer"] for c in campus)-sum(c["etp"]*ETPC for c in campus)-STRUCT_FIXE
 print("[py] CA N-1=%.0f EBITDA N-1=%.0f (%.1f%%)"%(grp_ca_n1,grp_ebitda_n1,grp_ebitda_n1/grp_ca_n1*100))
 
 # ============================================================ refs paramètres
 P=lambda a:f"'02_Leviers'!{a}"
 PMKT,PPRIX,PDCONV,PSECU,PPASS,PINFL,PSAL=P("$G$6"),P("$G$7"),P("$G$8"),P("$G$9"),P("$G$10"),P("$G$11"),P("$G$12")
-KCACG,KETPC,KFRAIS,KPSTRUCT,KRECOUV,KSECUN1,KELAST,KCONV=(P("$D$15"),P("$D$16"),P("$D$17"),P("$D$18"),
-    P("$D$19"),P("$D$20"),P("$D$21"),P("$D$22"))
+KETPC,KFRAIS,KSTRUCT,KRECOUV,KSECUN1,KELAST,KCONV=(P("$D$15"),P("$D$16"),P("$D$17"),P("$D$18"),P("$D$19"),P("$D$20"),P("$D$21"))
 
 # ============================================================ 00_Notice
 ws=wb.active; ws.title="00_Notice"; ws.sheet_view.showGridLines=False
@@ -129,26 +128,25 @@ for lib,u,cad,opt,pru,fmt in levs:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True); C(ws,f"C{r}",u,CREG,align=AC,border=True)
     C(ws,f"D{r}",cad,CIN,fmt=fmt,align=AC,border=True); C(ws,f"E{r}",opt,CIN,fmt=fmt,align=AC,border=True); C(ws,f"F{r}",pru,CIN,fmt=fmt,align=AC,border=True)
     C(ws,f"G{r}",f"=INDEX(D{r}:F{r},MATCH($C$3,$D$5:$F$5,0))",CF,FLIGHT,fmt=fmt,align=AC,border=True); r+=1
-C(ws,"B14","Constantes de référence (le réel / hypothèses à charger)",CHDR,FBLUE,align=AL,border=True)
+C(ws,"B14","Constantes de référence (le réel = à charger · repli = si historique mince)",CHDR,FBLUE,align=AL,border=True)
 for col in ("C","D","E","F","G"): C(ws,f"{col}14"," ",fill=FBLUE,border=True)
-consts=[("CAC global partagé (€/inscrit)","€",CAC_GLOBAL,EUR,"réel"),
- ("Coût chargé / ETP permanent","€",ETPC,EUR,"réel"),
+consts=[("Coût chargé / ETP permanent","€",ETPC,EUR,"réel (SIRH)"),
  ("Frais de dossier / nouvel inscrit","€",FRAIS,EUR,"réel"),
- ("Frais de structure groupe (% CA)","%",PSTRUCT,PCT,"réel"),
+ ("Frais de structure & marketing groupe (€ FIXE)","€",STRUCT_FIXE,EUR,"réel (siège, IT, marque)"),
  ("Recouvrement reste à charge (employeur)","%",RECOUV,PCT,"hypothèse (100% légal)"),
- ("Réf. taux de sécurisation N-1","%",SECU_N1,PCT,"réel"),
- ("Élasticité marketing (repli si historique mince)","x",ELAST_DEF,X2,"hypothèse"),
- ("Conversion candidature→inscrit (réf N-1)","%",CONV_N1,PCT,"réel")]
+ ("Sécurisation N-1 — REPLI","%",SECU_N1,PCT,"repli (sinon mesuré par programme)"),
+ ("Élasticité marketing — REPLI","x",ELAST_DEF,X2,"repli (sinon mesurée N-2/N-1)"),
+ ("Conversion candidature→inscrit — REPLI","%",CONV_N1,PCT,"repli (sinon mesurée par cellule)")]
 r=15
 for lib,u,val,fmt,note in consts:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True); C(ws,f"C{r}",u,CREG,align=AC,border=True)
-    C(ws,f"D{r}",val,(CINB if 'hypothèse' in note else CIN),(FYEL if 'hypothèse' in note else None),fmt=fmt,align=AC,border=True)
+    C(ws,f"D{r}",val,(CINB if ('hypothèse' in note or 'repli' in note) else CIN),(FYEL if ('hypothèse' in note or 'repli' in note) else None),fmt=fmt,align=AC,border=True)
     C(ws,f"E{r}",note,CIT,align=AL,border=True); ws.merge_cells(f"E{r}:F{r}")
     C(ws,f"G{r}",f"=D{r}",CF,FLIGHT,fmt=fmt,align=AC,border=True); r+=1
-C(ws,"B24","Driver d'allocation :",CB,align=AR); ws.merge_cells("B24:C24")
-C(ws,"D24","Effectifs",CINB,FYEL,align=AC,border=True)
-dv2=DataValidation(type="list",formula1='"Effectifs,Chiffre d\'affaires,Surface m2"',allow_blank=False); ws.add_data_validation(dv2); dv2.add(ws["D24"])
-DRIVER="'02_Leviers'!$D$24"
+C(ws,"B23","Driver d'allocation :",CB,align=AR); ws.merge_cells("B23:C23")
+C(ws,"D23","Effectifs",CINB,FYEL,align=AC,border=True)
+dv2=DataValidation(type="list",formula1='"Effectifs,Chiffre d\'affaires,Surface m2"',allow_blank=False); ws.add_data_validation(dv2); dv2.add(ws["D23"])
+DRIVER="'02_Leviers'!$D$23"
 
 # ============================================================ 03_Coeff_Strateg
 ws=wb.create_sheet("03_Coeff_Strateg"); ws.sheet_view.showGridLines=False
@@ -224,17 +222,18 @@ for rr in rows:
 HRN=HR0+N-1
 # bloc marketing par programme (N-2/N-1 -> élasticité)
 mrow=HRN+3
-C(ws,f"A{mrow}","Historique marketing par programme → élasticité mesurée",CB,align=AL); ws.merge_cells(f"A{mrow}:H{mrow}")
+C(ws,f"A{mrow}","Historique marketing & sécurisation par programme (issu du réalisé)",CB,align=AL); ws.merge_cells(f"A{mrow}:G{mrow}")
 mrow+=1
-for i,h in enumerate(["Programme","Cand N-2","Cand N-1","Marketing N-2","Marketing N-1","Élasticité mesurée"]): C(ws,f"{GL(1+i)}{mrow}",h,CHDR,FBLUE,align=AC,border=True)
+for i,h in enumerate(["Programme","Cand N-2","Cand N-1","Marketing N-2","Marketing N-1","Élasticité mesurée","Sécurisation N-1"]): C(ws,f"{GL(1+i)}{mrow}",h,CHDR,FBLUE,align=AC,border=True)
 ME0=mrow+1; r=ME0
 for (m,pnom,ptype,dom) in prog_list:
     h=mkt_hist[(m,pnom)]
     C(ws,f"A{r}",pnom,CIN,align=AL,border=True); C(ws,f"B{r}",h["cand_n2"],CIN,fmt=NB,align=AC,border=True); C(ws,f"C{r}",h["cand_n1"],CIN,fmt=NB,align=AC,border=True)
     C(ws,f"D{r}",h["mkt_n2"],CIN,fmt=EUR,align=AR,border=True); C(ws,f"E{r}",h["mkt_n1"],CIN,fmt=EUR,align=AR,border=True)
-    C(ws,f"F{r}",f"=IFERROR((C{r}/B{r}-1)/(E{r}/D{r}-1),{KELAST})",CF,fmt=X2,align=AC,border=True); r+=1
+    C(ws,f"F{r}",f"=IFERROR((C{r}/B{r}-1)/(E{r}/D{r}-1),{KELAST})",CF,fmt=X2,align=AC,border=True)
+    C(ws,f"G{r}",secu_prog(dom),CIN,fmt=PCT,align=AC,border=True); r+=1
 MEN=r-1
-MEKEY=f"'06_Historique'!$A${ME0}:$A${MEN}"; MEELA=f"'06_Historique'!$F${ME0}:$F${MEN}"
+MEKEY=f"'06_Historique'!$A${ME0}:$A${MEN}"; MEELA=f"'06_Historique'!$F${ME0}:$F${MEN}"; MESECU=f"'06_Historique'!$G${ME0}:$G${MEN}"
 def hc_(col,rr): return f"'06_Historique'!{col}{rr}"
 
 # ============================================================ 07_Structure
@@ -290,18 +289,18 @@ for idx in range(N):
     C(ws,f"X{r}",f"=IFERROR(INDEX({MEELA},MATCH(C{r},{MEKEY},0)),{KELAST})",CF,fmt=X2,align=AC,border=True)
     C(ws,f"Y{r}",f"={PMKT}*V{r}",CF,fmt=PCT,align=AC,border=True)
     C(ws,f"Z{r}",f"=IF(F{r}=1,J{r}*(1+X{r}*Y{r}),0)",CF,fmt=NB,align=AC,border=True)
-    C(ws,f"AA{r}",f"=IF(F{r}=1,{KCONV}+{PDCONV},0)",CF,fmt=PCT,align=AC,border=True)
+    C(ws,f"AA{r}",f"=IF(F{r}=1,IFERROR(H{r}/J{r},{KCONV})+{PDCONV},0)",CF,fmt=PCT,align=AC,border=True)  # conversion mesurée par cellule + gain
     C(ws,f"AB{r}",f"=Z{r}*AA{r}",CF,fmt=NB,align=AC,border=True)
     C(ws,f"AC{r}",f"=IF(F{r}=1,0,K{r}*(T{r}+{PPASS}))",CF,fmt=NB,align=AC,border=True)
     C(ws,f"AD{r}",f"=AB{r}+AC{r}",CFB,fmt=NB,align=AC,border=True)
     C(ws,f"AE{r}",f"=L{r}*(1+{PPRIX}*W{r})",CF,fmt=EUR,align=AC,border=True)
     C(ws,f"AF{r}",f'=IF(E{r}="ALT",{PSECU}+(1-{PSECU})*{KRECOUV},1)',CF,fmt=X2,align=AC,border=True)
-    C(ws,f"AG{r}",f'=IF(E{r}="ALT",{KSECUN1}+(1-{KSECUN1})*{KRECOUV},1)',CF,fmt=X2,align=AC,border=True)
+    C(ws,f"AG{r}",f'=IF(E{r}="ALT",IFERROR(INDEX({MESECU},MATCH(C{r},{MEKEY},0)),{KSECUN1})+(1-IFERROR(INDEX({MESECU},MATCH(C{r},{MEKEY},0)),{KSECUN1}))*{KRECOUV},1)',CF,fmt=X2,align=AC,border=True)  # sécu N-1 par programme
     C(ws,f"AH{r}",f"=AD{r}*AE{r}*AF{r}+AB{r}*{KFRAIS}",CF,fmt=EUR,align=AR,border=True)
     C(ws,f"AI{r}",f"=IF(AD{r}<=0,0,MAX(1,ROUNDUP(AD{r}/O{r},0)))",CF,fmt=NB,align=AC,border=True)
     C(ws,f"AJ{r}",f"=AI{r}*U{r}",CF,fmt=EUR,align=AR,border=True)
     C(ws,f"AK{r}",f"=AD{r}*R{r}*(1+{PINFL})",CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"AL{r}",f"=AB{r}*{KCACG}+H{r}*S{r}*(1+Y{r})",CF,fmt=EUR,align=AR,border=True)  # global×nouveaux + variable lead×(1+effort)
+    C(ws,f"AL{r}",f"=H{r}*S{r}*(1+Y{r})",CF,fmt=EUR,align=AR,border=True)  # marketing variable (achat de leads) × (1+effort) ; le global est en structure fixe
     C(ws,f"AM{r}",f"=AH{r}-AJ{r}-AK{r}-AL{r}",CFB,fmt=EUR,align=AR,border=True)
     C(ws,f"AN{r}",f"=IFERROR(AD{r}/(AI{r}*O{r}),0)",CF,fmt=PCT,align=AC,border=True)
     C(ws,f"AO{r}",f"=IFERROR(AM{r}/AD{r},0)",CF,fmt=EUR,align=AC,border=True)
@@ -320,8 +319,8 @@ ws=wb.create_sheet("09_Allocation"); ws.sheet_view.showGridLines=False
 for c,w in {"A":2,"B":16,"C":11,"D":13,"E":11,"F":13,"G":12,"H":11,"I":13,"J":13,"K":11,"L":13}.items(): ws.column_dimensions[c].width=w
 ws.merge_cells("B2:L2"); C(ws,"B2","Allocation des frais de structure par driver",CTIT,FNAVY,align=AL); ws.row_dimensions[2].height=24
 C(ws,"B3","Driver actif :",CB,align=AR); C(ws,"C3",f"={DRIVER}",CL,FYEL,align=AC,border=True)
-C(ws,"E3","Frais de structure à allouer :",CB,align=AR); ws.merge_cells("E3:G3")
-C(ws,"H3",f"={KPSTRUCT}*{msum('AH')}",CFB,fmt=EUR,align=AR,border=True); ws.merge_cells("H3:I3")
+C(ws,"E3","Frais de structure (fixe) à allouer :",CB,align=AR); ws.merge_cells("E3:G3")
+C(ws,"H3",f"={KSTRUCT}*(1+{PINFL})",CFB,fmt=EUR,align=AR,border=True); ws.merge_cells("H3:I3")
 for i,h in enumerate(["Marque","Ville","Contribution","Loyer","Masse perm.","Driver","Part","Alloué","EBITDA campus","D&A","EBIT"]):
     C(ws,f"{GL(2+i)}5",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[5].height=28
@@ -352,7 +351,7 @@ for c,w in {"A":2,"B":34,"C":15,"D":15,"E":14,"F":11}.items(): ws.column_dimensi
 ws.merge_cells("B2:F2"); C(ws,"B2","Compte de résultat consolidé — Budget vs N-1",CTIT,FNAVY,align=AL); ws.row_dimensions[2].height=24
 C(ws,"B3","Scénario :",CB,align=AR); C(ws,"C3","='02_Leviers'!C3",CL,align=AC)
 for i,h in enumerate(["Rubrique","Réalisé N-1","Budget N+1","Écart €","Écart %"]): C(ws,f"{GL(2+i)}5",h,CHDR,FBLUE,align=AC,border=True)
-n1_eff=STC("C"); n1_ca=STC("D"); n1_ctb=STC("E"); n1_loy=STC("F"); n1_perm=STC("H"); n1_da=STC("I"); n1_str=f"{KPSTRUCT}*{n1_ca}"
+n1_eff=STC("C"); n1_ca=STC("D"); n1_ctb=STC("E"); n1_loy=STC("F"); n1_perm=STC("H"); n1_da=STC("I"); n1_str=str(STRUCT_FIXE)
 def pl(r,lib,n1,bud,fmt,bold,pct=False):
     ft=CFB if bold else CREG; fl=FLIGHT if bold else None
     C(ws,f"B{r}",lib,ft,fl,align=AL,border=True); C(ws,f"C{r}",n1,(CFB if bold else CL),fl,fmt=fmt,align=AR,border=True); C(ws,f"D{r}",bud,(CFB if bold else CF),fl,fmt=fmt,align=AR,border=True)
@@ -401,35 +400,41 @@ C(ws,"B12","Cibles en JAUNE (saisie direction). Le budget construit vient du mot
 
 # ============================================================ 11_Simulateur
 ws=wb.create_sheet("11_Simulateur"); ws.sheet_view.showGridLines=False
-sc=["Marque","Ville","Programme","Année","Eff. Bud","Cl. auto","Cl. N-1","Remplissage","Décision","Cl. après","Eff. après","Contrib après","Δ EBITDA"]
-for i,w in enumerate([14,9,16,6,9,8,8,10,15,9,9,12,11]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells("A1:M1"); C(ws,"A1","Simulateur de décisions (planification rentrée) — impact AVANT → APRÈS",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
+sc=["Marque","Ville","Programme","Année","Eff. Bud","Cl. auto","Cl. N-1","Rempl.","🤖 Reco","€ si reco","Motif","Décision","Cl. après","Eff. après","Contrib après","Δ EBITDA"]
+for i,w in enumerate([13,9,15,6,8,7,7,8,17,11,34,14,8,8,12,11]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells("A1:P1"); C(ws,"A1","Simulateur & conseil de décisions (planification rentrée) — impact AVANT → APRÈS",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
 C(ws,"A2","EBITDA avant (optimal) :",CB,align=AR); ws.merge_cells("A2:C2")
 C(ws,"D2",f"={ALc('J')}",CFB,fmt=EUR,align=AR,border=True)
-C(ws,"E2","Somme Δ décisions :",CB,align=AR); ws.merge_cells("E2:G2")
+C(ws,"E2","Somme Δ décisions :",CB,align=AR); ws.merge_cells("E2:F2")
 DR0=4
-C(ws,"H2",f"=SUM(M{DR0}:M{DR0+N-1})",CFB,fmt=EUR,align=AR,border=True)
+C(ws,"G2",f"=SUM(P{DR0}:P{DR0+N-1})",CFB,fmt=EUR,align=AR,border=True); ws.merge_cells("G2:H2")
 C(ws,"I2","EBITDA après :",CB,align=AR)
-C(ws,"J2","=D2+H2",CFB,FTOT,fmt=EUR,align=AR,border=True); ws.merge_cells("J2:K2")
+C(ws,"J2","=D2+G2",CFB,FTOT,fmt=EUR,align=AR,border=True)
+C(ws,"K2","🔴 promos < point mort :",CB,align=AR)
+C(ws,"L2",f"=SUMPRODUCT(--({mrng('AM')}<0))",CFB,FRISK,fmt=NB,align=AC,border=True)
+C(ws,"M2","→ gain potentiel si recos appliquées (col. « € si reco ») :",CIT,align=AL); ws.merge_cells("M2:P2")
 for i,h in enumerate(sc): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[3].height=28
 dvd=DataValidation(type="list",formula1='"Optimal,Statu quo,Ne pas lancer,Ouvrir +1"',allow_blank=False); ws.add_data_validation(dvd)
 r=DR0
 for idx in range(N):
     r=DR0+idx; mr=MR0+idx
+    am=MO('AM')+str(mr); an=MO('AN')+str(mr); ao=MO('AO')+str(mr); ocap=MO('O')+str(mr); u=MO('U')+str(mr)
     C(ws,f"A{r}",f"={MO('A')+str(mr)}",CL,align=AL,border=True); C(ws,f"B{r}",f"={MO('B')+str(mr)}",CL,align=AC,border=True)
     C(ws,f"C{r}",f"={MO('C')+str(mr)}",CL,align=AL,border=True); C(ws,f"D{r}",f"={MO('D')+str(mr)}",CL,align=AC,border=True)
     C(ws,f"E{r}",f"={MO('AD')+str(mr)}",CL,fmt=NB,align=AC,border=True); C(ws,f"F{r}",f"={MO('AI')+str(mr)}",CL,fmt=NB,align=AC,border=True)
-    C(ws,f"G{r}",f"={MO('M')+str(mr)}",CL,fmt=NB,align=AC,border=True); C(ws,f"H{r}",f"={MO('AN')+str(mr)}",CL,fmt=PCT,align=AC,border=True)
-    C(ws,f"I{r}","Optimal",CINB,FYEL,align=AC,border=True); dvd.add(ws[f"I{r}"])
-    # classes après selon décision
-    C(ws,f"J{r}",f'=IF(I{r}="Ne pas lancer",0,IF(I{r}="Statu quo",MAX({MO("AI")+str(mr)},{MO("M")+str(mr)}),IF(I{r}="Ouvrir +1",{MO("AI")+str(mr)}+1,{MO("AI")+str(mr)})))',CF,fmt=NB,align=AC,border=True)
-    C(ws,f"K{r}",f'=IF(I{r}="Ne pas lancer",0,{MO("AD")+str(mr)})',CF,fmt=NB,align=AC,border=True)
-    # contribution après = CA - enseignement - pédago - marketing (recalculés selon décision)
-    caA=f'K{r}*{MO("AE")+str(mr)}*{MO("AF")+str(mr)}+IF(I{r}="Ne pas lancer",0,{MO("AB")+str(mr)})*{KFRAIS}'
-    ensA=f'J{r}*{MO("U")+str(mr)}'; pedA=f'K{r}*{MO("R")+str(mr)}*(1+{PINFL})'; mktA=f'IF(I{r}="Ne pas lancer",0,{MO("AL")+str(mr)})'
-    C(ws,f"L{r}",f"={caA}-{ensA}-{pedA}-{mktA}",CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"M{r}",f"=L{r}-{MO('AM')+str(mr)}",CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"G{r}",f"={MO('M')+str(mr)}",CL,fmt=NB,align=AC,border=True); C(ws,f"H{r}",f"={an}",CL,fmt=PCT,align=AC,border=True)
+    # RECO intelligente
+    C(ws,f"I{r}",f'=IF({am}<0,"🔴 Ne pas lancer",IF({an}>=0.95,"🟢 Ouvrir +1 classe",IF({an}<0.55,"🟡 Surveiller / regrouper","🟢 Maintenir")))',CF,align=AL,border=True)
+    C(ws,f"J{r}",f'=IF({am}<0,-{am},IF({an}>=0.95,{ocap}*{ao}-{u},0))',CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"K{r}",f'=IF({am}<0,"Contribution négative → annuler / restructurer",IF({an}>=0.95,"Quasi saturé → +1 classe capte la demande",IF({an}<0.55,"Sous-rempli → surveiller / regrouper","Sain")))',CIT,align=AL,border=True)
+    C(ws,f"L{r}","Optimal",CINB,FYEL,align=AC,border=True); dvd.add(ws[f"L{r}"])
+    C(ws,f"M{r}",f'=IF(L{r}="Ne pas lancer",0,IF(L{r}="Statu quo",MAX({MO("AI")+str(mr)},{MO("M")+str(mr)}),IF(L{r}="Ouvrir +1",{MO("AI")+str(mr)}+1,{MO("AI")+str(mr)})))',CF,fmt=NB,align=AC,border=True)
+    C(ws,f"N{r}",f'=IF(L{r}="Ne pas lancer",0,{MO("AD")+str(mr)})',CF,fmt=NB,align=AC,border=True)
+    caA=f'N{r}*{MO("AE")+str(mr)}*{MO("AF")+str(mr)}+IF(L{r}="Ne pas lancer",0,{MO("AB")+str(mr)})*{KFRAIS}'
+    ensA=f'M{r}*{MO("U")+str(mr)}'; pedA=f'N{r}*{MO("R")+str(mr)}*(1+{PINFL})'; mktA=f'IF(L{r}="Ne pas lancer",0,{MO("AL")+str(mr)})'
+    C(ws,f"O{r}",f"={caA}-{ensA}-{pedA}-{mktA}",CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"P{r}",f"=O{r}-{am}",CFB,fmt=EUR,align=AR,border=True)
 ws.freeze_panes="E4"
 
 # ============================================================ 12_Sensibilite

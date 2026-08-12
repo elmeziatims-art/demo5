@@ -33,11 +33,21 @@ Marque × Campus × Programme × **Année d'études** × Modalité (initial/alte
 - **Alternance / financement** : sécurisation ≤ 3 mois → OPCO rétroactif 100 % ; reste à charge **employeur** (recouvrement paramétrable, défaut **100 % légal**). Le **taux de sécurisation** pilote l'**exposition** (« € à sécuriser ») ; son effet **EBITDA** n'apparaît que si le recouvrement < 100 %.
 - **Cadrage top-down** : cibles CA/EBITDA € → écart → à combler via les leviers (voir Sensibilité).
 
+## Précisions d'architecture (données vs décisions)
+- **Frais de structure & marketing groupe = montant FIXE** (siège, IT, marque), alloué par driver — plus un % du CA.
+- **CAC** : global (fixe, en structure) + **variable par programme** (achat de leads, per inscrit).
+- **Sécurisation N-1** et **conversion candidature→inscrit** : **déduites de l'historique** (par programme / par cellule), puis bougées par les curseurs. Les valeurs globales ne sont que des replis.
+- **Coût ETP permanent** ~58 k€ chargé ; **taux de passage** B1→B2 85 %…
+
+## Conseil intelligent (feuille 11)
+Pour chaque promo, une **recommandation automatique** déduite du point mort + remplissage + contribution :
+🔴 Ne pas lancer (sous le point mort) · 🟢 Ouvrir +1 (saturé) · 🟡 Surveiller/regrouper (sous-rempli) · 🟢 Maintenir — avec le **€ d'impact** et le motif. *Insight : la scolarité dépassant largement le coût marginal d'une classe, fermer n'est presque jamais justifié — la décision est surtout d'ouvrir ou de remplir.*
+
 ## Vérifications
-- **0 erreur** sur 5 273 cellules (moteur `formulas`).
-- Marge EBITDA **N-1 19,1 % · Budget 20,0 %** ; scénarios Cadrage 20 % · Optimiste 27 % · Prudent 19 %.
+- **0 erreur** sur ~5 460 cellules (moteur `formulas`).
+- Marge EBITDA **N-1 19,2 % · Budget 21,4 %** ; scénarios ~Cadrage 21 % · Optimiste 27 % · Prudent 19 %.
 - Pont CA (Volume/Tarif/Sécurisation/Frais) **réconcilie exactement**.
-- Élasticité marketing **mesurée** (~0,5) ; simulateur et marketing→volume **dynamiques** ; recalcul auto à l'ouverture.
+- Élasticité marketing **mesurée** (~0,5) ; simulateur, reco et marketing→volume **dynamiques** ; recalcul auto à l'ouverture.
 
 ## Convention de couleurs
 🔵 saisie · ⚫ formule · 🟢 lien inter-feuilles · 🟡 hypothèse à remplir.
