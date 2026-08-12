@@ -64,7 +64,7 @@ for r in rows:
     mkt=sum(x["nouv"]*x["cacv"] for x in cells)   # variable par programme uniquement (le global est fixe, en structure)
     autres=eff*AUTRES_ETU
     contrib=ca-ens-ped-mkt-autres
-    loyer=round(0.11*ca/1000)*1000; etp=round(eff/28)+2; da=round(DA_PCT*ca/1000)*1000; m2=eff*8
+    loyer=round(0.11*ca/1000)*1000; etp=round(eff/30)+1; da=round(DA_PCT*ca/1000)*1000; m2=eff*8
     campus.append(dict(marque=r["marque"],ville=r["ville"],eff=eff,nouv=nouv,ca=ca,contrib=contrib,loyer=loyer,etp=etp,da=da,m2=m2))
 CG=len(campus)
 MARQUES=list(BRANDS.keys())
