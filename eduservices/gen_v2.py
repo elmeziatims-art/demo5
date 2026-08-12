@@ -532,7 +532,7 @@ GLOSS={
  "Seuil ouverture":"Seuil historique d'ouverture (indicatif ; le point mort réel est calculé dans le moteur).",
  "Heures / classe":"Heures d'enseignement délivrées par classe et par an.",
  "Taux horaire":"Coût horaire chargé de l'enseignement (vacation), en €.",
- "Coût pédago / étu":"Coût pédagogique variable par étudiant (supports, plateforme, examens), en €.",
+ "Coût pédago / étu":"Coût pédagogique par étudiant/an, HORS salaires des intervenants (ceux-ci sont dans Enseignement = heures × taux). Couvre supports & ressources de cours, licences logicielles pédagogiques (ex. créa pour Communication), plateforme LMS, jury/examens, certifications, consommables/projets. Varie par domaine : Communication 550 € > Tourisme 450 > Management 400 > Commerce 380 ; BTS 350 ; Mastère +120 €.",
  "CAC variable":"Coût d'acquisition variable (achat de leads) par nouvel inscrit. N'existe qu'en année d'entrée.",
  "Taux de passage":"Taux de progression de l'année inférieure vers celle-ci (réinscription). Vide en année d'entrée.",
  # 06 Historique

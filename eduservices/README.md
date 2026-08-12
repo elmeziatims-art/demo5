@@ -43,8 +43,24 @@ Marque × Campus × Programme × **Année d'études** × Modalité (initial/alte
 Cascade à deux niveaux : **CA − coûts directs évitables = MARGE DE CONTRIBUTION** (la métrique de décision) puis **− structure allouée = résultat tout compris** (info). Principe : **on décide sur la contribution, jamais sur le résultat tout compris** — car la **structure (loyer, permanents, siège) est non-évitable** : fermer une promo ne l'économise pas, elle **se redilue** sur les autres (indicateur *structure/étudiant avant → après*). Reco : 🔴 Ne pas ouvrir (contribution < 0) · 🟢 Ouvrir +1 (saturé) · 🟡 Surveiller (sous-rempli mais contribution positive → **garder**) · 🟢 Maintenir.
 
 ## Calibrage sur le réel (comptes consolidés EDUSERVICES 4.0, clos 31/08/2025)
-CA 345,8 M€ · **EBITDA 14,6 %** · EBIT 8,6 % · D&A 6 % du CA · personnel 46 % · **~8,2 k€/étudiant**.
-Le modèle (échantillon représentatif ~20 M€) reproduit ces **ratios** : CA/étudiant 8 276 €, marge EBITDA N-1 **14,6 %**.
+Le modèle (échantillon représentatif ~20 M€ de CA) ne prétend pas reproduire les montants réels — que le groupe ne partagera jamais à cette maille — mais **reproduit les ratios** du consolidé (CA 345,8 M€). Structure de coûts en % du CA :
+
+| Poste | Modèle | Réel (conso 4.0) | Source du montant unitaire |
+|---|---|---|---|
+| **Personnel total** | **45,5 %** | **46,0 %** | compte de résultat consolidé |
+| · enseignement (vacation) | 18,8 % | — | taux horaire chargé 55-74 € × heures/classe |
+| · permanents | 26,7 % | — | ~1 ETP / 26 étudiants, coût chargé 58 k€ (SIRH type) |
+| Achats/autres + pédagogie | 16,9 % | ~16-17 % | 934 €/étu autres + 350-670 €/étu pédago |
+| Loyers | 11,0 % | ~9-11 % | 11 % du CA (immobilier écoles urbaines) |
+| Marketing variable | 2,0 % | — | CAC 250-600 €/lead (achat de leads, benchmark web) |
+| Structure / siège (fixe) | 10,0 % | — | 2 M€ fixe (siège, IT, marque, équipe centrale) |
+| **D&A** | **6,0 %** | **6,0 %** | % du CA (consolidé) |
+| **EBITDA** | **14,6 %** | **14,6 %** | consolidé |
+| **CA / étudiant** | **8 276 €** | **~8 232 €** | consolidé (scolarité + frais + OPCO) |
+
+Effectif 2 415 · **alternance 82 %** · 5 marques · 14 campus.
+
+> **Coût pédago/étu** = coût de *production* de la formation par étudiant, **hors salaires des intervenants** (ceux-ci sont dans « enseignement ») : supports & ressources, licences logicielles pédagogiques, LMS, jury/examens, certifications, consommables/projets. 350-670 €/an selon le domaine.
 
 ## Vérifications
 - **0 erreur** sur ~5 500 cellules (moteur `formulas`).
