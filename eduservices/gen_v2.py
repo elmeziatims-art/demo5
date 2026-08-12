@@ -80,7 +80,8 @@ SCEN=f"{CAD}$D$3"                     # scénario actif (Cadrage/Optimiste/Prude
 PMKT,PPRIX,PDCONV,PPASS,PINFL,PSAL=(f"{CAD}$H${_r}" for _r in (16,17,18,19,20,21))   # leviers % (ACTIF)
 KETPC,KFRAIS,KSTRUCT,KRECOUV,KAUTRES,KSECUN1,KELAST,KCONV=(f"{CAD}$H${_r}" for _r in (23,24,25,26,27,28,29,30))  # constantes (ACTIF)
 PSECU=f"{CAD}$H$28"                   # sécurisation retirée des leviers top-down -> constante (défaut)
-DRIVER=f"{CAD}$D$32"
+DRIVER=f"{CAD}$D$34"                  # driver d'allocation vers CAMPUS (l'allocation 09 s'appuie dessus)
+DRIVER_MARQUE=f"{CAD}$D$33"; DRIVER_PROG=f"{CAD}$D$35"  # drivers marque & programme (cascade)
 _NC=sum(len(v[4]) for v in BRANDS.values())   # nb de campus (coeff marque×campus)
 CO0,CON=7,7+_NC-1
 CVRANGE=f"{CAD}$L${CO0}:$L${CON}"; CPRANGE=f"{CAD}$M${CO0}:$M${CON}"; CMRANGE=f"{CAD}$O${CO0}:$O${CON}"
@@ -371,21 +372,28 @@ ws.merge_cells("B2:H2"); C(ws,"B2","EDUSERVICES — Cadrage & pilotage TOP-DOWN 
 C(ws,"B3","Scénario actif :",CB,align=AR); C(ws,"D3","Cadrage",CINB,FYEL,align=AC,border=True)
 dvs=DataValidation(type="list",formula1='"Cadrage,Optimiste,Prudent"',allow_blank=False); ws.add_data_validation(dvs); dvs.add(ws["D3"])
 C(ws,"E3","◄ bascule tout le budget",CIT); ws.merge_cells("E3:H3")
-ATT_CA=round(grp_ca_n1); ATT_EB=round(grp_ebitda_n1); N2_CA=round(grp_ca_n1*0.94); N2_EB=round(grp_ebitda_n1*0.90)
+ATT_CA=round(grp_ca_n1); ATT_EB=round(grp_ebitda_n1)
+N1_CA=round(grp_ca_n1/1.05); N1_EB=round(grp_ebitda_n1/1.05)          # réalisé N-1 ≈ atterrissage / croissance
+N2_CA=round(grp_ca_n1/1.05/1.06); N2_EB=round(grp_ebitda_n1/1.05/1.12)
+# ---- choix de la BASE DE PROJECTION ----
+C(ws,"B4","Base de projection :",CB,align=AR); C(ws,"D4","Atterrissage N",CINB,FYEL,align=AC,border=True)
+dvb=DataValidation(type="list",formula1='"Atterrissage N,Réalisé N-1"',allow_blank=False); ws.add_data_validation(dvb); dvb.add(ws["D4"])
+C(ws,"E4","→ facteur base :",CIT,align=AR); C(ws,"F4",'=IF($D$4="Réalisé N-1",$D$7/$E$7,1)',CF,fmt=X2,align=AC,border=True); BF="$F$4"
+C(ws,"G4","(le budget construit projette depuis la base retenue)",CIT,align=AL); ws.merge_cells("G4:H4")
 # ---- ① CADRAGE TOP-DOWN ----
-band(ws,5,"B","G","① Cadrage top-down  —  N-2 · atterrissage N (base) · objectif (cible) · budget construit · écart")
-for i,h in enumerate(["Indicateur","N-2 (réel)","Atterrissage N","🟡 Objectif","Budget construit","Écart"]): C(ws,f"{GL(2+i)}6",h,CHDR,FBLUE,align=AC,border=True)
+band(ws,5,"B","H","① Cadrage top-down  —  N-2 · réalisé N-1 · atterrissage N · budget construit (base retenue) · objectif · écart")
+for i,h in enumerate(["Indicateur","N-2 (réel)","Réalisé N-1","Atterrissage N","Budget construit","🟡 Objectif","Écart"]): C(ws,f"{GL(2+i)}6",h,CHDR,FBLUE,align=AC,border=True)
 C(ws,"B7","Chiffre d'affaires",CB,align=AL,border=True)
-C(ws,"C7",N2_CA,CL,fmt=EUR,align=AR,border=True); C(ws,"D7",ATT_CA,CL,fmt=EUR,align=AR,border=True)
-C(ws,"E7",round(grp_ca_n1*1.06),CINB,FYEL,fmt=EUR,align=AR,border=True); C(ws,"F7",f"={msum('AH')}",CFB,fmt=EUR,align=AR,border=True); C(ws,"G7","=F7-E7",CF,fmt=EUR,align=AR,border=True)
+C(ws,"C7",N2_CA,CL,fmt=EUR,align=AR,border=True); C(ws,"D7",N1_CA,CL,fmt=EUR,align=AR,border=True); C(ws,"E7",ATT_CA,CL,fmt=EUR,align=AR,border=True)
+C(ws,"F7",f"={msum('AH')}*{BF}",CFB,fmt=EUR,align=AR,border=True); C(ws,"G7",round(grp_ca_n1*1.06),CINB,FYEL,fmt=EUR,align=AR,border=True); C(ws,"H7","=F7-G7",CF,fmt=EUR,align=AR,border=True)
 C(ws,"B8","EBITDA",CB,align=AL,border=True)
-C(ws,"C8",N2_EB,CL,fmt=EUR,align=AR,border=True); C(ws,"D8",ATT_EB,CL,fmt=EUR,align=AR,border=True)
-C(ws,"E8",round(grp_ca_n1*1.06*0.16),CINB,FYEL,fmt=EUR,align=AR,border=True); C(ws,"F8",f"={ALc('J')}",CFB,fmt=EUR,align=AR,border=True); C(ws,"G8","=F8-E8",CF,fmt=EUR,align=AR,border=True)
+C(ws,"C8",N2_EB,CL,fmt=EUR,align=AR,border=True); C(ws,"D8",N1_EB,CL,fmt=EUR,align=AR,border=True); C(ws,"E8",ATT_EB,CL,fmt=EUR,align=AR,border=True)
+C(ws,"F8",f"={ALc('J')}*{BF}",CFB,fmt=EUR,align=AR,border=True); C(ws,"G8",round(grp_ca_n1*1.06*0.16),CINB,FYEL,fmt=EUR,align=AR,border=True); C(ws,"H8","=F8-G8",CF,fmt=EUR,align=AR,border=True)
 C(ws,"B9","Marge EBITDA %",CB,align=AL,border=True)
-for col in ["C","D","E","F"]: C(ws,f"{col}9",f"=IFERROR({col}8/{col}7,0)",CF,fmt=PCT,align=AR,border=True)
-C(ws,"G9","=F9-E9",CF,fmt=PCT,align=AR,border=True)
+for col in ["C","D","E","F","G"]: C(ws,f"{col}9",f"=IFERROR({col}8/{col}7,0)",CF,fmt=PCT,align=AR,border=True)
+C(ws,"H9","=F9-G9",CF,fmt=PCT,align=AR,border=True)
 C(ws,"B11","RESTE À TROUVER (EBITDA vs objectif) :",CB,align=AR); ws.merge_cells("B11:E11")
-C(ws,"F11","=IF(E8-F8>0,E8-F8,0)",CFB,FRISK,fmt=EUR,align=AR,border=True); C(ws,"G11","=IF(E8-F8>0,\"à combler\",\"atteint\")",CIT,align=AC,border=True)
+C(ws,"F11","=IF(G8-F8>0,G8-F8,0)",CFB,FRISK,fmt=EUR,align=AR,border=True); C(ws,"G11",'=IF(G8-F8>0,"à combler","atteint")',CIT,align=AC,border=True)
 # ---- ② LEVIERS & HYPOTHÈSES (varier en %, 3 scénarios) ----
 band(ws,13,"B","H","② Leviers & hypothèses  —  varie en % · bascule par scénario (colonne ACTIF = scénario choisi)")
 for i,h in enumerate(["Paramètre","Unité","Base (atterr.)","Cadrage","Optimiste","Prudent","ACTIF"]): C(ws,f"{GL(2+i)}15",h,CHDR,FBLUE,align=AC,border=True)
@@ -412,8 +420,14 @@ for lib,u,val,fmt in consts:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True); C(ws,f"C{r}",u,CREG,align=AC,border=True); C(ws,f"D{r}",val,CIN,FYEL,fmt=fmt,align=AC,border=True)
     C(ws,f"E{r}",f"=D{r}",CIT,fmt=fmt,align=AC,border=True); C(ws,f"F{r}",f"=D{r}",CIT,fmt=fmt,align=AC,border=True); C(ws,f"G{r}",f"=D{r}",CIT,fmt=fmt,align=AC,border=True)
     C(ws,f"H{r}",f"=INDEX(E{r}:G{r},{MATCHSC})",CFB,FLIGHT,fmt=fmt,align=AC,border=True); r+=1
-C(ws,"B32","Driver d'allocation de la structure :",CB,align=AR); ws.merge_cells("B32:C32"); C(ws,"D32","Effectifs",CINB,FYEL,align=AC,border=True)
-dvd=DataValidation(type="list",formula1='"Effectifs,Chiffre d\'affaires,Surface m2"',allow_blank=False); ws.add_data_validation(dvd); dvd.add(ws["D32"])
+band(ws,32,"B","H","Drivers d'allocation de la structure — en cascade (un driver par niveau)")
+dvmc=DataValidation(type="list",formula1='"Effectifs,Chiffre d\'affaires,Surface m2"',allow_blank=False); ws.add_data_validation(dvmc)
+dvpr=DataValidation(type="list",formula1='"Effectifs,Chiffre d\'affaires,Nombre de classes"',allow_blank=False); ws.add_data_validation(dvpr)
+C(ws,"B33","Groupe → MARQUE (par) :",CB,align=AR); ws.merge_cells("B33:C33"); C(ws,"D33","Chiffre d'affaires",CINB,FYEL,align=AC,border=True); dvmc.add(ws["D33"])
+C(ws,"B34","Marque → CAMPUS (par) :",CB,align=AR); ws.merge_cells("B34:C34"); C(ws,"D34","Effectifs",CINB,FYEL,align=AC,border=True); dvmc.add(ws["D34"])
+C(ws,"B35","Campus → PROGRAMME (par) :",CB,align=AR); ws.merge_cells("B35:C35"); C(ws,"D35","Nombre de classes",CINB,FYEL,align=AC,border=True); dvpr.add(ws["D35"])
+C(ws,"E33","◄ pilote l'allocation par campus (feuille 09)",CIT,align=AL); ws.merge_cells("E33:H33")
+C(ws,"E35","◄ pour l'allocation fine à la classe (feuille 11c)",CIT,align=AL); ws.merge_cells("E35:H35")
 # ---- ③ COEFFICIENTS STRATÉGIQUES (marque × campus) ----
 band(ws,5,"J","O","③ Coefficients stratégiques (marque × campus) — intensité marketing / prix")
 for i,h in enumerate(["Marque","Ville","Marketing","Prix","Posture"]): C(ws,f"{GL(10+i)}6",h,CHDR,FBLUE,align=AC,border=True)
@@ -803,9 +817,10 @@ for shname,hr in HEADER_ROW.items():
 # 01_Cadrage : notes de guidage sur le poste de commande CFO
 ws=wb["01_Cadrage"]
 add_note(ws["D3"],"Scénario actif : change cette cellule (Cadrage/Optimiste/Prudent) et TOUT le budget se recalcule.")
-for c,t in {"C6":"Réel de l'avant-dernière année (clôturé) — référence de tendance.","D6":"Dernier ATTERRISSAGE de l'année en cours (réel YTD + reprévision) = la BASE de projection (on ne budgète pas sur un N-1 clôturé).","E6":"Cible fixée par la direction (saisie).","F6":"Budget monté par le moteur (feuille 08) — bouge avec les leviers.","G6":"Écart = budget − objectif."}.items(): add_note(ws[c],t)
-add_note(ws["E7"],"Objectif de CA fixé par la direction (saisie).")
-add_note(ws["E8"],"Objectif d'EBITDA fixé par la direction (saisie).")
+add_note(ws["D4"],"Base de projection : ATTERRISSAGE N (réel YTD + reprévision) ou RÉALISÉ N-1 (année clôturée). Le budget construit projette depuis la base retenue (facteur en F4).")
+for c,t in {"C6":"Réel de l'avant-dernière année (clôturé) — référence de tendance.","D6":"Réalisé de l'an dernier (année clôturée) — base possible de projection.","E6":"Dernier ATTERRISSAGE de l'année en cours (réel YTD + reprévision) — base par défaut.","F6":"Budget monté par le moteur (feuille 08), projeté depuis la BASE retenue (D4) — bouge avec les leviers.","G6":"Objectif fixé par la direction (saisie).","H6":"Écart = budget − objectif."}.items(): add_note(ws[c],t)
+add_note(ws["G7"],"Objectif de CA fixé par la direction (saisie).")
+add_note(ws["G8"],"Objectif d'EBITDA fixé par la direction (saisie).")
 add_note(ws["F11"],"Reste à trouver = objectif EBITDA − budget construit (si positif). À combler via les leviers (voir 12_Sensibilite).")
 for col,tx in {"D15":"Référence au dernier atterrissage (0 % = statu quo).","E15":"Valeurs du scénario Cadrage (central).","F15":"Valeurs du scénario Optimiste.","G15":"Valeurs du scénario Prudent.","H15":"Valeur ACTIVE = celle du scénario choisi en D3."}.items():
     add_note(ws[col],tx)
