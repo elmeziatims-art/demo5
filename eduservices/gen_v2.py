@@ -509,7 +509,135 @@ for a,b,c in [("Marque / Campus","Entity","Hiérarchie Groupe→Marque→Campus"
  ("Allocation structure","Cost allocation (driver)","Effectif/CA/m²")]:
     C(ws,f"B{r}",a,CB,align=ALW,border=True); C(ws,f"C{r}",b,CREG,align=ALW,border=True); C(ws,f"D{r}",c,CREG,align=ALW,border=True); ws.row_dimensions[r].height=28; r+=1
 
+# ============================================================ NOTES explicatives sur chaque entête (info-bulles)
+from openpyxl.comments import Comment
+def norm(s): return str(s).replace("\n"," ").replace("  "," ").strip()
+GLOSS={
+ # communs
+ "Marque":"Marque / école du groupe (dimension Entity dans Tagetik).",
+ "Marque / École":"Marque / école du groupe.",
+ "Ville":"Campus (ville). Une entité = Marque + Ville.",
+ "Programme":"Programme de formation (ex. Bachelor Management).",
+ "Année":"Année d'études : B1/B2/B3 (Bachelor), M1/M2 (Mastère), 1/2 (BTS).",
+ "Niveau":"Année d'études (B1, B2, B3, M1, M2…).",
+ "Mod":"Modalité : INIT = initial (payé par la famille) · ALT = alternance (financé OPCO/NPEC).",
+ "Mod.":"Modalité : INIT = initial · ALT = alternance (financée OPCO/NPEC).",
+ "Modalité":"INIT = initial (famille) · ALT = alternance (OPCO/NPEC).",
+ "Type":"Type de diplôme : BAC (Bachelor), MAST (Mastère), BTS.",
+ "Domaine":"Domaine d'activité de la marque.",
+ "Devise":"Devise de reporting.",
+ # 05 Param_Prog_Annee
+ "Clé (prog|année)":"Clé technique 'programme|année' pour relier les paramètres au moteur.",
+ "Capacité":"Capacité cible d'une classe (nb d'étudiants).","Capacité cible":"Capacité cible par classe.",
+ "Seuil ouverture":"Seuil historique d'ouverture (indicatif ; le point mort réel est calculé dans le moteur).",
+ "Heures / classe":"Heures d'enseignement délivrées par classe et par an.",
+ "Taux horaire":"Coût horaire chargé de l'enseignement (vacation), en €.",
+ "Coût pédago / étu":"Coût pédagogique variable par étudiant (supports, plateforme, examens), en €.",
+ "CAC variable":"Coût d'acquisition variable (achat de leads) par nouvel inscrit. N'existe qu'en année d'entrée.",
+ "Taux de passage":"Taux de progression de l'année inférieure vers celle-ci (réinscription). Vide en année d'entrée.",
+ # 06 Historique
+ "Entrée":"1 = année d'entrée (on recrute) · 0 = année de poursuite (cohorte progressée).",
+ "Candidatures N-1":"Candidatures reçues l'an dernier (haut de l'entonnoir admissions).",
+ "Cand N-1":"Candidatures l'an dernier.","Cand Bud":"Candidatures budget = candidatures N-1 × (1 + élasticité × effort marketing).",
+ "Nouv N-1":"Nouveaux inscrits l'an dernier (entrants).","Nouv Bud":"Nouveaux inscrits budget = candidatures budget × taux de conversion.",
+ "Réins N-1":"Réinscrits l'an dernier (étudiants qui poursuivent).","Réins Bud":"Réinscrits budget = effectif de l'année inférieure (N-1) × (taux de passage + amélioration).",
+ "Effectif N-1":"Effectif réel l'an dernier.","Eff N-1":"Effectif réel l'an dernier.",
+ "Eff. année inf. N-1":"Effectif de l'année juste inférieure l'an dernier — base de la cohorte pour calculer la progression.",
+ "EffInf N-1":"Effectif de l'année inférieure l'an dernier (base de progression de la cohorte).",
+ "Tarif N-1":"Tarif moyen l'an dernier (€/étudiant/an).","Tarif Bud":"Tarif budget = tarif N-1 × (1 + hausse prix × coefficient marque).",
+ "Classes N-1":"Nombre de classes l'an dernier.","Cl N-1":"Nombre de classes l'an dernier.",
+ "Élasticité mesurée":"Élasticité marketing = %Δ candidatures ÷ %Δ marketing, mesurée sur N-2/N-1.",
+ "Sécurisation N-1":"Part des alternants dont le contrat a été sécurisé dans les 3 mois l'an dernier (financement OPCO à 100 %).",
+ # 07 Structure
+ "Effectif N-1 ":"Effectif réel l'an dernier.","CA N-1":"Chiffre d'affaires réel l'an dernier.",
+ "Contribution N-1":"Marge de contribution réelle l'an dernier (CA − coûts directs).",
+ "Loyer N-1":"Loyer du campus l'an dernier (coût de structure, fixe).",
+ "ETP perm.":"Effectifs permanents (équivalent temps plein) du campus.",
+ "Masse perm. N-1":"Masse salariale permanente = ETP × coût chargé par ETP.",
+ "D&A N-1":"Dotations aux amortissements l'an dernier.","Surface m²":"Surface du campus (utilisée comme driver d'allocation possible).",
+ "EBITDA campus N-1":"EBITDA du campus = contribution − loyer − masse salariale permanente.",
+ # 08 Moteur
+ "clé":"Clé programme|année pour retrouver les paramètres (feuille 05).",
+ "Cap":"Capacité cible par classe (lue dans 05).","Heures":"Heures d'enseignement par classe/an (05).",
+ "Taux":"Taux horaire chargé de l'enseignement (05).","Pédago":"Coût pédagogique par étudiant (05).",
+ "CACvar":"Coût d'acquisition variable par nouvel inscrit (05).",
+ "Passage":"Taux de passage de l'année inférieure (05). 0 en année d'entrée.",
+ "Coût/cl":"Coût d'une classe = heures × taux horaire × (1 + politique salariale).",
+ "cMkt":"Coefficient stratégique MARKETING de la marque (feuille 03) — module l'effort par marque.",
+ "cPrix":"Coefficient stratégique PRIX de la marque (feuille 03) — module la hausse tarifaire par marque.",
+ "Élast":"Élasticité marketing mesurée (06). Repli si historique manquant.",
+ "Effort":"Effort marketing appliqué = levier 'variation budget marketing' × coefficient marque.",
+ "Conv":"Taux de conversion candidature→inscrit (mesuré par cellule) + gain du levier conversion.",
+ "Effectif Bud":"Effectif budget = nouveaux + réinscrits.",
+ "SecFac":"Facteur de financement alternance BUDGET (sécurisation + reste à charge recouvré). = 1 en initial.",
+ "SecN-1":"Facteur de financement alternance N-1 (référence pour le pont).",
+ "CA Bud":"CA budget = effectif × tarif × facteur financement + frais de dossier.",
+ "Cl besoin":"Classes nécessaires = arrondi supérieur (effectif / capacité).",
+ "Enseign":"Coût d'enseignement = classes × coût par classe.",
+ "Pédago€":"Coût pédagogique = effectif × coût pédago/étudiant × (1 + inflation).",
+ "Mktg":"Marketing = nouveaux × CAC variable × (1 + effort). = 0 en année de poursuite.",
+ "Contrib":"MARGE DE CONTRIBUTION = CA − enseignement − pédago − marketing − autres charges.",
+ "Rempl":"Taux de remplissage = effectif / (classes × capacité).",
+ "Rempl.":"Taux de remplissage = effectif / (classes × capacité).",
+ "Contr/étu":"Contribution par étudiant.","Pt mort":"Point mort = nb d'étudiants pour couvrir le coût des classes.",
+ # 09 Allocation
+ "Contribution":"Marge de contribution (CA − coûts directs évitables).",
+ "Loyer":"Loyer du campus (structure fixe).","Masse perm.":"Masse salariale permanente (structure fixe).",
+ "Driver":"Valeur du driver d'allocation (effectif, CA ou m² selon 02_Leviers).",
+ "Part":"Part du campus dans le driver total.","Alloué":"Frais de structure groupe alloués à ce campus.",
+ "EBITDA campus":"EBITDA du campus = contribution − loyer − permanents − structure allouée.",
+ "D&A":"Dotations aux amortissements.","EBIT":"Résultat d'exploitation = EBITDA − D&A.","EBIT campus":"EBIT du campus = EBITDA campus − D&A.",
+ # 10 PnL
+ "Rubrique":"Ligne du compte de résultat.","Réalisé N-1":"Valeur réelle de l'an dernier.","Budget N+1":"Valeur budgétée.",
+ "Écart €":"Budget − Réalisé (en €).","Écart %":"Variation en % vs l'an dernier.","Effet":"Composante du pont de passage.","Montant":"Montant de l'effet (en €).",
+ # 11 Simulateur
+ "Effectif":"Effectif budget de la promo.","CA":"Chiffre d'affaires budget de la promo.",
+ "Coûts directs évitables":"Coûts qui DISPARAISSENT si on ferme la promo (enseignement, pédago, marketing, autres variables).",
+ "MARGE DE CONTRIBUTION":"CA − coûts directs évitables. C'est LA métrique de décision : on ne ferme que si elle est négative.",
+ "Structure allouée (après, dilution)":"Quote-part de structure fixe (loyer, permanents, siège) portée par la promo, RECALCULÉE après décisions : moins d'étudiants au total → chacun en porte plus (dilution).",
+ "Résultat tout compris (après)":"Contribution après − structure allouée. Vue INFORMATIVE — surtout PAS un critère de fermeture.",
+ "🤖 Reco":"Recommandation automatique (contribution + remplissage). Dépend de l'année : entrée (lancer/capter) vs poursuite (regrouper).",
+ "Motif":"Explication de la recommandation.","Décision":"Ton choix. Menu restreint selon l'année : entrée = lancer/capter ; poursuite = seulement regrouper.",
+ "Effectif après":"Effectif après ta décision (0 si 'ne pas lancer' ; +1 classe captée si 'ouvrir').",
+ "Contribution après":"Contribution recalculée selon ta décision.",
+ "Δ EBITDA":"Impact sur l'EBITDA groupe = contribution après − contribution avant.",
+ # 12 Sensibilite
+ "Levier (pas)":"Levier testé et son incrément.","Impact EBITDA":"Effet € sur l'EBITDA d'un pas du levier (approximation vivante).","Lecture":"Interprétation.",
+ # 13 Simulation
+ "Indicateur":"Indicateur de pilotage.","Budget":"Valeur budgétée.","N-1":"Valeur réelle de l'an dernier.","Évolution":"Variation Budget vs N-1.",
+ # 03 Coeff
+ "Intensité MARKETING":"Coefficient appliqué à l'effort marketing du cadrage pour cette marque (>1 = on pousse).",
+ "Intensité PRIX":"Coefficient appliqué à la hausse tarifaire du cadrage pour cette marque.","Posture":"Lecture du positionnement (pousser / défendre / maintenir).",
+ # 01 Objectifs
+ "Cible (direction)":"Objectif fixé par la direction (saisie).","Budget construit":"Résultat du budget construit par les drivers (moteur).","Écart":"Budget construit − cible.",
+}
+GLOSS={norm(k):v for k,v in GLOSS.items()}
+HEADER_ROW={"01_Objectifs":5,"03_Coeff_Strateg":5,"04_Referentiel":5,"05_Param_Prog_Annee":3,"06_Historique":3,
+ "07_Structure":3,"08_Moteur":2,"09_Allocation":5,"10_PnL":5,"11_Simulateur":5,"12_Sensibilite":5,"13_Simulation":5,"14_Mapping_Tagetik":5}
+def add_note(cell,text):
+    cm=Comment(text,"Guide"); cm.width=300; cm.height=120; cell.comment=cm
+for shname,hr in HEADER_ROW.items():
+    ws=wb[shname]
+    for col in range(1,46):
+        cell=ws.cell(row=hr,column=col)
+        if cell.value is not None:
+            key=norm(cell.value)
+            if key in GLOSS: add_note(cell,GLOSS[key])
+# 02_Leviers : notes sur chaque levier et constante (colonne B) + entêtes scénarios
+ws=wb["02_Leviers"]
+lev_notes={6:"Croissance du budget d'acquisition → pilote le volume via l'élasticité mesurée.",
+ 7:"Hausse tarifaire moyenne, modulée par marque (coeff prix).",
+ 8:"Points de conversion candidature→inscrit gagnés (pilotage admissions).",
+ 9:"Part des contrats d'alternance sécurisés dans les 3 mois → financement OPCO à 100 %.",
+ 10:"Amélioration du taux de passage (réinscription) vs l'historique.",
+ 11:"Inflation appliquée aux charges (pédago, loyers, autres).",
+ 12:"Revalorisation des rémunérations chargées (permanents + enseignement)."}
+for rr,tx in lev_notes.items(): add_note(ws.cell(row=rr,column=2),tx)
+for col,tx in {"D":"Valeurs du scénario Cadrage (central).","E":"Valeurs du scénario Optimiste.","F":"Valeurs du scénario Prudent.","G":"Valeur ACTIVE = celle du scénario sélectionné en C3."}.items():
+    add_note(ws[f"{col}5"],tx)
+add_note(ws["C3"],"Scénario actif : change cette cellule et TOUT le budget se recalcule.")
+
 try: wb.calculation.fullCalcOnLoad=True
 except Exception:
     from openpyxl.workbook.properties import CalcProperties; wb.calculation=CalcProperties(fullCalcOnLoad=True)
-wb.save(OUT); print("TOUTES LES FEUILLES OK")
+wb.save(OUT); print("TOUTES LES FEUILLES OK (avec notes d'entêtes)")
