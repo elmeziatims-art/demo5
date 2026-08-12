@@ -35,7 +35,7 @@ def op_params(prog, ptype, niveau, domaine):
     ped ={"Management":400,"Communication":550,"Commerce":380,"Commerce/RH":380,"Tourisme":450}.get(domaine,400)
     if ptype=="BTS": ped=350
     if ptype=="MAST": ped+=120
-    cacv={"BTS":250,"BAC":320,"MAST":600}[ptype]          # CAC variable (achat de leads) / inscrit
+    cacv=({"BTS":250,"BAC":320,"MAST":600}[ptype]) if niveau in ENTRY else 0  # CAC variable (leads) : seulement en année d'ENTRÉE (on ne recrute pas en poursuite)
     passage=0 if niveau in ENTRY else {"B2":0.85,"B3":0.90,"M2":0.92,"2":0.90}[niveau]
     return dict(cap=cap,heures=heures,taux=taux,pedago=ped,cacv=cacv,passage=passage)
 
