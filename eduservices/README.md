@@ -16,6 +16,7 @@ sectoriels sourcés. Générateur : `generer_modele_pilotage.py`.
 | `02_Parametres` | Sélecteur de scénario + leviers + constantes + driver d'allocation |
 | `03_Coeff_Strateg` | Coefficients stratégiques par marque (challenger + ou –) |
 | `04_Referentiel` | Dimensions : entités, comptes (fixe/variable) — mapping Tagetik |
+| `04_Param_Prog` | **Paramètres opérationnels par programme** (capacité, seuil, heures/classe, taux horaire, coût pédago) |
 | `05_Historique` | Réalisé N-1 par cellule : **funnel CRM** (candidatures→inscrits) + effectifs + classes |
 | `06_Structure` | Réalisé par campus : loyers, ETP permanents, D&A, m² |
 | `07_Moteur` | Moteur de budget par cellule (100 % formules) |
@@ -28,7 +29,7 @@ sectoriels sourcés. Générateur : `generer_modele_pilotage.py`.
 ### La logique (tout est lié)
 1. **Note de cadrage** (% volume & prix globaux) × **coefficients stratégiques** par marque → % appliqué à chaque cellule.
 2. **Funnel CRM** : candidatures × croissance × (conversion N-1 + gain conversion) → nouveaux inscrits (on **inscrit d'abord**).
-3. **Alternance (~82 % des effectifs)** : le **taux de signature de contrat** pilote le **revenu** (signé → NPEC/OPCO ; non signé → auto-financement partiel). C'est un levier de revenu, pas de volume.
+3. **Alternance (~82 % des effectifs)** : financement en **prorata-temporis** (réforme NPEC 1/7/2025). Le **taux de signature** ET le **délai moyen de signature** pilotent le **revenu** (l'OPCO ne paie que les jours du contrat). Le **taux de récupération du gap** pré-contrat (défaut 70 %) est un paramètre ajustable. C'est un levier de revenu, pas de volume.
 4. **Effectif** = réinscrits + nouveaux → **nombre de classes dérivé** (capacité cible) → coûts d'enseignement.
 5. **Contribution** par cellule → **EBITDA** après loyers, personnel permanent, structure allouée.
 6. **Décision** : classes nécessaires vs actuelles → signal ouvrir/fermer chiffré ; point mort et scoring par cellule.
@@ -38,9 +39,11 @@ Frais de scolarité 8–11 k€ (initial) · NPEC alternance ~7–10 k€ · **~
 CAC ~0,8–2 k€ · marge EBITDA cible ~20 % · capacité classe ~30. Marques et campus **réels** EDUSERVICES ; montants **illustratifs**.
 
 ### Vérifications
-- **0 erreur** sur 4 502 cellules (moteur de calcul `formulas`).
+- **0 erreur** sur 4 949 cellules (moteur de calcul `formulas`).
+- Paramètres opérationnels **lus par programme** dans le moteur (capacité, heures, taux, pédago par cellule).
 - P&L et **pont Chiffre d'affaires à 4 effets** (Volume / Tarif / **Signature** / Frais) réconcilient exactement.
-- Bascule scénario : Cadrage 19,2 % · Optimiste 26,0 % · Prudent 10,3 % ; taux de signature actif visible dans le P&L.
+- Bascule scénario : Cadrage 19,2 % · Optimiste 26,5 % · Prudent 10,2 %.
+- Sensibilité prorata : délai de signature 1 mois → EBITDA 4,17 M€ vs 4 mois → 3,15 M€ (~1 M€ d'écart).
 - Recalcul automatique à l'ouverture activé (Excel calcule les valeurs dès l'ouverture).
 
 ## 📄 Version simple (annuelle) — `EDUSERVICES_Budget_Simulation.xlsx`
