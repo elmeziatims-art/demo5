@@ -1,39 +1,55 @@
-# EDUSERVICES GROUP — Modèle Budget & Simulation (pré-Tagetik)
+# EDUSERVICES GROUP — Modèles budgétaires (pré-Tagetik)
 
-Modèle Excel de **budget annuel N+1** piloté par les inducteurs, à préparer sous Excel
-avant l'implémentation dans **CCH Tagetik**.
+Modélisation Excel préparée avant l'implémentation dans **CCH Tagetik**.
 
-## Fichier livrable
+## 🎯 Livrable principal — `EDUSERVICES_Modele_Pilotage_Budget.xlsx`
 
-**`EDUSERVICES_Budget_Simulation.xlsx`** — classeur autoportant (9 feuilles) :
+Modèle de **pilotage budgétaire à maille fine**, tout lié, calibré sur des ordres de grandeur
+sectoriels sourcés. Générateur : `generer_modele_pilotage.py`.
+
+**Maille :** Marque × Campus × Programme × Niveau × Modalité (initial/alternance) — 58 cellules fines, 14 campus.
 
 | Feuille | Rôle |
 |---|---|
-| `00_Notice` | Guide d'utilisation + légende des couleurs |
-| `01_Note_cadrage` | Note de cadrage : objectifs, hypothèses, règles de gestion |
-| `02_Parametres` | **Leviers de simulation** + sélecteur de scénario (cellule jaune `C3`) |
-| `03_Referentiel` | Dimensions : Groupe → Marque → Campus, plan de comptes |
-| `04_Historique` | Réalisé N-1 par campus (données à remplacer par le réel) |
-| `05_Moteur` | Moteur de budget par campus (100 % formules) |
-| `06_PnL` | Compte de résultat consolidé N-1 vs Budget + synthèse par marque |
-| `07_Simulation` | Tableau de bord : KPIs et comparatif de scénarios |
-| `08_Mapping_Tagetik` | Correspondance modèle Excel ↔ objets Tagetik |
+| `00_Notice` | Guide + légende + avertissement |
+| `01_Note_cadrage` | Objectifs et hypothèses directrices |
+| `02_Parametres` | Sélecteur de scénario + leviers + constantes + driver d'allocation |
+| `03_Coeff_Strateg` | Coefficients stratégiques par marque (challenger + ou –) |
+| `04_Referentiel` | Dimensions : entités, comptes (fixe/variable) — mapping Tagetik |
+| `05_Historique` | Réalisé N-1 par cellule : **funnel CRM** (candidatures→inscrits) + effectifs + classes |
+| `06_Structure` | Réalisé par campus : loyers, ETP permanents, D&A, m² |
+| `07_Moteur` | Moteur de budget par cellule (100 % formules) |
+| `08_Allocation` | Frais de structure groupe **alloués par driver** (effectif / CA / m²) |
+| `09_PnL` | P&L consolidé N-1 vs Budget + **pont Prix/Volume** |
+| `10_Decision` | **Ouvrir/fermer une classe**, remplissage, point mort, scoring 🟢🟡🔴 |
+| `11_Simulation` | Tableau de bord : KPIs, scénarios, levier conversion |
+| `12_Mapping_Tagetik` | Passerelle : dimensions, versions/snapshot, workflow bottom-up |
+
+### La logique (tout est lié)
+1. **Note de cadrage** (% volume & prix globaux) × **coefficients stratégiques** par marque → % appliqué à chaque cellule.
+2. **Funnel CRM** : candidatures × croissance × (conversion N-1 + gain conversion) → nouveaux inscrits.
+3. **Effectif** = réinscrits + nouveaux → **nombre de classes dérivé** (capacité cible) → coûts d'enseignement.
+4. **Contribution** par cellule → **EBITDA** après loyers, personnel permanent, structure allouée.
+5. **Décision** : classes nécessaires vs actuelles → signal ouvrir/fermer chiffré ; point mort et scoring par cellule.
+
+### Calibrage (sourcé)
+Frais de scolarité 8–11 k€ (initial) · NPEC alternance ~7–10 k€ · CAC ~0,8–2 k€ · marge EBITDA cible ~20 % ·
+capacité classe ~30 · ratio d'encadrement calibré. Marques et campus **réels** EDUSERVICES ; montants **illustratifs**.
+
+### Vérifications
+- **0 erreur** sur 4 342 cellules (moteur de calcul `formulas`).
+- P&L et **pont Prix/Volume réconcilient** exactement.
+- Bascule scénario : Cadrage 20,4 % · Optimiste 25,6 % · Prudent 14,4 %.
+- Recalcul automatique à l'ouverture activé (Excel calcule les valeurs dès l'ouverture).
+
+## 📄 Version simple (annuelle) — `EDUSERVICES_Budget_Simulation.xlsx`
+Première version : budget annuel par campus, plus simple. Générateur : `generer_modele.py`.
 
 ## Utilisation
-
-1. Renseigner le réalisé dans `04_Historique`.
-2. Fixer les hypothèses par scénario dans `02_Parametres`.
-3. Choisir le scénario actif en `02_Parametres!C3` (Cadrage / Optimiste / Prudent) :
-   **tout le modèle se recalcule**.
-4. Lire le budget consolidé (`06_PnL`) et le tableau de bord (`07_Simulation`).
+1. Renseigner le réalisé (`05_Historique`, `06_Structure`).
+2. Fixer les hypothèses (`02_Parametres`) et les coefficients (`03_Coeff_Strateg`).
+3. Choisir le scénario en `02_Parametres!C3` → tout se recalcule.
+4. Lire `09_PnL`, `10_Decision`, `11_Simulation`. Basculer vers Tagetik via `12_Mapping_Tagetik`.
 
 ## Convention de couleurs
-
-- 🔵 Bleu = saisie / donnée en dur  ·  ⚫ Noir = formule  ·  🟢 Vert = lien inter-feuilles  ·  🟡 Jaune = hypothèse clé / cellule à remplir.
-
-## Régénérer le fichier
-
-`python generer_modele.py` (nécessite `openpyxl`).
-
-> ⚠️ Les montants pré-remplis sont **illustratifs** (marques, campus, effectifs, euros) pour
-> faire tourner la démo ; ils doivent être remplacés par les données réelles d'EDUSERVICES GROUP.
+🔵 saisie · ⚫ formule · 🟢 lien inter-feuilles · 🟡 hypothèse clé.
