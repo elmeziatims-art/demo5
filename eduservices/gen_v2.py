@@ -92,7 +92,8 @@ ws.merge_cells("B2:D2"); C(ws,"B2","EDUSERVICES GROUP — Pilotage budgétaire (
 ws.merge_cells("B3:D3"); C(ws,"B3","Cohortes · marketing mesuré sur l'historique · maille programme×année · cadrage cible · simulateur de décisions",CIT)
 band(ws,5,"B","D","Les feuilles")
 sh=[("01_Cadrage","POSTE DE COMMANDE CFO : cadrage top-down (N-2 · atterrissage · objectif · budget · écart) + leviers %/scénarios + coefficients + graphes"),
- ("DATA_Chargement","DONNÉES À CHARGER (Tagetik) : table de faits historique par cellule (CRM · compta · marketing · OPCO · SIRH) + structure par campus"),
+ ("DATA_Referentiel","RÉFÉRENTIEL Tagetik : dimensions CODE · DESCRIPTION · hiérarchies (Entité, Compte, Version, Programme, Année, Modalité, Période)"),
+ ("DATA_Chargement","TABLE DE FAITS Tagetik (format long) : entité×programme×année×modalité × compte × version — structure allouée jusqu'à la classe"),
  ("04_Referentiel","Dimensions : entités, comptes (fixe/variable)"),
  ("05_Param_Prog_Annee","DONNÉES DE RÉFÉRENCE par programme×année (capacité, heures, taux, pédago, CAC variable, passage)"),
  ("06_Historique","Réalisé N-1 par cellule (funnel, cohorte) + historique marketing N-2/N-1 → élasticité mesurée"),
@@ -667,54 +668,111 @@ for a,b,c in [("Marque / Campus","Entity","Hiérarchie Groupe→Marque→Campus"
  ("Allocation structure","Cost allocation (driver)","Effectif/CA/m²")]:
     C(ws,f"B{r}",a,CB,align=ALW,border=True); C(ws,f"C{r}",b,CREG,align=ALW,border=True); C(ws,f"D{r}",c,CREG,align=ALW,border=True); ws.row_dimensions[r].height=28; r+=1
 
-# ============================================================ DATA_Chargement (table de faits à charger dans Tagetik : compta + CRM + SIRH)
-wsd=wb.create_sheet("DATA_Chargement",2); wsd.sheet_view.showGridLines=False
-CYC={"BTS":"BTS","BAC":"Bachelor","MAST":"Mastère"}
-colH=["Marque","Campus","Programme","Cycle","Année","Modalité",
- "Cand. N-2","Cand. N-1","Cand. Atterr.","Admis N-1","Admis Atterr.",
- "Nouv. N-2","Nouv. N-1","Nouv. Atterr.","Réins. N-1","Réins. Atterr.","Effectif N-2","Effectif N-1","Effectif Atterr.",
- "Mktg N-2 (€)","Mktg N-1 (€)","Mktg Atterr. (€)","Tarif N-1 (€)","Tarif Atterr. (€)",
- "Classes N-1","Classes Atterr.","Capacité","Heures/classe","Taux horaire","Pédago/étu","CAC","Taux passage"]
-for c in range(1,7): wsd.column_dimensions[GL(c)].width=[13,11,20,9,7,9][c-1]
-for c in range(7,35): wsd.column_dimensions[GL(c)].width=11
-wsd.merge_cells("A1:J1"); C(wsd,"A1","DONNÉES À CHARGER — table de faits historique (base de projection : Réalisé N-1 ↔ Atterrissage N)",CTIT,FNAVY,align=AL); wsd.row_dimensions[1].height=26
-wsd.merge_cells("A2:AF2"); C(wsd,"A2","Une ligne par cellule fine (marque×campus×programme×année×modalité). Charge le réel des sources : 🟦 CRM/admissions · 🟩 compta/scolarité · 🟧 marketing · référentiel. Les 2 bases de projection (N-1 réel & atterrissage N) sont chargées côte à côte ; le N-2 donne la profondeur (élasticité).",CIT,align=ALW); wsd.row_dimensions[2].height=30
-for s,e,t in [(1,6,"DIMENSIONS"),(7,11,"CRM — Admissions (funnel)"),(12,19,"CRM — Effectifs"),(20,22,"MARKETING — Dépense d'acquisition (€)"),(23,24,"COMPTA — Tarif scolarité (€)"),(25,32,"RÉFÉRENTIEL — Organisation & coûts unitaires")]:
-    band(wsd,4,GL(s),GL(e),t)
-for i,h in enumerate(colH): C(wsd,f"{GL(1+i)}5",h,CHDR,FBLUE,align=AC,border=True)
-wsd.row_dimensions[5].height=28
-dr=6
+# ============================================================ Codes de dimensions (Tagetik : CODE + DESCRIPTION)
+MCODE={"MBway":"MBWAY","ISCOM":"ISCOM","Ipac Bachelor Factory":"IPAC","Pigier":"PIGIER","Tunon":"TUNON"}
+VCODE={"Paris":"PAR","Lyon":"LYO","Nantes":"NAN","Bordeaux":"BOR","Lille":"LIL","Toulouse":"TLS","Rennes":"REN","Montpellier":"MTP"}
+PCODE={"Bachelor Management":"BAC_MGT","Mastère Management":"MAS_MGT","Bachelor Communication":"BAC_COM","Mastère Communication":"MAS_COM","Bachelor Commerce":"BAC_CCE","BTS Gestion":"BTS_GES","Bachelor RH":"BAC_RH","Bachelor Tourisme":"BAC_TOU"}
+CYCCODE={"BAC":"BACH","MAST":"MAST","BTS":"BTS"}; CYCLIB={"BAC":"Bachelor","MAST":"Mastère","BTS":"BTS"}
+def ancode(niv): return {"1":"BTS1","2":"BTS2"}.get(niv,niv)
+def campuscode(m,v): return f"{MCODE[m]}_{VCODE[v]}"
+# comptes : code, description, type, unité, scalable-par-version
+ACC=[("706100","Droits de scolarité","COMPTABLE","EUR",1),("708500","Frais de dossier / inscription","COMPTABLE","EUR",1),
+ ("604100","Vacations & sous-traitance pédagogique","COMPTABLE","EUR",1),("606300","Fournitures & ressources pédagogiques","COMPTABLE","EUR",1),
+ ("623000","Publicité & marketing (acquisition)","COMPTABLE","EUR",1),("613200","Locations immobilières (loyers)","COMPTABLE","EUR",1),
+ ("641100","Rémunérations du personnel permanent","COMPTABLE","EUR",1),("622600","Honoraires & frais de siège (structure groupe)","COMPTABLE","EUR",1),
+ ("606800","Autres achats & charges externes","COMPTABLE","EUR",1),("681100","Dotations aux amortissements","COMPTABLE","EUR",1),
+ ("STA_EFF","Effectif inscrit","TECHNIQUE","NB",1),("STA_CAND","Candidatures reçues","TECHNIQUE","NB",1),("STA_ADMIS","Candidats admis","TECHNIQUE","NB",1),
+ ("STA_NOUV","Nouveaux inscrits","TECHNIQUE","NB",1),("STA_REINS","Réinscrits","TECHNIQUE","NB",1),("STA_CLASS","Nombre de classes","TECHNIQUE","NB",1),
+ ("STA_HEURE","Heures d'enseignement","TECHNIQUE","NB",1),("STA_CAPA","Capacité par classe","TECHNIQUE","NB",0),
+ ("DRV_CONV","Taux de conversion candidat→inscrit","TECHNIQUE","PCT",0),("DRV_PASS","Taux de passage (réinscription)","TECHNIQUE","PCT",0),
+ ("PRX_TARIF","Tarif moyen scolarité","TECHNIQUE","EUR",0),("CAC_LEAD","Coût d'acquisition par lead","TECHNIQUE","EUR",0)]
+ACCLIB={a[0]:a for a in ACC}
+VERS=[("2023ACT_VDEF","Réalisé 2023 (N-2) — version définitive","Actual",2023,0.90),
+ ("2024ACT_VDEF","Réalisé 2024 (N-1) — version définitive","Actual",2024,0.95),
+ ("2025FCST_V4","Atterrissage 2025 — Forecast V4","Forecast",2025,1.00)]
+# ---- structure de coûts agrégée par campus (pour l'allouer jusqu'à la classe) ----
+_totca=sum(c["ca"] for c in campus); _mca={}; _meff={}
+for c in campus: _mca[c["marque"]]=_mca.get(c["marque"],0)+c["ca"]; _meff[c["marque"]]=_meff.get(c["marque"],0)+c["eff"]
+_clcamp={}
+for rr in rows: _clcamp[(rr["marque"],rr["ville"])]=_clcamp.get((rr["marque"],rr["ville"]),0)+rr["classes"]
+_struct={}
+for c in campus:
+    k=(c["marque"],c["ville"]); siege=STRUCT_FIXE*(_mca[c["marque"]]/_totca)*(c["eff"]/_meff[c["marque"]])
+    _struct[k]=dict(loyer=c["loyer"],perm=c["etp"]*ETPC,siege=siege,da=c["da"],cls=_clcamp[k])
+
+# ============================================================ DATA_Referentiel (dimensions Tagetik : CODE · DESCRIPTION · hiérarchies)
+wsr=wb.create_sheet("DATA_Referentiel",2); wsr.sheet_view.showGridLines=False
+for c,w in {"A":2,"B":18,"C":42,"D":16,"E":14,"F":12}.items(): wsr.column_dimensions[c].width=w
+wsr.merge_cells("B2:F2"); C(wsr,"B2","RÉFÉRENTIEL DES DIMENSIONS (à charger dans Tagetik) — CODE · DESCRIPTION · HIÉRARCHIE",CTIT,FNAVY,align=AL); wsr.row_dimensions[2].height=26
+rf=4
+def reftable(title,heads,data):
+    global rf
+    band(wsr,rf,"B","F",title); rf+=1
+    for i,h in enumerate(heads): C(wsr,f"{GL(2+i)}{rf}",h,CHDR,FBLUE,align=AC,border=True)
+    rf+=1
+    for row in data:
+        for i,val in enumerate(row): C(wsr,f"{GL(2+i)}{rf}",val,CREG,align=(AL if i<2 else AC),border=True)
+        rf+=1
+    rf+=1
+# 1) Entité (hiérarchie Groupe→Marque→Campus)
+ent=[["EDU","EDUSERVICES (Groupe)","","Groupe"]]
+for m in BRANDS: ent.append([MCODE[m],m,"EDU","Marque"])
+for c in campus: ent.append([campuscode(c["marque"],c["ville"]),f"{c['marque']} {c['ville']}",MCODE[c["marque"]],"Campus"])
+reftable("1) Dimension ENTITÉ — hiérarchie Groupe → Marque → Campus",["Code","Description","Parent","Niveau"],ent)
+# 2) Compte (hiérarchie + type)
+acc=[["PL","Compte de résultat","","Noeud",""],["CA","Chiffre d'affaires","PL","Noeud","Produit"],
+ ["COUTS_DIR","Coûts directs évitables","PL","Noeud","Charge"],["STRUCTURE","Structure (non-évitable)","PL","Noeud","Charge"],["AMORT","Amortissements","PL","Noeud","Charge"],
+ ["STATS","Statistiques (effectifs/flux)","","Noeud","Technique"],["INDUCT","Inducteurs & prix unitaires","","Noeud","Technique"]]
+par={"706100":"CA","708500":"CA","604100":"COUTS_DIR","606300":"COUTS_DIR","623000":"COUTS_DIR","606800":"COUTS_DIR",
+ "613200":"STRUCTURE","641100":"STRUCTURE","622600":"STRUCTURE","681100":"AMORT"}
+for code,desc,typ,unite,sc in ACC:
+    p=par.get(code, ("STATS" if code.startswith("STA_") else "INDUCT")); sens=("Produit" if p=="CA" else ("Charge" if typ=="COMPTABLE" else "Technique"))
+    acc.append([code,desc,p,typ,sens])
+reftable("2) Dimension COMPTE — hiérarchie P&L + statistiques (comptes comptables réels · codes techniques)",["Code","Description","Parent","Type","Sens"],acc)
+# 3) Version / scénario
+ver=[[v[0],v[1],v[2],v[3]] for v in VERS]+[["2026BUD_V1","Budget 2026 — version 1 (construit par le modèle)","Budget",2026]]
+reftable("3) Dimension VERSION / SCÉNARIO — code Tagetik (année + type + version)",["Code","Description","Type","Année"],ver)
+# 4) Programme
+prog=[]
+for m in BRANDS:
+    for pnom,ptype,_ in PROGS[m]:
+        if not any(x[0]==PCODE[pnom] for x in prog): prog.append([PCODE[pnom],pnom,CYCLIB[ptype],BRANDS[m][0]])
+reftable("4) Dimension PROGRAMME",["Code","Description","Cycle","Domaine"],prog)
+# 5) Année d'études & 6) Modalité & 7) Période
+reftable("5) Dimension ANNÉE D'ÉTUDES",["Code","Description","Cycle"],[["B1","Bachelor 1","Bachelor"],["B2","Bachelor 2","Bachelor"],["B3","Bachelor 3","Bachelor"],["M1","Mastère 1","Mastère"],["M2","Mastère 2","Mastère"],["BTS1","BTS 1re année","BTS"],["BTS2","BTS 2e année","BTS"]])
+reftable("6) Dimension MODALITÉ",["Code","Description"],[["INIT","Formation initiale"],["ALT","Alternance"]])
+reftable("7) Dimension PÉRIODE",["Code","Description","Type"],[["2023","Exercice 2023 (clos 31/08)","Annuel"],["2024","Exercice 2024","Annuel"],["2025","Exercice 2025","Annuel"],["2026","Exercice 2026","Annuel"]])
+
+# ============================================================ DATA_Chargement (TABLE DE FAITS en long, format Tagetik)
+wsd=wb.create_sheet("DATA_Chargement",3); wsd.sheet_view.showGridLines=False
+for c,w in {"A":2,"B":13,"C":11,"D":8,"E":9,"F":11,"G":34,"H":13,"I":13,"J":9,"K":8,"L":14}.items(): wsd.column_dimensions[c].width=w
+wsd.merge_cells("B1:L1"); C(wsd,"B1","TABLE DE FAITS À CHARGER DANS TAGETIK — format long (une ligne = un croisement dimension × compte × version)",CTIT,FNAVY,align=AL); wsd.row_dimensions[1].height=24
+wsd.merge_cells("B2:L2"); C(wsd,"B2","Codes issus de DATA_Referentiel. Comptable = vrai compte PCG ; technique = code STA_/DRV_/PRX_/CAC_. Structure (loyers, permanents, siège, D&A) DÉJÀ ALLOUÉE jusqu'à la classe (par nb de classes). 3 versions : Réalisé N-2 · Réalisé N-1 · Atterrissage (Forecast V4).",CIT,align=ALW); wsd.row_dimensions[2].height=30
+factH=["Entité","Programme","Année","Modalité","Compte","Libellé compte","Type","Version","Période","Unité","Montant"]
+for i,h in enumerate(factH): C(wsd,f"{GL(2+i)}4",h,CHDR,FBLUE,align=AC,border=True)
+UF={"EUR":EUR,"NB":NB,"PCT":PCT}
+fr=5
 for rr in rows:
-    ca_att=rr["cand"]; ca_n1=round(ca_att*0.955); ca_n2=round(ca_att*0.91)
-    ad_att=rr["admis"]; ad_n1=round(ad_att*0.95)
-    no_att=rr["nouv"]; no_n1=round(no_att*0.93); no_n2=round(no_att*0.86)
-    re_att=rr["rein"]; re_n1=round(re_att*0.96)
-    ef_att=rr["eff"]; ef_n1=round(ef_att*0.95); ef_n2=round(ef_att*0.90)
-    mk_att=rr["nouv"]*rr["cacv"]; mk_n1=round(mk_att*0.90); mk_n2=round(mk_att*0.82)
-    ta_att=rr["tarif"]; ta_n1=round(ta_att*0.98)
-    cl_att=rr["classes"]; cl_n1=(max(1,round(ef_n1/rr["cap"])) if ef_n1>0 else 0)
-    vals=[rr["marque"],rr["ville"],rr["prog"],CYC[rr["type"]],rr["niv"],rr["mod"],
-     ca_n2,ca_n1,ca_att,ad_n1,ad_att, no_n2,no_n1,no_att,re_n1,re_att,ef_n2,ef_n1,ef_att,
-     mk_n2,mk_n1,mk_att,ta_n1,ta_att, cl_n1,cl_att,
-     rr["cap"],rr["heures"],rr["taux"],rr["pedago"],rr["cacv"],rr["passage"]]
-    fmts=[None]*6+[NB]*13+[EUR]*5+[NB]*2+[NB,NB,EUR,EUR,NB,PCT]
-    for i,(v,fmt) in enumerate(zip(vals,fmts)):
-        st=(CREG if i<6 else CIN); al=(AL if i<3 else AC)
-        C(wsd,f"{GL(1+i)}{dr}",v,st,fmt=fmt,align=al,border=True)
-    dr+=1
-# ---- structure par campus (compta + SIRH) ----
-sb=dr+2
-band(wsd,sb,"A","I","STRUCTURE PAR CAMPUS — à charger (compta : loyers, D&A, m² · SIRH : ETP, masse salariale)")
-sh2=["Campus","Loyer N-1 (€)","Loyer Atterr. (€)","ETP permanents","Masse salariale (€)","D&A (€)","Surface m²","Autres charges /étu (€)"]
-for i,h in enumerate(sh2): C(wsd,f"{GL(1+i)}{sb+1}",h,CHDR,FBLUE,align=AC,border=True)
-rr2=sb+2
-for cc in campus:
-    C(wsd,f"A{rr2}",f"{cc['marque']} {cc['ville']}",CREG,align=AL,border=True)
-    C(wsd,f"B{rr2}",round(cc["loyer"]*0.95),CIN,fmt=EUR,align=AC,border=True); C(wsd,f"C{rr2}",cc["loyer"],CIN,fmt=EUR,align=AC,border=True)
-    C(wsd,f"D{rr2}",cc["etp"],CIN,fmt=NB,align=AC,border=True); C(wsd,f"E{rr2}",cc["etp"]*ETPC,CIN,fmt=EUR,align=AC,border=True)
-    C(wsd,f"F{rr2}",cc["da"],CIN,fmt=EUR,align=AC,border=True); C(wsd,f"G{rr2}",cc["m2"],CIN,fmt=NB,align=AC,border=True); C(wsd,f"H{rr2}",AUTRES_ETU,CIN,fmt=EUR,align=AC,border=True)
-    rr2+=1
-wsd.freeze_panes="G6"
+    k=(rr["marque"],rr["ville"]); st=_struct[k]; share=(rr["classes"]/st["cls"] if st["cls"] else 0)
+    conv=(round(rr["nouv"]/rr["cand"],4) if rr["cand"] else 0)
+    base={"706100":rr["eff"]*rr["tarif"],"708500":rr["nouv"]*FRAIS,"604100":rr["classes"]*rr["heures"]*rr["taux"],
+     "606300":rr["eff"]*rr["pedago"],"623000":rr["nouv"]*rr["cacv"],"613200":round(st["loyer"]*share),
+     "641100":round(st["perm"]*share),"622600":round(st["siege"]*share),"606800":rr["eff"]*AUTRES_ETU,"681100":round(st["da"]*share),
+     "STA_EFF":rr["eff"],"STA_CAND":rr["cand"],"STA_ADMIS":rr["admis"],"STA_NOUV":rr["nouv"],"STA_REINS":rr["rein"],
+     "STA_CLASS":rr["classes"],"STA_HEURE":rr["classes"]*rr["heures"],"STA_CAPA":rr["cap"],
+     "DRV_CONV":conv,"DRV_PASS":rr["passage"],"PRX_TARIF":rr["tarif"],"CAC_LEAD":rr["cacv"]}
+    ent=campuscode(rr["marque"],rr["ville"]); pcode=PCODE[rr["prog"]]; an=ancode(rr["niv"])
+    for code,desc,typ,unite,sc in ACC:
+        v0=base[code]
+        if not v0: continue
+        for vcode,vlib,vtyp,per,fac in VERS:
+            val=round(v0*fac) if (sc and unite in("EUR","NB")) else (round(v0*fac,3) if sc else v0)
+            row=[ent,pcode,an,rr["mod"],code,desc,typ,vcode,per,unite,val]
+            for i,x in enumerate(row): C(wsd,f"{GL(2+i)}{fr}",x,(CREG if i<7 else CF),fmt=(UF.get(unite) if i==10 else None),align=(AL if i in(0,5) else AC))
+            fr+=1
+wsd.freeze_panes="B5"
+
+# ============================================================ NOTES explicatives sur chaque entête (info-bulles)
 
 # ============================================================ NOTES explicatives sur chaque entête (info-bulles)
 from openpyxl.comments import Comment
@@ -848,7 +906,7 @@ GLOSS={
 }
 GLOSS={norm(k):v for k,v in GLOSS.items()}
 HEADER_ROW={"04_Referentiel":5,"05_Param_Prog_Annee":3,"06_Historique":3,
- "07_Structure":3,"08_Moteur":2,"09_Allocation":5,"10_PnL":5,"11_Simulateur":5,"11b_Mutualisation":5,"11c_Cascade":14,"12_Sensibilite":5,"13_Simulation":5,"14_Mapping_Tagetik":5,"DATA_Chargement":5}
+ "07_Structure":3,"08_Moteur":2,"09_Allocation":5,"10_PnL":5,"11_Simulateur":5,"11b_Mutualisation":5,"11c_Cascade":14,"12_Sensibilite":5,"13_Simulation":5,"14_Mapping_Tagetik":5}
 def add_note(cell,text):
     cm=Comment(text,"Guide"); cm.width=300; cm.height=120; cell.comment=cm
 for shname,hr in HEADER_ROW.items():
@@ -890,7 +948,8 @@ OBJET={
  "12_Sensibilite":"Classer les LEVIERS par impact € sur l'EBITDA, pour savoir lequel actionner afin de combler l'écart de cadrage.",
  "13_Simulation":"TABLEAU DE BORD : KPIs clés Budget vs N-1 (effectif, CA, EBITDA, taux d'alternance).",
  "14_Mapping_Tagetik":"PASSERELLE : correspondance entre les objets du modèle Excel et leur implémentation dans CCH Tagetik.",
- "DATA_Chargement":"DONNÉES À CHARGER dans Tagetik : table de faits historique (une ligne par cellule fine) alimentée par les sources — CRM/admissions, compta/scolarité, marketing, OPCO/alternance, SIRH — sur N-2 · N-1 · atterrissage N, plus la structure par campus. C'est la BASE de projection.",
+ "DATA_Referentiel":"RÉFÉRENTIEL des dimensions à charger dans Tagetik : chaque membre a un CODE et une DESCRIPTION, avec les HIÉRARCHIES (Entité Groupe→Marque→Campus ; Compte P&L + statistiques ; Version/scénario ; Programme ; Année ; Modalité ; Période).",
+ "DATA_Chargement":"TABLE DE FAITS à charger dans Tagetik, en format LONG : une ligne = un croisement (entité × programme × année × modalité) × COMPTE × VERSION. Comptes comptables réels (PCG) pour le financier, codes techniques pour les stats. La structure (loyers, permanents, siège, D&A) est DÉJÀ ALLOUÉE jusqu'à la classe. 3 versions : Réalisé N-2, Réalisé N-1, Atterrissage (Forecast V4).",
 }
 for shname,obj in OBJET.items():
     ws=wb[shname]; placed=False
