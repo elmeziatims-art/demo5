@@ -688,9 +688,19 @@ ACC=[("706100","Droits de scolarité","COMPTABLE","EUR",1),("708500","Frais de d
  ("DRV_CONV","Taux de conversion candidat→inscrit","TECHNIQUE","PCT",0),("DRV_PASS","Taux de passage (réinscription)","TECHNIQUE","PCT",0),
  ("PRX_TARIF","Tarif moyen scolarité","TECHNIQUE","EUR",0),("CAC_LEAD","Coût d'acquisition par lead","TECHNIQUE","EUR",0)]
 ACCLIB={a[0]:a for a in ACC}
-VERS=[("2023ACT_VDEF","Réalisé 2023 (N-2) — version définitive","Actual",2023,0.90),
- ("2024ACT_VDEF","Réalisé 2024 (N-1) — version définitive","Actual",2024,0.95),
- ("2025FCST_V4","Atterrissage 2025 — Forecast V4","Forecast",2025,1.00)]
+# millésimes historiques : n = nb d'années en arrière depuis l'atterrissage 2025
+VERS=[("2023ACT_VDEF","Réalisé 2023 (N-2) — version définitive","Actual",2023,2),
+ ("2024ACT_VDEF","Réalisé 2024 (N-1) — version définitive","Actual",2024,1),
+ ("2025FCST_V4","Atterrissage 2025 — Forecast V4","Forecast",2025,0)]
+# évolution DIFFÉRENCIÉE par marque (croissance effectif/an) + indices prix & coûts -> rétropolation réaliste
+GROW={"MBway":0.06,"ISCOM":0.04,"Ipac Bachelor Factory":0.08,"Pigier":-0.03,"Tunon":0.02}; PRICEG=0.025; COSTG=0.02
+BUCK={"706100":"volprice","708500":"vol","604100":"volcost","606300":"volcost","623000":"vol",
+ "613200":"volprice","641100":"volcost","622600":"cost","606800":"volcost","681100":"volprice",
+ "STA_EFF":"vol","STA_CAND":"vol","STA_ADMIS":"vol","STA_NOUV":"vol","STA_REINS":"vol","STA_CLASS":"vol","STA_HEURE":"vol",
+ "STA_CAPA":"const","DRV_CONV":"const","DRV_PASS":"const","PRX_TARIF":"price","CAC_LEAD":"const"}
+def vfactor(code,marque,n):
+    fv=1/(1+GROW.get(marque,0.03))**n; fp=1/(1+PRICEG)**n; fc=1/(1+COSTG)**n
+    return {"volprice":fv*fp,"volcost":fv*fc,"vol":fv,"cost":fc,"price":fp,"const":1.0}[BUCK[code]]
 # ---- structure de coûts agrégée par campus (pour l'allouer jusqu'à la classe) ----
 _totca=sum(c["ca"] for c in campus); _mca={}; _meff={}
 for c in campus: _mca[c["marque"]]=_mca.get(c["marque"],0)+c["ca"]; _meff[c["marque"]]=_meff.get(c["marque"],0)+c["eff"]
@@ -766,8 +776,9 @@ for rr in rows:
     for code,desc,typ,unite,sc in ACC:
         v0=base[code]
         if not v0: continue
-        for vcode,vlib,vtyp,per,fac in VERS:
-            val=round(v0*fac) if (sc and unite in("EUR","NB")) else (round(v0*fac,3) if sc else v0)
+        for vcode,vlib,vtyp,per,n in VERS:
+            fac=vfactor(code,rr["marque"],n)
+            val=round(v0*fac) if unite in("EUR","NB") else round(v0*fac,4)
             row=[ent,pcode,an,rr["mod"],code,desc,typ,vcode,per,unite,val]
             for i,x in enumerate(row): C(wsd,f"{GL(2+i)}{fr}",x,(CREG if i<7 else CF),fmt=(UF.get(unite) if i==10 else None),align=(AL if i in(0,5) else AC))
             fr+=1
