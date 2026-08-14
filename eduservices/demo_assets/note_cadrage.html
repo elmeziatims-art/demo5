@@ -1,0 +1,97 @@
+<title>Note de cadrage</title>
+<style>
+@page{size:A4;margin:16mm 15mm}
+*{box-sizing:border-box}
+body{margin:0;color:#14243a;font-family:"Segoe UI",Calibri,Arial,sans-serif;font-size:11pt;line-height:1.5}
+.doc{max-width:180mm;margin:0 auto}
+.top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1F3864;padding-bottom:8px}
+.top .brand{font-weight:800;color:#1F3864;font-size:12pt;letter-spacing:.5px}
+.top .meta{font-size:8.5pt;color:#5b6b7f;text-align:right}
+h1{font-size:16.5pt;color:#1F3864;margin:16px 0 2px}
+.sub{color:#5b6b7f;font-size:10pt;margin:0 0 14px}
+h2{font-size:11pt;color:#1F3864;text-transform:uppercase;letter-spacing:.6px;margin:16px 0 6px;border-left:4px solid #2E5496;padding-left:8px}
+p{margin:6px 0}
+ul{margin:6px 0 6px 0;padding-left:18px}li{margin:3px 0}
+.lead{background:#f4f7fb;border:1px solid #dfe7f2;border-radius:8px;padding:11px 14px;font-size:10.5pt}
+.chip{display:inline-block;background:#eaf1ea;color:#15803d;border-radius:20px;padding:1px 9px;font-size:8.5pt;font-weight:700;margin-right:4px}
+.steps{counter-reset:s;margin:8px 0}
+.step{display:flex;gap:10px;margin:7px 0}
+.step .num{flex:0 0 22px;height:22px;background:#1F3864;color:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10pt;font-weight:700}
+.step b{color:#14243a}
+.step .t{font-size:10.5pt}
+.diagram{border:1px solid #dfe7f2;border-radius:8px;padding:12px;margin:10px 0;background:#fbfcfe}
+.row{display:flex;align-items:center;gap:6px;justify-content:center;flex-wrap:wrap}
+.box{background:#fff;border:1.5px solid #2E5496;color:#1F3864;border-radius:7px;padding:5px 9px;font-size:9pt;font-weight:700}
+.box.grp{background:#1F3864;color:#fff;border-color:#1F3864}
+.arrow{color:#94a3b8;font-weight:800}
+.cap{text-align:center;font-size:8.5pt;color:#5b6b7f;margin-top:6px}
+.two{display:flex;gap:10px;justify-content:center;margin-top:8px;font-size:8.7pt}
+.two div{flex:1;text-align:center;border:1px dashed #cbd5e1;border-radius:6px;padding:5px}
+.foot{margin-top:16px;border-top:1px solid #e4e9f0;padding-top:8px;font-size:8.5pt;color:#8a97a6}
+.q{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 13px;font-size:10pt;margin-top:6px}
+</style>
+<div class="doc">
+  <div class="top">
+    <div class="brand">[VOTRE SOCIÉTÉ] · EPM / CCH Tagetik</div>
+    <div class="meta">Note de lecture préparatoire<br>Confidentiel · [date]</div>
+  </div>
+
+  <h1>Pilotage budgétaire par les inducteurs — cas d'usage</h1>
+  <p class="sub">Préparée pour <b>[Nom], Directeur Financier — EDUSERVICES]</b>, en amont de notre démonstration</p>
+
+  <div class="lead">
+    <b>Objet.</b> Vous présenter, sur un cas concret, comment un EPM pilote le budget d'un groupe d'enseignement supérieur privé : un <b>cadrage top-down</b> que l'on peut <b>éclater jusqu'à la maille la plus fine</b> (marque → campus → programme → classe), grâce à un <b>scénario historique de base</b>, avec des <b>allocations dynamiques</b> de la structure. Approche déjà éprouvée dans votre secteur (<b>OMNES Education</b>, <b>Galileo Global Education</b>).
+  </div>
+
+  <h2>1 · Périmètre de la démonstration</h2>
+  <p>Le cas est volontairement construit sur un <b>périmètre restreint et représentatif</b> — un échantillon de marques et de campus — <b>calibré sur les ratios de vos comptes consolidés</b> (marge EBITDA, poids du personnel, D&amp;A, CA par étudiant…). L'objectif est d'illustrer <b>toute la mécanique</b> sur un cas lisible, avant de l'étendre à l'ensemble du groupe dans l'outil.</p>
+  <p><span class="chip">Multi-marques</span><span class="chip">Multi-campus</span><span class="chip">Initial &amp; alternance</span><span class="chip">Calé sur vos ratios</span></p>
+
+  <h2>2 · Le parti pris — un top-down… jusqu'à la classe</h2>
+  <p>Le cœur de l'approche : <b>un seul modèle</b> relie la cible de la direction et le détail opérationnel, dans les deux sens.</p>
+  <ul>
+    <li><b>Un scénario historique de base (multisource)</b> — issu de la compta, du CRM/admissions et des RH — sert de <b>référence</b> et de <b>clé de répartition</b>.</li>
+    <li><b>La direction pose une cible top-down</b> (CA / EBITDA) au niveau groupe, par scénario (cadrage / optimiste / prudent).</li>
+    <li><b>La cible s'éclate automatiquement</b> jusqu'à la maille la plus fine, en s'appuyant sur les poids relatifs du scénario de base.</li>
+    <li><b>Les coûts de structure s'allouent dynamiquement</b> par inducteurs (CA, effectifs, nombre de classes) — <b>recalcul automatique</b> à chaque changement d'hypothèse.</li>
+    <li><b>Aller-retour top-down / bottom-up</b> : le détail construit remonte, se compare à la cible, fait apparaître l'<b>écart</b> et le <b>« reste à trouver »</b>.</li>
+  </ul>
+
+  <div class="diagram">
+    <div class="row">
+      <span class="box grp">Groupe</span><span class="arrow">→</span>
+      <span class="box">Marque</span><span class="arrow">→</span>
+      <span class="box">Campus</span><span class="arrow">→</span>
+      <span class="box">Programme</span><span class="arrow">→</span>
+      <span class="box">Classe</span>
+    </div>
+    <div class="cap">Cible top-down descendue à la maille fine · le détail remonte et se réconcilie</div>
+    <div class="two">
+      <div>🔑 <b>Clé de répartition</b> = scénario historique de base</div>
+      <div>⚙️ <b>Allocations dynamiques</b> par inducteurs (CA · effectifs · classes)</div>
+    </div>
+  </div>
+
+  <h2>3 · Le fil de la démonstration</h2>
+  <div class="steps">
+    <div class="step"><div class="num">1</div><div class="t"><b>Chargement multisource</b> — compta, CRM/admissions, RH — structuré par référentiel (codes, hiérarchies, comptes, versions).</div></div>
+    <div class="step"><div class="num">2</div><div class="t"><b>Cadrage top-down</b> — un poste de commande : objectif, scénarios, leviers en %, écart et reste à trouver.</div></div>
+    <div class="step"><div class="num">3</div><div class="t"><b>Éclatement à la maille fine &amp; allocations dynamiques</b> — la cible descend jusqu'au campus / programme / classe ; la structure s'alloue par inducteurs.</div></div>
+    <div class="step"><div class="num">4</div><div class="t"><b>Réconciliation top-down / bottom-up</b> — le budget construit par les inducteurs (cohortes, funnel → volume, prix) se confronte à la cible.</div></div>
+    <div class="step"><div class="num">5</div><div class="t"><b>Simulation de décisions</b> — ouvrir / fermer / mutualiser une promotion, avec impact EBITDA immédiat.</div></div>
+  </div>
+
+  <h2>4 · Ce que le cas démontre</h2>
+  <ul>
+    <li>Un <b>même modèle</b> du cadrage direction jusqu'à la classe — plus de rupture entre le top-down et le terrain.</li>
+    <li>Des <b>allocations dynamiques</b> et traçables, recalculées en temps réel.</li>
+    <li>Un pilotage <b>par inducteurs</b> (effectifs, cohortes, admissions, prix) — le langage de vos écoles, pas seulement des comptes.</li>
+    <li>Le tout <b>transposable 1:1</b> dans l'EPM (dimensions, versions, règles d'allocation, workflow).</li>
+  </ul>
+
+  <div class="q">
+    <b>Votre input.</b> Avant la session, dites-nous ce que vous aimeriez voir en priorité — un indicateur, un axe d'analyse (par cycle, par campus, saisonnalité de la rentrée, cash / BFR, sensibilité…) ou une règle d'allocation particulière. Nous l'intégrons en amont pour que la démonstration parle de <b>votre</b> pilotage.
+  </div>
+
+  <div class="foot">[Prénom Nom] · [Fonction] · [Société] · [e-mail] · [téléphone] — Document de cadrage, ne préjuge pas d'un périmètre définitif. Montants illustratifs calibrés sur des ordres de grandeur sectoriels.</div>
+</div>
