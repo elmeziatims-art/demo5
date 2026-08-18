@@ -127,6 +127,7 @@ for c in campus:
     GBR=math.exp(math.log(GORG)/rb) if rb>0 else GORG      # croissance dépense marque → rendement marque mesuré = rb
     c["bspend"]=[round(bref/GBR**2),round(bref/GBR),bref]  # N-2, N-1, ATT
 REFBRAND=sum(c["bref"] for c in campus)
+BUD_M={m:sum(c["spend"][2] for c in campus if c["marque"]==m) for m in BRANDS}   # budget acquisition réf par marque (cap → tilt du budget)
 print("[py] budget MARQUE réf=%d € (%.1f%% du CA)  rendement marque≈%.2f"%(REFBRAND,REFBRAND/REFCA*100,sum(c["rb"] for c in campus)/CG))
 print("[py] N=%d cellules  campus=%d"%(N,CG))
 print("[py] CA réf=%d €  effectif=%d  alternance=%.0f%%"%(REFCA,REFEFF,REFALT/REFEFF*100))
@@ -294,14 +295,12 @@ CPRIX_M={"MBway":1.20,"ISCOM":1.15,"Ipac Bachelor Factory":0.95,"Pigier":0.90,"T
 r=7
 for m in MARQUES:
     C(ws,f"J{r}",m,CL,align=AL,border=True); C(ws,f"K{r}",CPRIX_M[m],CINB,FYEL,fmt=X2,align=AC,border=True); r+=1
-# --- ② cap stratégique par marque (top-down : tilte l'éclatement, somme toujours à la cible) ---
-mca={m:0 for m in MARQUES}
-for rr in rows: mca[rr["marque"]]+=rr["eff"]*rr["rev"]+rr["nouv"]*FRAIS_DEF
-band(ws,13,"J","M","Cap stratégique par marque (décision)")
-for i,h in enumerate(["Marque","Poids CA réf","🔵 Cap","Poids norm."]): C(ws,f"{GL(10+i)}14",h,CHDR,FBLUE,align=AC,border=True)
+# --- ② cap stratégique par marque : PILOTE LE BUDGET MARKETING (enveloppe groupe constante → somme nulle) ---
+band(ws,13,"J","M","Cap stratégique — concentre le budget marketing (→ CA construit)")
+for i,h in enumerate(["Marque","Budget mkt réf","🔵 Cap","Part budget après cap"]): C(ws,f"{GL(10+i)}14",h,CHDR,FBLUE,align=AC,border=True)
 r=15
 for m in MARQUES:
-    C(ws,f"J{r}",m,CL,align=AL,border=True); C(ws,f"K{r}",round(mca[m]/REFCA,4),CF,fmt=PCT,align=AC,border=True)
+    C(ws,f"J{r}",m,CL,align=AL,border=True); C(ws,f"K{r}",BUD_M[m],CF,fmt=EUR,align=AR,border=True)
     C(ws,f"L{r}",1.0,CINB,FYEL,fmt=X2,align=AC,border=True)
     C(ws,f"M{r}",f"=IFERROR(K{r}*L{r}/SUMPRODUCT($K$15:$K$19,$L$15:$L$19),0)",CF,fmt=PCT,align=AC,border=True); r+=1
 # --- ③ indice prix par ville — DÉDUIT du réalisé (informationnel, plus de saisie) ---
@@ -375,7 +374,7 @@ LEX=[
  ("Croissance","Construit ÷ Référence − 1 : la progression réelle vs l'atterrissage. La couleur (rouge→vert) montre d'un coup d'œil où le cadrage crée ou détruit de la croissance."),
  ("Effectif constr.","L'effectif qui découle du CA construit (conséquence, jamais saisi). Utile pour vérifier la faisabilité opérationnelle (salles, classes)."),
  ("🔵 Coeff prix (marque)","Sensibilité de la marque à une décision de prix : prix appliqué = prix réf × (1 + levier prix × coeff). N'agit que si le levier prix ≠ 0. Crée de la valeur (effet CA réel)."),
- ("🔵 Cap stratégique","Poids d'arbitrage : concentre ou allège la croissance sur une marque. Jeu à SOMME NULLE — le total groupe ne bouge pas, seule la répartition change."),
+ ("🔵 Cap stratégique","Concentre le BUDGET MARKETING d'acquisition sur une marque, à enveloppe groupe CONSTANTE (somme nulle). Monter le cap d'une marque → plus de budget → plus de leads → son CA CONSTRUIT monte, celui des autres baisse. Cap = 1 partout = aucune redistribution."),
  ("Indice prix ville","DÉDUIT du réalisé (prix moyen ville ÷ national). Informationnel : la géographie tarifaire est déjà dans les revenus. Non saisissable (sinon double compte)."),
  ("🔵 Clés d'allocation","Le driver de répartition des coûts (CA / effectif / classes), figé par le CFO. Méthode centrale ; les campus ne la choisissent pas, ils contestent l'assiette."),
 ]
@@ -431,8 +430,8 @@ def xsum(col,key,yr): return f'SUMIFS({xrng(col)},{XKEY},{key},{XVER},{yr})'
 
 # ============================================================ 03_Campagnes (mesure CPL/rendement/part org + budget->leads)
 ws=wb.create_sheet("03_Campagnes"); ws.sheet_view.showGridLines=False
-ccols=["Marque","Ville","clé","Leads organiques","Leads payants réf","Leads total réf","Dépense acq. réf","Part organique","CPL mesuré","Rendement acq.","Budget acq. actif","Leads payants actif","Leads actif total","CPL effectif","Conv. lead→inscrit","CAC marginal /inscrit","Dépense marque réf","Rendement marque","Budget marque actif","Leads org. actif"]
-for i,w in enumerate([15,11,14,13,13,12,13,11,10,12,13,13,12,10,13,15,14,13,14,13]): ws.column_dimensions[GL(1+i)].width=w
+ccols=["Marque","Ville","clé","Leads organiques","Leads payants réf","Leads total réf","Dépense acq. réf","Part organique","CPL mesuré","Rendement acq.","Budget acq. actif","Leads payants actif","Leads actif total","CPL effectif","Conv. lead→inscrit","CAC marginal /inscrit","Dépense marque réf","Rendement marque","Budget marque actif","Leads org. actif","Cap marque"]
+for i,w in enumerate([15,11,14,13,13,12,13,11,10,12,13,13,12,10,13,15,14,13,14,13,10]): ws.column_dimensions[GL(1+i)].width=w
 ws.merge_cells(f"A1:{GL(len(ccols))}1"); C(ws,"A1","MOTEUR D'ACQUISITION (campus) — 2 leviers marketing : ACQUISITION (achat de leads → payant) & MARQUE (notoriété → organique), rendements MESURÉS",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
 ws.merge_cells(f"A2:{GL(len(ccols))}2"); C(ws,"A2","ACQUISITION : leads payants = payants réf × (budget acq.÷réf)^rendement acq. · MARQUE : leads organiques = org réf × (budget marque÷réf)^rendement marque (mesuré en AGRÉGÉ, org vs dépense marque sur 3 ans — pas d'attribution au lead). Total = organiques actif + payants actif.",CIT,align=ALW); ws.row_dimensions[2].height=34
 for i,h in enumerate(ccols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
@@ -449,7 +448,9 @@ for idx,cc in enumerate(campus):
     C(ws,f"H{r}",f"=IFERROR(D{r}/F{r},0)",CF,fmt=PCT,align=AC,border=True)  # part org MESURÉE
     C(ws,f"I{r}",f"=IFERROR(G{r}/E{r},0)",CF,fmt=EUR,align=AR,border=True)  # CPL MESURÉ
     C(ws,f"J{r}",f"=IFERROR(LN(E{r}/{xsum('F',key,YOLD)})/LN(G{r}/{xsum('H',key,YOLD)}),0.5)",CF,fmt=X2,align=AC,border=True)  # rendement MESURÉ
-    C(ws,f"K{r}",f"=G{r}*(1+{LMKT})",CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"U{r}",f"=INDEX({CAPVAL},MATCH(A{r},{CAPKEY},0))",CF,fmt=X2,align=AC,border=True)  # cap de la marque (pilote le budget)
+    # budget acquisition actif = budget réf × (1+levier global) × tilt du cap (redistribution à enveloppe groupe CONSTANTE)
+    C(ws,f"K{r}",f"=G{r}*(1+{LMKT})*U{r}*SUM($G${CR0}:$G${CRN})/SUMPRODUCT($G${CR0}:$G${CRN},$U${CR0}:$U${CRN})",CFB,fmt=EUR,align=AR,border=True)
     C(ws,f"L{r}",f"=E{r}*(K{r}/G{r})^J{r}",CFB,fmt=NB,align=AR,border=True)
     C(ws,f"M{r}",f"=T{r}+L{r}",CFB,fmt=NB,align=AR,border=True)   # total = organiques ACTIF (piloté marque) + payants actif
     C(ws,f"N{r}",f"=IFERROR(K{r}/L{r},0)",CF,fmt=EUR,align=AR,border=True)
@@ -464,7 +465,7 @@ for idx,cc in enumerate(campus):
 # indicateur d'attractivité : CAC marginal (vert = l'euro marketing rapporte le + / rouge = cher)
 ws.conditional_formatting.add(f"P{CR0}:P{CRN}",
     ColorScaleRule(start_type="min",start_color="63BE7B",mid_type="percentile",mid_value=50,mid_color="FFEB84",end_type="max",end_color="F8696B"))
-C(ws,f"A{CRN+2}","Indicateur d'attractivité : CAC marginal = coût marketing du prochain inscrit. Vert = investir ici (l'euro rapporte) · Rouge = marché cher/saturé. Colonnes Q-T : le socle ORGANIQUE n'est plus gratuit — il répond au budget de MARQUE (rendement mesuré en agrégé).",CIT,align=AL); ws.merge_cells(f"A{CRN+2}:T{CRN+2}")
+C(ws,f"A{CRN+2}","Indicateur d'attractivité : CAC marginal = coût marketing du prochain inscrit. Vert = investir ici (l'euro rapporte) · Rouge = marché cher/saturé. Colonnes Q-T : le socle ORGANIQUE répond au budget de MARQUE. Colonne U : le cap concentre le budget d'acquisition par marque (enveloppe groupe constante).",CIT,align=AL); ws.merge_cells(f"A{CRN+2}:U{CRN+2}")
 CKEY=f"{CAMP}$C${CR0}:$C${CRN}"; CLEADS=f"{CAMP}$M${CR0}:$M${CRN}"; CSLEADS=f"{CAMP}$F${CR0}:$F${CRN}"
 
 # ============================================================ 04_Moteur (funnel -> CA)
@@ -517,8 +518,8 @@ for idx in range(N):
         C(ws,f"AF{r}",f"={MASKS}I{_mk}",CL,fmt=PCT,align=AC,border=True); C(ws,f"AG{r}",f"={MASKS}J{_mk}",CL,fmt=PCT,align=AC,border=True); C(ws,f"AH{r}",f"={MASKS}K{_mk}",CL,fmt=PCT,align=AC,border=True)
     else:
         C(ws,f"AF{r}",0,CINB,FYEL,fmt=PCT,align=AC,border=True); C(ws,f"AG{r}",0,CINB,FYEL,fmt=PCT,align=AC,border=True); C(ws,f"AH{r}",0,CINB,FYEL,fmt=PCT,align=AC,border=True)
-    # ① CIBLE éclatée : poids = CA réf × cap marque ; CA cible = cible groupe × poids normalisé
-    C(ws,f"AI{r}",f"=K{r}*M{r}*INDEX({CAPVAL},MATCH(A{r},{CAPKEY},0))",CF,fmt=NB,align=AR,border=True)
+    # ① CIBLE éclatée : poids = CA réf (proportionnel) ; le cap ne touche plus la cible mais le BUDGET (03_Campagnes)
+    C(ws,f"AI{r}",f"=K{r}*M{r}",CF,fmt=NB,align=AR,border=True)
     C(ws,f"AJ{r}",f"=IFERROR({MO_CIBLE}*AI{r}/SUM($AI${MR0}:$AI${MRN}),0)",CFB,fmt=EUR,align=AR,border=True)
     C(ws,f"AK{r}",f"=IFERROR(AJ{r}/Z{r},0)",CF,fmt=NB,align=AR,border=True)
     C(ws,f"AL{r}",f"=AA{r}-AJ{r}",CF,fmt=EUR,align=AR,border=True)
@@ -537,7 +538,7 @@ grp=[("A–Q","Identité + reprise base + taux mesurés (funnel, passage)"),
  ("W–AA","③ AJUSTÉ : nouveaux/réinscrits/effectif/CA avec ajustements contrôleur (= budget final)"),
  ("AB–AE","② CADRÉ : le même SANS ajustement (pré-budget semé top-down)"),
  ("AF–AH","🟢 AJUSTEMENTS contrôleur (Δ lead→cand / Δ yield / Δ passage) — s'ajoutent au semé, n'écrasent rien"),
- ("AI–AK","① CIBLE éclatée : poids (CA réf × cap marque) → CA cible → effectif cible"),
+ ("AI–AK","① CIBLE éclatée : poids (CA réf, proportionnel) → CA cible → effectif cible"),
  ("AL–AM","ÉCART ③ − ① : le construit atteint-il la cible ?")]
 for rng,txt in grp:
     C(ws,f"A{gr}",rng,CB,FLIGHT,align=AC,border=True); ws.merge_cells(f"B{gr}:H{gr}"); C(ws,f"B{gr}",txt,CREG,align=ALW,border=True); gr+=1
