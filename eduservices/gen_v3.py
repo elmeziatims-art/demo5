@@ -92,7 +92,8 @@ N=len(rows)
 
 # historique CRM multi-années : leads (organique/payant) + dépense marketing, sur N-2/N-1/atterrissage.
 #  généré pour qu'une MESURE sur ces données retrouve rendement ~0,5, CPL ~benchmark, part org ~40 %.
-GORG=1.05   # croissance annuelle des leads organiques (notoriété)
+# croissance annuelle de la notoriété (organique) PAR MARQUE → momentum historique différencié
+GORG_M={"MBway":1.07,"ISCOM":1.03,"Ipac Bachelor Factory":1.09,"Pigier":1.04,"Tunon":1.02}
 GSP =1.10   # croissance annuelle de la dépense payante  → rendement mesuré = ln(GSP)/ln(GSP^2)=0,5
 campus=[]; seen=set()
 for r in rows:
@@ -103,8 +104,9 @@ for r in rows:
     sleads=sum(x["leads"] for x in cc)
     cpl=round(CPL_BASE*CITY_CPL[r["ville"]])
     porg=part_org(r["marque"],r["ville"]); rc=rend_c(r["marque"],r["ville"])   # différenciés par campus
+    GORG=GORG_M[r["marque"]]
     paid_att=sleads*(1-porg); org_att=sleads*porg; spend_att=paid_att*cpl
-    org  =[round(org_att/GORG**2),      round(org_att/GORG),    round(org_att)]      # N-2, N-1, ATT
+    org  =[round(org_att/GORG**2),      round(org_att/GORG),    round(org_att)]      # N-2, N-1, ATT (croissance marque)
     paid =[round(paid_att/GSP**(2*rc)), round(paid_att/GSP**rc), round(paid_att)]    # → rendement mesuré = rc
     spend=[round(spend_att/GSP**2),     round(spend_att/GSP),    round(spend_att)]
     campus.append(dict(marque=r["marque"],ville=r["ville"],sleads=sleads,cpl=cpl,porg=porg,rc=rc,
@@ -124,10 +126,27 @@ BRAND_CPO=0.030*REFCA/tot_org_att if tot_org_att else 0   # ~3 % du CA en budget
 for c in campus:
     rb=rend_marque(c["porg"]); c["rb"]=rb
     bref=round(c["org"][2]*BRAND_CPO); c["bref"]=bref
-    GBR=math.exp(math.log(GORG)/rb) if rb>0 else GORG      # croissance dépense marque → rendement marque mesuré = rb
+    gm=GORG_M[c["marque"]]
+    GBR=math.exp(math.log(gm)/rb) if rb>0 else gm         # croissance dépense marque → rendement marque mesuré = rb
     c["bspend"]=[round(bref/GBR**2),round(bref/GBR),bref]  # N-2, N-1, ATT
 REFBRAND=sum(c["bref"] for c in campus)
 BUD_M={m:sum(c["spend"][2] for c in campus if c["marque"]==m) for m in BRANDS}   # budget acquisition réf par marque (cap → tilt du budget)
+# --- caps PROPOSÉS depuis l'historique (3 logiques) — informationnel ; le CFO garde la main (cap retenu) ---
+def _agg(m):
+    cc=[c for c in campus if c["marque"]==m]
+    spend=sum(c["spend"][2] for c in cc); paid=sum(c["paid"][2] for c in cc)
+    rend=sum(c["rc"]*c["paid"][2] for c in cc)/paid                         # rendement pondéré
+    nouv=sum(r["nouv"] for r in rows if r["marque"]==m); leads=sum(r["leads"] for r in rows if r["marque"]==m)
+    cac=(spend/paid)/(rend*(nouv/leads))                                    # CAC marginal marque
+    ln2=sum(c["org"][0]+c["paid"][0] for c in cc); lat=sum(c["org"][2]+c["paid"][2] for c in cc)
+    ca=sum(r["eff"]*r["rev"]+r["nouv"]*FRAIS_DEF for r in rows if r["marque"]==m)
+    return dict(cac=cac,growth=lat/ln2,intensity=BUD_M[m]/ca)
+_AG={m:_agg(m) for m in BRANDS}
+def _norm(sig):
+    mu=sum(sig.values())/len(sig); return {m:round(sig[m]/mu,2) for m in sig}
+CAP_EFF=_norm({m:1/_AG[m]["cac"] for m in BRANDS})       # efficience : CAC marginal bas → cap haut
+CAP_MOM=_norm({m:_AG[m]["growth"]-1 for m in BRANDS})    # momentum : TAUX de croissance leads 24→26 (excès sur le plat) → cap
+CAP_POT=_norm({m:1/_AG[m]["intensity"] for m in BRANDS}) # potentiel : sous-investissement marketing → cap haut
 print("[py] budget MARQUE réf=%d € (%.1f%% du CA)  rendement marque≈%.2f"%(REFBRAND,REFBRAND/REFCA*100,sum(c["rb"] for c in campus)/CG))
 print("[py] N=%d cellules  campus=%d"%(N,CG))
 print("[py] CA réf=%d €  effectif=%d  alternance=%.0f%%"%(REFCA,REFEFF,REFALT/REFEFF*100))
@@ -234,7 +253,7 @@ C(ws,f"B{r+2}","Au budget de référence, tous leviers à 0, le moteur reproduit
 
 # ============================================================ 01_Cadrage
 ws=wb.create_sheet("01_Cadrage"); ws.sheet_view.showGridLines=False
-for c,w in {"A":2,"B":36,"C":13,"D":13,"E":13,"F":12,"G":12,"H":13,"I":2,"J":16,"K":11,"L":11,"M":16}.items(): ws.column_dimensions[c].width=w
+for c,w in {"A":2,"B":36,"C":13,"D":13,"E":13,"F":12,"G":12,"H":13,"I":2,"J":16,"K":13,"L":11,"M":13,"N":9,"O":9,"P":9}.items(): ws.column_dimensions[c].width=w
 ws.merge_cells("B1:H1"); C(ws,"B1","POSTE DE COMMANDE CFO — Cadrage CA & EBITDA",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=28
 C(ws,"B3","Scénario actif :",CB,align=AR); C(ws,"D3","Cadrage",CINB,FYEL,align=AC,border=True)
 dv=DataValidation(type="list",formula1='"Référence,Cadrage,Optimiste,Prudent"',allow_blank=False); ws.add_data_validation(dv); dv.add(ws["D3"])
@@ -296,13 +315,18 @@ r=7
 for m in MARQUES:
     C(ws,f"J{r}",m,CL,align=AL,border=True); C(ws,f"K{r}",CPRIX_M[m],CINB,FYEL,fmt=X2,align=AC,border=True); r+=1
 # --- ② cap stratégique par marque : PILOTE LE BUDGET MARKETING (enveloppe groupe constante → somme nulle) ---
-band(ws,13,"J","M","Cap stratégique — concentre le budget marketing (→ CA construit)")
-for i,h in enumerate(["Marque","Budget mkt réf","🔵 Cap","Part budget après cap"]): C(ws,f"{GL(10+i)}14",h,CHDR,FBLUE,align=AC,border=True)
+band(ws,13,"J","P","Cap stratégique — concentre le budget marketing (→ CA construit) · caps proposés depuis l'historique")
+for i,h in enumerate(["Marque","Budget mkt réf","🔵 Cap retenu","Part budget","Cap éff.","Cap mom.","Cap pot."]): C(ws,f"{GL(10+i)}14",h,CHDR,FBLUE,align=AC,border=True)
+ws.row_dimensions[14].height=26
 r=15
 for m in MARQUES:
     C(ws,f"J{r}",m,CL,align=AL,border=True); C(ws,f"K{r}",BUD_M[m],CF,fmt=EUR,align=AR,border=True)
     C(ws,f"L{r}",1.0,CINB,FYEL,fmt=X2,align=AC,border=True)
-    C(ws,f"M{r}",f"=IFERROR(K{r}*L{r}/SUMPRODUCT($K$15:$K$19,$L$15:$L$19),0)",CF,fmt=PCT,align=AC,border=True); r+=1
+    C(ws,f"M{r}",f"=IFERROR(K{r}*L{r}/SUMPRODUCT($K$15:$K$19,$L$15:$L$19),0)",CF,fmt=PCT,align=AC,border=True)
+    C(ws,f"N{r}",CAP_EFF[m],CF,FGRN,fmt=X2,align=AC,border=True)
+    C(ws,f"O{r}",CAP_MOM[m],CF,FGRN,fmt=X2,align=AC,border=True)
+    C(ws,f"P{r}",CAP_POT[m],CF,FGRN,fmt=X2,align=AC,border=True); r+=1
+C(ws,"J20","Caps PROPOSÉS (vert) = suggestions mesurées sur l'historique ; le CFO garde la main via « Cap retenu » (bleu). Seuls les caps RELATIFS comptent (la formule normalise). Éff. = efficience (CAC marginal bas) · Mom. = momentum (croissance leads 24→26) · Pot. = potentiel (sous-investissement marketing).",CIT,align=ALW); ws.merge_cells("J20:P20"); ws.row_dimensions[20].height=40
 # --- ③ indice prix par ville — DÉDUIT du réalisé (informationnel, plus de saisie) ---
 vrev={}; veff={}
 for rr in rows: vrev[rr["ville"]]=vrev.get(rr["ville"],0)+rr["rev"]*rr["eff"]; veff[rr["ville"]]=veff.get(rr["ville"],0)+rr["eff"]
