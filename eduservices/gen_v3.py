@@ -726,6 +726,43 @@ ch.add_data(data,titles_from_data=True); ch.set_categories(cats); ch.y_axis.numF
 ws.add_chart(ch,"F20")
 C(ws,"B23","Les tuiles et les ponts se recalculent en direct quand on bouge un levier du cadrage ou un scénario.",CIT,align=AL); ws.merge_cells("B23:N23")
 
+# ============================================================ 10_Allocation (cascade groupe → campus, clé au choix)
+ws=wb.create_sheet("10_Allocation"); ws.sheet_view.showGridLines=False
+acols=["Marque","Ville","CA","Coûts directs","Contribution","Coûts propres campus","Clé","Part","Quote-part groupe","EBITDA campus","Marge %"]
+for i,w in enumerate([15,11,13,13,13,15,11,8,15,14,9]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells(f"A1:{GL(len(acols))}1"); C(ws,"A1","ALLOCATION EN CASCADE — coûts du siège redescendus sur les campus (clé au choix)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
+A26V="2026ATT_VDEF"
+KMARQUE=f"'06_Compta'!$C${KP0}:$C${KPN}"; KVILLE=f"'06_Compta'!$D${KP0}:$D${KPN}"; KENT=f"'06_Compta'!$A${KP0}:$A${KPN}"
+GRP_CHG=f'SUMIFS({KMT},{KENT},"GROUPE",{KSENS},"Charge",{KVER},"{A26V}")'
+C(ws,"B3","Clé d'allocation des coûts groupe :",CB,align=AR); C(ws,"E3","Chiffre d'affaires",CINB,FYEL,align=AC,border=True)
+dv=DataValidation(type="list",formula1='"Chiffre d\'affaires,Effectif,Nombre de classes"',allow_blank=False); ws.add_data_validation(dv); dv.add(ws["E3"])
+C(ws,"G3","Coûts groupe à répartir :",CB,align=AR); C(ws,"I3",f"={GRP_CHG}",CFB,fmt=EUR,align=AR,border=True)
+for i,h in enumerate(acols): C(ws,f"{GL(1+i)}5",h,CHDR,FBLUE,align=AC,border=True)
+ws.row_dimensions[5].height=28
+AA0=6
+for idx,cc in enumerate(campus):
+    r=AA0+idx; m=cc["marque"]; v=cc["ville"]
+    crit=f'{KMARQUE},A{r},{KVILLE},B{r},{KVER},"{A26V}"'
+    C(ws,f"A{r}",m,CL,align=AL,border=True); C(ws,f"B{r}",v,CL,align=AC,border=True)
+    C(ws,f"C{r}",f'=SUMIFS({KMT},{crit},{KSENS},"Produit")',CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"D{r}",f'=SUMIFS({KMT},{crit},{KSIG},"Coûts directs")',CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"E{r}",f"=C{r}-D{r}",CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"F{r}",f'=SUMIFS({KMT},{crit},{KSENS},"Charge")-D{r}-SUMIFS({KMT},{crit},{KSIG},"Dotations")',CF,fmt=EUR,align=AR,border=True)
+    eff=f'SUMIFS({brng("M")},{brng("A")},A{r},{brng("B")},B{r})'; cls=f'SUMIFS({brng("O")},{brng("A")},A{r},{brng("B")},B{r})'
+    C(ws,f"G{r}",f'=IF($E$3="Effectif",{eff},IF($E$3="Nombre de classes",{cls},C{r}))',CF,fmt=NB,align=AR,border=True)
+    C(ws,f"H{r}",f"=IFERROR(G{r}/SUM($G${AA0}:$G${AA0+CG-1}),0)",CF,fmt=PCT,align=AC,border=True)
+    C(ws,f"I{r}",f"=H{r}*$I$3",CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"J{r}",f"=E{r}-F{r}-I{r}",CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"K{r}",f"=IFERROR(J{r}/C{r},0)",CF,fmt=PCT,align=AR,border=True)
+r=AA0+CG
+C(ws,f"A{r}","TOTAL",CFB,FTOT,align=AL,border=True); C(ws,f"B{r}"," ",fill=FTOT,border=True)
+for col in ["C","D","E","F","I","J"]: C(ws,f"{col}{r}",f"=SUM({col}{AA0}:{col}{AA0+CG-1})",CFB,FTOT,fmt=EUR,align=AR,border=True)
+C(ws,f"G{r}",f"=SUM(G{AA0}:G{AA0+CG-1})",CFB,FTOT,fmt=NB,align=AR,border=True); C(ws,f"H{r}"," ",fill=FTOT,border=True)
+C(ws,f"K{r}",f"=IFERROR(J{r}/C{r},0)",CFB,FTOT,fmt=PCT,align=AR,border=True)
+ws.conditional_formatting.add(f"K{AA0}:K{AA0+CG-1}",
+    ColorScaleRule(start_type="num",start_value=0,start_color="F8696B",mid_type="num",mid_value=0.14,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
+C(ws,f"A{r+2}","Change la clé (CA / effectif / classes) → la quote-part du siège se redistribue et l'EBITDA par campus bouge. Un campus rentable en contribution peut devenir déficitaire une fois pleinement chargé (effet « piège »). Le total EBITDA reste constant.",CIT,align=AL); ws.merge_cells(f"A{r+2}:K{r+3}"); ws.row_dimensions[r+2].height=28
+
 try: wb.calculation.fullCalcOnLoad=True
 except Exception: pass
 wb.properties.calcMode="auto"
