@@ -134,8 +134,8 @@ wb=openpyxl.Workbook()
 
 # ============================================================ REFS 01_Cadrage
 CAD="'01_Cadrage'!"
-LMKT,LPRIX,LGLC,LGCV,LPASS,LINFL,LSAL=(f"{CAD}$H${_r}" for _r in (14,15,16,17,18,19,20))  # leviers ACTIF
-KREND,KPORG,KFRAIS=(f"{CAD}$H${_r}" for _r in (24,25,26))                  # constantes ACTIF
+LMKT,LPRIX,LGLC,LGCV,LPASS,LINFL,LSAL,LEFFP,LPROD=(f"{CAD}$H${_r}" for _r in (16,17,18,19,20,21,22,23,24))  # leviers ACTIF
+KREND,KPORG,KFRAIS=(f"{CAD}$H${_r}" for _r in (28,29,30))                  # constantes ACTIF
 CPKEY=f"{CAD}$M$7:$M${6+CG}"; CPVAL=f"{CAD}$L$7:$L${6+CG}"
 
 BR0=4; BRN=BR0+N-1
@@ -145,13 +145,49 @@ CR0=5; CRN=CR0+CG-1
 CAMP="'03_Campagnes'!"
 MR0=4; MRN=MR0+N-1; MTOT=MR0+N
 
+# ---- plan de comptes (défini tôt : dimensionne le P&L et alimente le cadrage) ----
+ACCTS=[
+ ("7062","Prestations de formation — alternance (OPCO)","Produit","Produits","campus","alt",None,"V"),
+ ("706","Prestations de formation — scolarité (initial)","Produit","Produits","campus","init",None,"V"),
+ ("708","Frais de dossier & droits d'inscription","Produit","Produits","campus","frais",None,"V"),
+ ("621","Personnel extérieur — vacataires & intervenants","Charge","Coûts directs","campus","classes",0.070,"V"),
+ ("604","Sous-traitance pédagogique","Charge","Coûts directs","campus","effectif",0.030,"V"),
+ ("6063","Fournitures pédagogiques & petit équipement","Charge","Coûts directs","campus","effectif",0.020,"V"),
+ ("6231","Publicité & marketing d'acquisition (leads)","Charge","Coûts directs","campus","classes",0.021,"V"),
+ ("6411","Rémunération enseignants permanents","Charge","Personnel","campus","classes",0.170,"F"),
+ ("6413","Rémunération personnel administratif & pédagogique","Charge","Personnel","campus","effectif",0.090,"F"),
+ ("6414","Rémunération direction & fonctions support (siège)","Charge","Personnel","groupe","CA",0.055,"F"),
+ ("645","Charges sociales & de prévoyance","Charge","Personnel","campus","effectif",0.140,"F"),
+ ("613","Loyers & charges locatives (campus)","Charge","Structure","campus","classes",0.105,"F"),
+ ("615","Entretien & maintenance","Charge","Structure","campus","classes",0.015,"F"),
+ ("616","Primes d'assurance","Charge","Structure","campus","effectif",0.010,"F"),
+ ("6226","Honoraires (audit, conseil, juridique)","Charge","Structure","groupe","CA",0.025,"F"),
+ ("6236","Marketing de marque, salons & JPO","Charge","Structure","groupe","CA",0.030,"F"),
+ ("625","Déplacements, missions & réceptions","Charge","Structure","campus","effectif",0.015,"F"),
+ ("626","Télécom, systèmes d'information & affranchissement","Charge","Structure","groupe","effectif",0.020,"F"),
+ ("6281","Cotisations, documentation & abonnements","Charge","Structure","groupe","CA",0.008,"F"),
+ ("6331","Taxe sur les salaires","Charge","Impôts & taxes","groupe","effectif",0.015,"F"),
+ ("63511","Cotisation foncière & CVAE","Charge","Impôts & taxes","campus","classes",0.010,"F"),
+ ("6333","Participation formation professionnelle","Charge","Impôts & taxes","groupe","CA",0.005,"F"),
+ ("6811","Dotations aux amortissements (D&A)","Charge","Dotations","campus","classes",0.060,"F"),
+]
+def _pnl_rows():
+    r=4; r+=1; r+=sum(1 for a in ACCTS if a[2]=="Produit"); rowCA=r; r+=1
+    r+=1; r+=sum(1 for a in ACCTS if a[3]=="Coûts directs"); r+=1
+    for g in ("Personnel","Structure","Impôts & taxes"): r+=1; r+=sum(1 for a in ACCTS if a[3]==g)
+    rowEB=r; r+=1; r+=1; r+=sum(1 for a in ACCTS if a[3]=="Dotations"); rowEBIT=r
+    return rowCA,rowEB,rowEBIT
+PNL_CA,PNL_EB,PNL_EBIT=_pnl_rows()
+REFEBITDA=round(REFCA*0.146)
+PNL_EBc=f"'07_PnL'!$F${PNL_EB}"; PNL_EBb=f"'07_PnL'!$G${PNL_EB}"   # EBITDA atterrissage / budget
+
 # ============================================================ 00_Notice
 ws=wb.active; ws.title="00_Notice"; ws.sheet_view.showGridLines=False
 for c,w in {"A":2,"B":30,"C":80}.items(): ws.column_dimensions[c].width=w
 ws.merge_cells("B2:C2"); C(ws,"B2","EDUSERVICES — Modèle de CA (v3, budget-driven, leads observés)",CTIT,FNAVY,align=AL); ws.row_dimensions[2].height=30
 ws.merge_cells("B3:C3"); C(ws,"B3","Budget marketing → leads (CRM, socle organique + payant) → funnel mesuré → inscrits → CA. Revenu et taux différenciés alternance / initial.",CIT)
-band(ws,5,"B","C","Les feuilles (périmètre : CA uniquement)")
-notice=[("01_Cadrage","POSTE DE COMMANDE CFO : objectif CA, scénarios, leviers (budget marketing, prix, conversion, passage), coefficients prix par marque×ville."),
+band(ws,5,"B","C","Les feuilles (périmètre : CA → EBITDA)")
+notice=[("01_Cadrage","POSTE DE COMMANDE CFO : objectif CA & EBITDA (calculé), scénarios, 9 leviers (CA + coûts), coefficients prix par marque×ville."),
  ("02_Base","BASE DE RÉFÉRENCE (version unique) : fusion historique + paramètres. LEADS OBSERVÉS (CRM) et taux de funnel MESURÉS (lead→cand, cand→admis, admis→inscrit), différenciés par modalité."),
  ("03_Campagnes","MOTEUR D'ACQUISITION (campus) : leads = socle ORGANIQUE (fixe) + part PAYANTE (budget ÷ CPL, rendement décroissant ^r). Couper le budget ne met pas les leads à zéro."),
  ("04_Moteur","MOTEUR DE CA (cellule) : répartition des leads (mix réel) → funnel mesuré → effectif (+cohorte) → CA.")]
@@ -164,45 +200,53 @@ C(ws,f"B{r+2}","Au budget de référence, tous leviers à 0, le moteur reproduit
 # ============================================================ 01_Cadrage
 ws=wb.create_sheet("01_Cadrage"); ws.sheet_view.showGridLines=False
 for c,w in {"A":2,"B":36,"C":8,"D":13,"E":12,"F":12,"G":12,"H":13,"I":2,"J":16,"K":11,"L":11,"M":16}.items(): ws.column_dimensions[c].width=w
-ws.merge_cells("B1:H1"); C(ws,"B1","POSTE DE COMMANDE CFO — Cadrage du chiffre d'affaires",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=28
+ws.merge_cells("B1:H1"); C(ws,"B1","POSTE DE COMMANDE CFO — Cadrage CA & EBITDA",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=28
 C(ws,"B3","Scénario actif :",CB,align=AR); C(ws,"D3","Cadrage",CINB,FYEL,align=AC,border=True)
 dv=DataValidation(type="list",formula1='"Référence,Cadrage,Optimiste,Prudent"',allow_blank=False); ws.add_data_validation(dv); dv.add(ws["D3"])
-# --- cadrage CA ---
-band(ws,5,"B","G","① Cadrage top-down du CA — référence · budget construit · objectif · écart")
+# --- cadrage top-down (CA + EBITDA calculés) ---
+band(ws,5,"B","G","① Cadrage top-down — référence · budget construit · objectif · écart")
 for i,h in enumerate(["Indicateur","Référence","Budget construit","🟡 Objectif","Écart","Écart %"]): C(ws,f"{GL(2+i)}6",h,CHDR,FBLUE,align=AC,border=True)
 TOTCA=f"'04_Moteur'!$AA${MTOT}"; TOTEFF=f"'04_Moteur'!$Y${MTOT}"
 C(ws,"B7","Chiffre d'affaires",CB,align=AL,border=True)
 C(ws,"C7",REFCA,CL,fmt=EUR,align=AR,border=True); C(ws,"D7",f"={TOTCA}",CFB,fmt=EUR,align=AR,border=True)
 C(ws,"E7",round(REFCA*1.06),CINB,FYEL,fmt=EUR,align=AR,border=True); C(ws,"F7","=D7-E7",CF,fmt=EUR,align=AR,border=True); C(ws,"G7","=IFERROR(F7/E7,0)",CF,fmt=PCT,align=AR,border=True)
-C(ws,"B8","Effectif total",CB,align=AL,border=True)
-C(ws,"C8",REFEFF,CL,fmt=NB,align=AR,border=True); C(ws,"D8",f"={TOTEFF}",CFB,fmt=NB,align=AR,border=True)
-C(ws,"E8",round(REFEFF*1.04),CINB,FYEL,fmt=NB,align=AR,border=True); C(ws,"F8","=D8-E8",CF,fmt=NB,align=AR,border=True); C(ws,"G8","=IFERROR(F8/E8,0)",CF,fmt=PCT,align=AR,border=True)
-C(ws,"B10","RESTE À TROUVER (CA vs objectif) :",CB,align=AR); ws.merge_cells("B10:E10")
-C(ws,"F10","=IF(E7-D7>0,E7-D7,0)",CFB,FYEL,fmt=EUR,align=AR,border=True); C(ws,"G10",'=IF(E7-D7>0,"à combler","atteint")',CIT,align=AC,border=True)
+C(ws,"B8","EBITDA  (= CA − charges, calculé)",CB,align=AL,border=True)
+C(ws,"C8",f"={PNL_EBc}",CFB,fmt=EUR,align=AR,border=True); C(ws,"D8",f"={PNL_EBb}",CFB,fmt=EUR,align=AR,border=True)
+C(ws,"E8",round(REFEBITDA*1.08),CINB,FYEL,fmt=EUR,align=AR,border=True); C(ws,"F8","=D8-E8",CF,fmt=EUR,align=AR,border=True); C(ws,"G8","=IFERROR(F8/E8,0)",CF,fmt=PCT,align=AR,border=True)
+C(ws,"B9","Marge EBITDA %",CIT,align=AL,border=True)
+C(ws,"C9","=IFERROR(C8/C7,0)",CF,fmt=PCT,align=AR,border=True); C(ws,"D9","=IFERROR(D8/D7,0)",CFB,fmt=PCT,align=AR,border=True)
+C(ws,"E9"," ",border=True); C(ws,"F9"," ",border=True); C(ws,"G9",'=IFERROR(D9-C9,0)',CF,fmt=PCT,align=AR,border=True)
+C(ws,"B10","Effectif total",CB,align=AL,border=True)
+C(ws,"C10",REFEFF,CL,fmt=NB,align=AR,border=True); C(ws,"D10",f"={TOTEFF}",CFB,fmt=NB,align=AR,border=True)
+C(ws,"E10",round(REFEFF*1.04),CINB,FYEL,fmt=NB,align=AR,border=True); C(ws,"F10","=D10-E10",CF,fmt=NB,align=AR,border=True); C(ws,"G10","=IFERROR(F10/E10,0)",CF,fmt=PCT,align=AR,border=True)
+C(ws,"B12","RESTE À TROUVER (EBITDA vs objectif) :",CB,align=AR); ws.merge_cells("B12:E12")
+C(ws,"F12","=IF(E8-D8>0,E8-D8,0)",CFB,FYEL,fmt=EUR,align=AR,border=True); C(ws,"G12",'=IF(E8-D8>0,"à combler","atteint")',CIT,align=AC,border=True)
 # --- leviers ---
-band(ws,12,"B","H","② Leviers — bascule par scénario (colonne ACTIF)")
-for i,h in enumerate(["Paramètre","Unité","Référence","Cadrage","Optimiste","Prudent","ACTIF"]): C(ws,f"{GL(2+i)}13",h,CHDR,FBLUE,align=AC,border=True)
-MATCHSC='MATCH($D$3,$D$13:$G$13,0)'   # colonne D = scénario "Référence" (leviers à 0)
-levs=[("Variation du budget marketing (→ leads payants)","%",0,0.10,0.20,-0.05),
- ("Hausse tarifaire (prix)","%",0,0.03,0.04,0.02),
- ("Gain taux lead → candidature","pts",0,0.02,0.04,0.0),
- ("Gain conversion admis → inscrit","pts",0,0.015,0.03,0.0),
- ("Amélioration du taux de passage","pts",0,0.01,0.02,-0.01),
- ("Inflation des charges externes (→ coûts)","%",0,0.02,0.015,0.03),
- ("Politique salariale (→ personnel)","%",0,0.025,0.02,0.03)]
-r=14
+band(ws,14,"B","H","② Leviers — bascule par scénario (colonne ACTIF)")
+for i,h in enumerate(["Paramètre","Unité","Référence","Cadrage","Optimiste","Prudent","ACTIF"]): C(ws,f"{GL(2+i)}15",h,CHDR,FBLUE,align=AC,border=True)
+MATCHSC='MATCH($D$3,$D$15:$G$15,0)'   # colonne D = scénario "Référence" (leviers à 0)
+levs=[("Variation du budget marketing (→ leads payants)","%",0,0.08,0.15,-0.05),
+ ("Hausse tarifaire (prix)","%",0,0.025,0.035,0.02),
+ ("Gain taux lead → candidature","pts",0,0.01,0.03,0.0),
+ ("Gain conversion admis → inscrit","pts",0,0.01,0.025,0.0),
+ ("Amélioration du taux de passage","pts",0,0.005,0.015,-0.01),
+ ("Inflation des charges externes","%",0,0.02,0.015,0.03),
+ ("Politique salariale (masse permanente)","%",0,0.025,0.02,0.03),
+ ("Variation des effectifs permanents","%",0,0.04,0.03,0.05),
+ ("Effort de productivité (achats & structure)","%",0,0.01,0.03,0.0)]
+r=16
 for lib,u,ba,cad,opt,pru in levs:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True); C(ws,f"C{r}",u,CREG,align=AC,border=True); C(ws,f"D{r}",ba,CIT,fmt=PCT,align=AC,border=True)
     C(ws,f"E{r}",cad,CIN,fmt=PCT,align=AC,border=True); C(ws,f"F{r}",opt,CIN,fmt=PCT,align=AC,border=True); C(ws,f"G{r}",pru,CIN,fmt=PCT,align=AC,border=True)
     C(ws,f"H{r}",f"=INDEX(D{r}:G{r},{MATCHSC})",CFB,FLIGHT,fmt=PCT,align=AC,border=True); r+=1
-C(ws,"B21",'Leviers 1-5 → CA (moteur) · leviers 6-7 → coûts (P&L Budget N+1). « Référence » remet tout à 0 = atterrissage.',CIT,align=AL); ws.merge_cells("B21:H21")
+C(ws,"B25",'Leviers 1-5 → CA (moteur) · leviers 6-9 → coûts (P&L Budget → EBITDA). « Référence » remet tout à 0 = atterrissage.',CIT,align=AL); ws.merge_cells("B25:H25")
 # --- constantes ---
-band(ws,22,"B","H","③ Constantes de référence (scénarisables)")
-for i,h in enumerate(["Paramètre","Unité","Référence","Cadrage","Optimiste","Prudent","ACTIF"]): C(ws,f"{GL(2+i)}23",h,CHDR,FBLUE,align=AC,border=True)
+band(ws,26,"B","H","③ Constantes de référence (scénarisables)")
+for i,h in enumerate(["Paramètre","Unité","Référence","Cadrage","Optimiste","Prudent","ACTIF"]): C(ws,f"{GL(2+i)}27",h,CHDR,FBLUE,align=AC,border=True)
 consts=[("Rendement d'acquisition (part payante)","x",REND_DEF,X2),
  ("Part organique des leads (hors budget)","%",PORG_DEF,PCT),
  ("Frais de dossier / nouvel inscrit","€",FRAIS_DEF,EUR)]
-r=24
+r=28
 for lib,u,val,fmt in consts:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True); C(ws,f"C{r}",u,CREG,align=AC,border=True); C(ws,f"D{r}",val,CIT,fmt=fmt,align=AC,border=True)
     C(ws,f"E{r}",val,CIN,fmt=fmt,align=AC,border=True); C(ws,f"F{r}",val,CIN,fmt=fmt,align=AC,border=True); C(ws,f"G{r}",val,CIN,fmt=fmt,align=AC,border=True)
@@ -310,32 +354,7 @@ for rng,txt in grp:
     C(ws,f"A{gr}",rng,CB,FLIGHT,align=AC,border=True); ws.merge_cells(f"B{gr}:H{gr}"); C(ws,f"B{gr}",txt,CREG,align=ALW,border=True); gr+=1
 
 # ============================================================ COÛTS / P&L  (comptes PCG 6 & 7)
-# ACCTS : code, libellé, sens, ligne SIG, rattachement, driver, % du CA (atterrissage), Variable/Fixe
-ACCTS=[
- ("7062","Prestations de formation — alternance (OPCO)","Produit","Produits","campus","alt",None,"V"),
- ("706","Prestations de formation — scolarité (initial)","Produit","Produits","campus","init",None,"V"),
- ("708","Frais de dossier & droits d'inscription","Produit","Produits","campus","frais",None,"V"),
- ("621","Personnel extérieur — vacataires & intervenants","Charge","Coûts directs","campus","classes",0.070,"V"),
- ("604","Sous-traitance pédagogique","Charge","Coûts directs","campus","effectif",0.030,"V"),
- ("6063","Fournitures pédagogiques & petit équipement","Charge","Coûts directs","campus","effectif",0.020,"V"),
- ("6231","Publicité & marketing d'acquisition (leads)","Charge","Coûts directs","campus","classes",0.021,"V"),
- ("6411","Rémunération enseignants permanents","Charge","Personnel","campus","classes",0.170,"F"),
- ("6413","Rémunération personnel administratif & pédagogique","Charge","Personnel","campus","effectif",0.090,"F"),
- ("6414","Rémunération direction & fonctions support (siège)","Charge","Personnel","groupe","CA",0.055,"F"),
- ("645","Charges sociales & de prévoyance","Charge","Personnel","campus","effectif",0.140,"F"),
- ("613","Loyers & charges locatives (campus)","Charge","Structure","campus","classes",0.105,"F"),
- ("615","Entretien & maintenance","Charge","Structure","campus","classes",0.015,"F"),
- ("616","Primes d'assurance","Charge","Structure","campus","effectif",0.010,"F"),
- ("6226","Honoraires (audit, conseil, juridique)","Charge","Structure","groupe","CA",0.025,"F"),
- ("6236","Marketing de marque, salons & JPO","Charge","Structure","groupe","CA",0.030,"F"),
- ("625","Déplacements, missions & réceptions","Charge","Structure","campus","effectif",0.015,"F"),
- ("626","Télécom, systèmes d'information & affranchissement","Charge","Structure","groupe","effectif",0.020,"F"),
- ("6281","Cotisations, documentation & abonnements","Charge","Structure","groupe","CA",0.008,"F"),
- ("6331","Taxe sur les salaires","Charge","Impôts & taxes","groupe","effectif",0.015,"F"),
- ("63511","Cotisation foncière & CVAE","Charge","Impôts & taxes","campus","classes",0.010,"F"),
- ("6333","Participation formation professionnelle","Charge","Impôts & taxes","groupe","CA",0.005,"F"),
- ("6811","Dotations aux amortissements (D&A)","Charge","Dotations","campus","classes",0.060,"F"),
-]
+# ACCTS est défini plus haut (dimensionne le P&L et le cadrage)
 GROW_HIST=1.06
 # marge EBITDA cible par version (progression douce = levier opérationnel réaliste ~0,7 pt/an)
 TARGETS={2:0.132,1:0.140,0:0.146}
@@ -475,16 +494,19 @@ r=4
 # facteur budget N+1 par nature de compte : CA-driven, effectif×salaire, ou inflation
 MEFF=f"'04_Moteur'!$Y${MTOT}"; MCA=f"'04_Moteur'!$AA${MTOT}"
 CAf=f"({MCA}/{REFCA})"; EFFf=f"({MEFF}/{REFEFF})"
-def bfac(sens,sig):
-    if sens=="Produit" or sig=="Coûts directs": return CAf
-    if sig=="Personnel": return f"({EFFf}*(1+{LSAL}))"
-    return f"(1+{LINFL})"
+def bfac(code,sens,sig):
+    if sens=="Produit": return CAf                                  # produits : croissance du CA moteur
+    if code=="6231": return f"(1+{LMKT})"                           # marketing acquisition : suit le budget marketing
+    if sig=="Coûts directs": return f"({CAf}*(1-{LPROD}))"          # autres directs : volume − productivité
+    if sig=="Personnel": return f"((1+{LSAL})*(1+{LEFFP}))"         # personnel : salaire × effectifs permanents
+    if sig in ("Structure","Impôts & taxes"): return f"((1+{LINFL})*(1-{LPROD}))"  # structure : inflation − productivité
+    return f"(1+{LINFL})"                                           # dotations : inflation
 glist={}   # groupe -> liste des lignes budget (col G)
 def line(code,lib,sgn,sens,sig):
     global r
     C(ws,f"B{r}",code,CF,align=AC,border=True); C(ws,f"C{r}",lib,CF,align=AL,border=True)
     for i,vc in enumerate(VC): C(ws,f"{GL(4+i)}{r}",f"={sgn}{sif(code=code,ver=vc)}",CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"G{r}",f"=F{r}*{bfac(sens,sig)}",CF,FGRN,fmt=EUR,align=AR,border=True)
+    C(ws,f"G{r}",f"=F{r}*{bfac(code,sens,sig)}",CF,FGRN,fmt=EUR,align=AR,border=True)
     C(ws,f"H{r}",f"=IFERROR(G{r}/F{r}-1,0)",CF,fmt=PCT,align=AR,border=True)
     glist.setdefault(sig,[]).append(r); r+=1
 def band2(txt):
