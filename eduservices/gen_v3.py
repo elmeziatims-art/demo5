@@ -154,6 +154,8 @@ wb=openpyxl.Workbook()
 CAD="'01_Cadrage'!"
 LMKT,LPRIX,LGLC,LGCV,LPASS,LINFL,LSAL,LEFFP,LPROD=(f"{CAD}$H${_r}" for _r in (16,17,18,19,20,21,22,23,24))  # leviers ACTIF
 KFRAIS=f"{CAD}$H$28"    # frais de dossier (décision) ; rendement/part org/CPL sont MESURÉS (03_Campagnes)
+CROISS=f"{CAD}$F$3"; MARGEC=f"{CAD}$H$3"                 # cible top-down : croissance CA & marge EBITDA
+CAPKEY=f"{CAD}$J$24:$J$28"; CAPVAL=f"{CAD}$L$24:$L$28"   # cap stratégique par marque (éclatement)
 CPKEY=f"{CAD}$M$7:$M${6+CG}"; CPVAL=f"{CAD}$L$7:$L${6+CG}"
 
 BR0=4; BRN=BR0+N-1
@@ -222,24 +224,25 @@ for c,w in {"A":2,"B":36,"C":8,"D":13,"E":12,"F":12,"G":12,"H":13,"I":2,"J":16,"
 ws.merge_cells("B1:H1"); C(ws,"B1","POSTE DE COMMANDE CFO — Cadrage CA & EBITDA",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=28
 C(ws,"B3","Scénario actif :",CB,align=AR); C(ws,"D3","Cadrage",CINB,FYEL,align=AC,border=True)
 dv=DataValidation(type="list",formula1='"Référence,Cadrage,Optimiste,Prudent"',allow_blank=False); ws.add_data_validation(dv); dv.add(ws["D3"])
-# --- cadrage top-down (CA + EBITDA calculés) ---
-band(ws,5,"B","G","① Cadrage top-down — référence · budget construit · objectif · écart")
-for i,h in enumerate(["Indicateur","Référence","Budget construit","🟡 Objectif","Écart","Écart %"]): C(ws,f"{GL(2+i)}6",h,CHDR,FBLUE,align=AC,border=True)
-TOTCA=f"'04_Moteur'!$AA${MTOT}"; TOTEFF=f"'04_Moteur'!$Y${MTOT}"
+C(ws,"E3","🎯 Croissance CA cible :",CB,align=AR); C(ws,"F3",0.05,CINB,FYEL,fmt=PCT,align=AC,border=True)
+C(ws,"G3","Marge EBITDA cible :",CB,align=AR); C(ws,"H3",0.15,CINB,FYEL,fmt=PCT,align=AC,border=True)
+# --- réconciliation top-down / bottom-up ---
+band(ws,5,"B","G","① Réconciliation — Référence · 🎯 Cible (top-down) · 🔧 Construit (bottom-up) · Écart")
+for i,h in enumerate(["Indicateur","Référence","🎯 Cible","🔧 Construit","Écart","Écart %"]): C(ws,f"{GL(2+i)}6",h,CHDR,FBLUE,align=AC,border=True)
+TOTCA=f"'04_Moteur'!$AA${MTOT}"; TOTEFF=f"'04_Moteur'!$Y${MTOT}"; EFFCIB=f"'04_Moteur'!$AJ${MTOT}"
 C(ws,"B7","Chiffre d'affaires",CB,align=AL,border=True)
-C(ws,"C7",REFCA,CL,fmt=EUR,align=AR,border=True); C(ws,"D7",f"={TOTCA}",CFB,fmt=EUR,align=AR,border=True)
-C(ws,"E7",round(REFCA*1.06),CINB,FYEL,fmt=EUR,align=AR,border=True); C(ws,"F7","=D7-E7",CF,fmt=EUR,align=AR,border=True); C(ws,"G7","=IFERROR(F7/E7,0)",CF,fmt=PCT,align=AR,border=True)
-C(ws,"B8","EBITDA  (= CA − charges, calculé)",CB,align=AL,border=True)
-C(ws,"C8",f"={PNL_EBc}",CFB,fmt=EUR,align=AR,border=True); C(ws,"D8",f"={PNL_EBb}",CFB,fmt=EUR,align=AR,border=True)
-C(ws,"E8",round(REFEBITDA*1.08),CINB,FYEL,fmt=EUR,align=AR,border=True); C(ws,"F8","=D8-E8",CF,fmt=EUR,align=AR,border=True); C(ws,"G8","=IFERROR(F8/E8,0)",CF,fmt=PCT,align=AR,border=True)
+C(ws,"C7",REFCA,CL,fmt=EUR,align=AR,border=True); C(ws,"D7",f"={REFCA}*(1+F3)",CINB,fmt=EUR,align=AR,border=True); C(ws,"E7",f"={TOTCA}",CFB,fmt=EUR,align=AR,border=True)
+C(ws,"F7","=E7-D7",CF,fmt=EUR,align=AR,border=True); C(ws,"G7","=IFERROR(E7/D7-1,0)",CF,fmt=PCT,align=AR,border=True)
+C(ws,"B8","EBITDA  (calculé)",CB,align=AL,border=True)
+C(ws,"C8",f"={PNL_EBc}",CFB,fmt=EUR,align=AR,border=True); C(ws,"D8","=D7*H3",CINB,fmt=EUR,align=AR,border=True); C(ws,"E8",f"={PNL_EBb}",CFB,fmt=EUR,align=AR,border=True)
+C(ws,"F8","=E8-D8",CF,fmt=EUR,align=AR,border=True); C(ws,"G8","=IFERROR(E8/D8-1,0)",CF,fmt=PCT,align=AR,border=True)
 C(ws,"B9","Marge EBITDA %",CIT,align=AL,border=True)
-C(ws,"C9","=IFERROR(C8/C7,0)",CF,fmt=PCT,align=AR,border=True); C(ws,"D9","=IFERROR(D8/D7,0)",CFB,fmt=PCT,align=AR,border=True)
-C(ws,"E9"," ",border=True); C(ws,"F9"," ",border=True); C(ws,"G9",'=IFERROR(D9-C9,0)',CF,fmt=PCT,align=AR,border=True)
+C(ws,"C9","=IFERROR(C8/C7,0)",CF,fmt=PCT,align=AR,border=True); C(ws,"D9","=H3",CF,fmt=PCT,align=AR,border=True); C(ws,"E9","=IFERROR(E8/E7,0)",CFB,fmt=PCT,align=AR,border=True); C(ws,"G9","=IFERROR(E9-D9,0)",CF,fmt=PCT,align=AR,border=True)
 C(ws,"B10","Effectif total",CB,align=AL,border=True)
-C(ws,"C10",REFEFF,CL,fmt=NB,align=AR,border=True); C(ws,"D10",f"={TOTEFF}",CFB,fmt=NB,align=AR,border=True)
-C(ws,"E10",round(REFEFF*1.04),CINB,FYEL,fmt=NB,align=AR,border=True); C(ws,"F10","=D10-E10",CF,fmt=NB,align=AR,border=True); C(ws,"G10","=IFERROR(F10/E10,0)",CF,fmt=PCT,align=AR,border=True)
-C(ws,"B12","RESTE À TROUVER (EBITDA vs objectif) :",CB,align=AR); ws.merge_cells("B12:E12")
-C(ws,"F12","=IF(E8-D8>0,E8-D8,0)",CFB,FYEL,fmt=EUR,align=AR,border=True); C(ws,"G12",'=IF(E8-D8>0,"à combler","atteint")',CIT,align=AC,border=True)
+C(ws,"C10",REFEFF,CL,fmt=NB,align=AR,border=True); C(ws,"D10",f"={EFFCIB}",CINB,fmt=NB,align=AR,border=True); C(ws,"E10",f"={TOTEFF}",CFB,fmt=NB,align=AR,border=True)
+C(ws,"F10","=E10-D10",CF,fmt=NB,align=AR,border=True); C(ws,"G10","=IFERROR(E10/D10-1,0)",CF,fmt=PCT,align=AR,border=True)
+C(ws,"B12","RESTE À TROUVER — CA :",CB,align=AR); ws.merge_cells("B12:C12")
+C(ws,"D12","=IF(D7-E7>0,D7-E7,0)",CFB,FYEL,fmt=EUR,align=AR,border=True); C(ws,"E12","EBITDA :",CB,align=AR); C(ws,"F12","=IF(D8-E8>0,D8-E8,0)",CFB,FYEL,fmt=EUR,align=AR,border=True)
 # --- leviers ---
 band(ws,14,"B","H","② Leviers — bascule par scénario (colonne ACTIF)")
 for i,h in enumerate(["Paramètre","Unité","Référence","Cadrage","Optimiste","Prudent","ACTIF"]): C(ws,f"{GL(2+i)}15",h,CHDR,FBLUE,align=AC,border=True)
@@ -278,6 +281,17 @@ for cc in campus:
     C(ws,f"J{r}",cc["marque"],CL,align=AL,border=True); C(ws,f"K{r}",cc["ville"],CL,align=AC,border=True)
     C(ws,f"L{r}",COEFPRIX[cc["ville"]],CIN,fmt=X2,align=AC,border=True)
     C(ws,f"M{r}",f'=J{r}&"|"&K{r}',CF,align=AC,border=True); r+=1
+# --- cap stratégique par marque (top-down : tilte l'éclatement, somme toujours à la cible) ---
+MARQUES=list(BRANDS.keys()); mca={m:0 for m in MARQUES}
+for rr in rows: mca[rr["marque"]]+=rr["eff"]*rr["rev"]+rr["nouv"]*FRAIS_DEF
+band(ws,22,"J","M","Cap stratégique par marque")
+for i,h in enumerate(["Marque","Poids CA réf","🔵 Cap","Poids norm."]): C(ws,f"{GL(10+i)}23",h,CHDR,FBLUE,align=AC,border=True)
+r=24
+for m in MARQUES:
+    C(ws,f"J{r}",m,CL,align=AL,border=True); C(ws,f"K{r}",round(mca[m]/REFCA,4),CF,fmt=PCT,align=AC,border=True)
+    C(ws,f"L{r}",1.0,CINB,FYEL,fmt=X2,align=AC,border=True)
+    C(ws,f"M{r}",f"=IFERROR(K{r}*L{r}/SUMPRODUCT($K$24:$K$28,$L$24:$L$28),0)",CF,fmt=PCT,align=AC,border=True); r+=1
+C(ws,"J30","Cap = 1 partout → répartition proportionnelle au CA réf. Cap > 1 = pousser la marque (la cible se redistribue, total inchangé).",CIT,align=AL); ws.merge_cells("J30:M31"); ws.row_dimensions[30].height=28
 
 # ============================================================ 02_Base
 ws=wb.create_sheet("02_Base"); ws.sheet_view.showGridLines=False
@@ -360,11 +374,16 @@ CKEY=f"{CAMP}$C${CR0}:$C${CRN}"; CLEADS=f"{CAMP}$M${CR0}:$M${CRN}"; CSLEADS=f"{C
 ws=wb.create_sheet("04_Moteur"); ws.sheet_view.showGridLines=False
 mcols=["Marque","Ville","Programme","Année","Mod.","Entrée",
  "Leads hist","Cand hist","Nouv hist","Réins hist","Eff hist","Eff. inf.","Revenu/étu","Passage","T.L→C","T.C→A","Yield",
- "Part leads","Leads campus","Leads cellule","Candidatures","Admis","Nouveaux","Réinscrits","Effectif","Revenu actif","CA"]
-for i,w in enumerate([14,9,17,6,5,6]+[8]*(len(mcols)-6)): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells(f"A1:{GL(len(mcols))}1"); C(ws,"A1","MOTEUR DE CA (cellule) — leads → candidatures → admis → inscrits → effectif → CA (taux mesurés)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
+ "Part leads","Leads campus","Leads cellule","Candidatures","Admis",
+ "Nouveaux ③","Réinscrits ③","Effectif ③","Revenu actif","CA ③ ajusté",
+ "Nouveaux ②","Réinscr. ②","Effectif ②","CA ② cadré",
+ "🟢 Ajust.conv","🟢 Ajust.pass",
+ "Poids","CA ① cible","Effectif ① cible","Écart CA ③−①","Écart eff ③−①"]
+for i,w in enumerate([14,9,16,6,5,6]+[8]*(len(mcols)-6)): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells(f"A1:{GL(len(mcols))}1"); C(ws,"A1","MOTEUR DE CA (cellule) — ① CIBLE (éclatée top-down) · ② CADRÉ (semé) · ③ AJUSTÉ (semé + ajustement contrôleur) · écart",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
 for i,h in enumerate(mcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[3].height=30
+MO_CIBLE=f"({REFCA}*(1+{CROISS}))"    # CA cible groupe = référence × (1 + croissance cible)
 for idx in range(N):
     r=MR0+idx; b=BR0+idx
     Lk=lambda col:f"={BASE}{col}{b}"
@@ -380,25 +399,41 @@ for idx in range(N):
     C(ws,f"T{r}",f"=S{r}*R{r}",CF,fmt=NB,align=AR,border=True)
     C(ws,f"U{r}",f"=IF(F{r}=1,T{r}*(O{r}+{LGLC}),0)",CF,fmt=NB,align=AR,border=True)
     C(ws,f"V{r}",f"=U{r}*P{r}",CF,fmt=NB,align=AR,border=True)
-    C(ws,f"W{r}",f"=IF(F{r}=1,V{r}*(Q{r}+{LGCV}),0)",CFB,fmt=NB,align=AR,border=True)
-    C(ws,f"X{r}",f"=IF(F{r}=1,0,L{r}*(N{r}+{LPASS}))",CF,fmt=NB,align=AR,border=True)
+    # ③ AJUSTÉ : semé (groupe) + ajustement contrôleur AF/AG (jamais d'écrasement)
+    C(ws,f"W{r}",f"=IF(F{r}=1,V{r}*(Q{r}+{LGCV}+AF{r}),0)",CFB,fmt=NB,align=AR,border=True)
+    C(ws,f"X{r}",f"=IF(F{r}=1,0,L{r}*(N{r}+{LPASS}+AG{r}))",CF,fmt=NB,align=AR,border=True)
     C(ws,f"Y{r}",f"=W{r}+X{r}",CFB,fmt=NB,align=AR,border=True)
     C(ws,f"Z{r}",f"=M{r}*(1+{LPRIX}*INDEX({CPVAL},MATCH({key},{CPKEY},0)))",CF,fmt=EUR,align=AR,border=True)
     C(ws,f"AA{r}",f"=Y{r}*Z{r}+W{r}*{KFRAIS}",CFB,fmt=EUR,align=AR,border=True)
+    # ② CADRÉ : semé seul (sans ajustement contrôleur)
+    C(ws,f"AB{r}",f"=IF(F{r}=1,V{r}*(Q{r}+{LGCV}),0)",CF,fmt=NB,align=AR,border=True)
+    C(ws,f"AC{r}",f"=IF(F{r}=1,0,L{r}*(N{r}+{LPASS}))",CF,fmt=NB,align=AR,border=True)
+    C(ws,f"AD{r}",f"=AB{r}+AC{r}",CF,fmt=NB,align=AR,border=True)
+    C(ws,f"AE{r}",f"=AD{r}*Z{r}+AB{r}*{KFRAIS}",CF,fmt=EUR,align=AR,border=True)
+    # ajustement contrôleur (delta, 0 = pas d'ajustement) — jamais d'écrasement du semé
+    C(ws,f"AF{r}",0,CINB,FYEL,fmt=PCT,align=AC,border=True); C(ws,f"AG{r}",0,CINB,FYEL,fmt=PCT,align=AC,border=True)
+    # ① CIBLE éclatée : poids = CA réf × cap marque ; CA cible = cible groupe × poids normalisé
+    C(ws,f"AH{r}",f"=K{r}*M{r}*INDEX({CAPVAL},MATCH(A{r},{CAPKEY},0))",CF,fmt=NB,align=AR,border=True)
+    C(ws,f"AI{r}",f"=IFERROR({MO_CIBLE}*AH{r}/SUM($AH${MR0}:$AH${MRN}),0)",CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"AJ{r}",f"=IFERROR(AI{r}/Z{r},0)",CF,fmt=NB,align=AR,border=True)
+    C(ws,f"AK{r}",f"=AA{r}-AI{r}",CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"AL{r}",f"=Y{r}-AJ{r}",CF,fmt=NB,align=AR,border=True)
 r=MTOT
 C(ws,f"A{r}","TOTAL",CFB,FTOT,align=AL,border=True)
 for col in ["B","C","D","E"]: C(ws,f"{col}{r}"," ",fill=FTOT,border=True)
-for col,fmt in [("F",NB),("G",NB),("H",NB),("I",NB),("T",NB),("U",NB),("V",NB),("W",NB),("X",NB),("Y",NB),("AA",EUR)]:
+for col,fmt in [("F",NB),("G",NB),("H",NB),("I",NB),("T",NB),("U",NB),("V",NB),("W",NB),("X",NB),("Y",NB),("AA",EUR),
+                ("AD",NB),("AE",EUR),("AI",EUR),("AJ",NB),("AK",EUR),("AL",NB)]:
     C(ws,f"{col}{r}",f"=SUM({col}{MR0}:{col}{MRN})",CFB,FTOT,fmt=fmt,align=AR,border=True)
 ws.freeze_panes="G4"
 gr=r+2
-band(ws,gr,"A","H","Guide de lecture — de gauche à droite :"); gr+=1
-grp=[("A–F","Identité : marque, ville, programme, année, modalité, entrée (1=on recrute)"),
- ("G–Q","Reprise base + taux mesurés : leads/cand/nouv hist, revenu, passage, taux funnel (L→C, C→A, yield)"),
- ("R–T","Acquisition : part de leads (mix réel) × leads campus = leads de la cellule"),
- ("U–W","Funnel mesuré : candidatures → admis → NOUVEAUX inscrits"),
- ("X–Y","Cohorte : réinscrits (eff. inférieur × passage) → EFFECTIF"),
- ("Z–AA","Prix & CA : revenu actif (hausse×coeff) → CHIFFRE D'AFFAIRES")]
+band(ws,gr,"A","H","Guide de lecture — les 3 états côte à côte :"); gr+=1
+grp=[("A–Q","Identité + reprise base + taux mesurés (funnel, passage)"),
+ ("R–V","Acquisition : leads cellule → candidatures → admis"),
+ ("W–AA","③ AJUSTÉ : nouveaux/réinscrits/effectif/CA avec ajustement contrôleur (= budget final)"),
+ ("AB–AE","② CADRÉ : le même SANS ajustement (pré-budget semé top-down)"),
+ ("AF–AG","🟢 AJUSTEMENT contrôleur (delta conversion / passage) — s'ajoute au semé, n'écrase rien"),
+ ("AH–AJ","① CIBLE éclatée : poids (CA réf × cap marque) → CA cible → effectif cible"),
+ ("AK–AL","ÉCART ③ − ① : le construit atteint-il la cible ?")]
 for rng,txt in grp:
     C(ws,f"A{gr}",rng,CB,FLIGHT,align=AC,border=True); ws.merge_cells(f"B{gr}:H{gr}"); C(ws,f"B{gr}",txt,CREG,align=ALW,border=True); gr+=1
 
