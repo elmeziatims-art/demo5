@@ -155,8 +155,8 @@ CAD="'01_Cadrage'!"
 LMKT,LPRIX,LGLC,LGCV,LPASS,LINFL,LSAL,LEFFP,LPROD=(f"{CAD}$H${_r}" for _r in (16,17,18,19,20,21,22,23,24))  # leviers ACTIF
 KFRAIS=f"{CAD}$H$28"    # frais de dossier (décision) ; rendement/part org/CPL sont MESURÉS (03_Campagnes)
 CROISS=f"{CAD}$F$3"; MARGEC=f"{CAD}$H$3"                 # cible top-down : croissance CA & marge EBITDA
-CAPKEY=f"{CAD}$J$24:$J$28"; CAPVAL=f"{CAD}$L$24:$L$28"   # cap stratégique par marque (éclatement)
-CPKEY=f"{CAD}$M$7:$M${6+CG}"; CPVAL=f"{CAD}$L$7:$L${6+CG}"
+CAPKEY=f"{CAD}$J$15:$J$19"; CAPVAL=f"{CAD}$L$15:$L$19"   # cap stratégique par marque (éclatement)
+CPKEY=f"{CAD}$J$7:$J$11"; CPVAL=f"{CAD}$K$7:$K$11"      # coeff prix par MARQUE (décision)
 
 BR0=4; BRN=BR0+N-1
 BASE="'02_Base'!"
@@ -272,26 +272,35 @@ for lib,u,val,fmt in consts:
     C(ws,f"E{r}",val,CIN,fmt=fmt,align=AC,border=True); C(ws,f"F{r}",val,CIN,fmt=fmt,align=AC,border=True); C(ws,f"G{r}",val,CIN,fmt=fmt,align=AC,border=True)
     C(ws,f"H{r}",f"=INDEX(D{r}:G{r},{MATCHSC})",CFB,FLIGHT,fmt=fmt,align=AC,border=True); r+=1
 C(ws,"B30","Rendement, CPL et part organique ne sont pas saisis : ils sont MESURÉS depuis le CRM (voir 03_Campagnes).",CIT,align=AL); ws.merge_cells("B30:H30")
-# --- coefficients prix par marque x ville ---
-band(ws,5,"J","M","Coefficients prix (marque × ville)")
-for i,h in enumerate(["Marque","Ville","Coeff prix","clé"]): C(ws,f"{GL(10+i)}6",h,CHDR,FBLUE,align=AC,border=True)
-COEFPRIX={"Paris":1.15,"Lyon":1.05,"Nantes":1.00,"Bordeaux":0.95,"Lille":1.00,"Toulouse":0.95,"Rennes":0.90,"Montpellier":0.90}
+MARQUES=list(BRANDS.keys())
+# --- ① coefficient prix par MARQUE (décision : pouvoir de prix différencié) ---
+band(ws,5,"J","M","Coeff prix par marque (décision)")
+for i,h in enumerate(["Marque","🔵 Coeff prix"]): C(ws,f"{GL(10+i)}6",h,CHDR,FBLUE,align=AC,border=True)
+CPRIX_M={"MBway":1.20,"ISCOM":1.15,"Ipac Bachelor Factory":0.95,"Pigier":0.90,"Tunon":1.05}
 r=7
-for cc in campus:
-    C(ws,f"J{r}",cc["marque"],CL,align=AL,border=True); C(ws,f"K{r}",cc["ville"],CL,align=AC,border=True)
-    C(ws,f"L{r}",COEFPRIX[cc["ville"]],CIN,fmt=X2,align=AC,border=True)
-    C(ws,f"M{r}",f'=J{r}&"|"&K{r}',CF,align=AC,border=True); r+=1
-# --- cap stratégique par marque (top-down : tilte l'éclatement, somme toujours à la cible) ---
-MARQUES=list(BRANDS.keys()); mca={m:0 for m in MARQUES}
+for m in MARQUES:
+    C(ws,f"J{r}",m,CL,align=AL,border=True); C(ws,f"K{r}",CPRIX_M[m],CINB,FYEL,fmt=X2,align=AC,border=True); r+=1
+# --- ② cap stratégique par marque (top-down : tilte l'éclatement, somme toujours à la cible) ---
+mca={m:0 for m in MARQUES}
 for rr in rows: mca[rr["marque"]]+=rr["eff"]*rr["rev"]+rr["nouv"]*FRAIS_DEF
-band(ws,22,"J","M","Cap stratégique par marque")
-for i,h in enumerate(["Marque","Poids CA réf","🔵 Cap","Poids norm."]): C(ws,f"{GL(10+i)}23",h,CHDR,FBLUE,align=AC,border=True)
-r=24
+band(ws,13,"J","M","Cap stratégique par marque (décision)")
+for i,h in enumerate(["Marque","Poids CA réf","🔵 Cap","Poids norm."]): C(ws,f"{GL(10+i)}14",h,CHDR,FBLUE,align=AC,border=True)
+r=15
 for m in MARQUES:
     C(ws,f"J{r}",m,CL,align=AL,border=True); C(ws,f"K{r}",round(mca[m]/REFCA,4),CF,fmt=PCT,align=AC,border=True)
     C(ws,f"L{r}",1.0,CINB,FYEL,fmt=X2,align=AC,border=True)
-    C(ws,f"M{r}",f"=IFERROR(K{r}*L{r}/SUMPRODUCT($K$24:$K$28,$L$24:$L$28),0)",CF,fmt=PCT,align=AC,border=True); r+=1
-C(ws,"J30","Cap = 1 partout → répartition proportionnelle au CA réf. Cap > 1 = pousser la marque (la cible se redistribue, total inchangé).",CIT,align=AL); ws.merge_cells("J30:M31"); ws.row_dimensions[30].height=28
+    C(ws,f"M{r}",f"=IFERROR(K{r}*L{r}/SUMPRODUCT($K$15:$K$19,$L$15:$L$19),0)",CF,fmt=PCT,align=AC,border=True); r+=1
+# --- ③ indice prix par ville — DÉDUIT du réalisé (informationnel, plus de saisie) ---
+vrev={}; veff={}
+for rr in rows: vrev[rr["ville"]]=vrev.get(rr["ville"],0)+rr["rev"]*rr["eff"]; veff[rr["ville"]]=veff.get(rr["ville"],0)+rr["eff"]
+natavg=sum(rr["rev"]*rr["eff"] for rr in rows)/sum(rr["eff"] for rr in rows)
+band(ws,21,"J","M","Indice prix par ville — déduit du réalisé")
+for i,h in enumerate(["Ville","Prix moyen","Indice /national"]): C(ws,f"{GL(10+i)}22",h,CHDR,FBLUE,align=AC,border=True)
+r=23
+for v in sorted(vrev,key=lambda x:-vrev[x]/veff[x]):
+    C(ws,f"J{r}",v,CL,align=AL,border=True); C(ws,f"K{r}",round(vrev[v]/veff[v]),CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"L{r}",round((vrev[v]/veff[v])/natavg,3),CF,fmt=X2,align=AC,border=True); r+=1
+C(ws,f"J{r+1}","Indice = prix moyen ville ÷ national, calculé sur le réalisé (le niveau de prix par ville est déjà dans les revenus). Le pouvoir de prix se pilote par MARQUE ci-dessus.",CIT,align=AL); ws.merge_cells(f"J{r+1}:M{r+2}"); ws.row_dimensions[r+1].height=28
 
 # ============================================================ 02_Base
 ws=wb.create_sheet("02_Base"); ws.sheet_view.showGridLines=False
@@ -407,7 +416,7 @@ for idx in range(N):
     C(ws,f"W{r}",f"=IF(F{r}=1,V{r}*(Q{r}+{LGCV}+AG{r}),0)",CFB,fmt=NB,align=AR,border=True)
     C(ws,f"X{r}",f"=IF(F{r}=1,0,L{r}*(N{r}+{LPASS}+AH{r}))",CF,fmt=NB,align=AR,border=True)
     C(ws,f"Y{r}",f"=W{r}+X{r}",CFB,fmt=NB,align=AR,border=True)
-    C(ws,f"Z{r}",f"=M{r}*(1+{LPRIX}*INDEX({CPVAL},MATCH({key},{CPKEY},0)))",CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"Z{r}",f"=M{r}*(1+{LPRIX}*INDEX({CPVAL},MATCH(A{r},{CPKEY},0)))",CF,fmt=EUR,align=AR,border=True)  # hausse × coeff prix marque
     C(ws,f"AA{r}",f"=Y{r}*Z{r}+W{r}*{KFRAIS}",CFB,fmt=EUR,align=AR,border=True)
     # ② CADRÉ : semé seul, auto-porté (sans aucun ajustement contrôleur)
     C(ws,f"AB{r}",f"=IF(F{r}=1,T{r}*(O{r}+{LGLC})*P{r}*(Q{r}+{LGCV}),0)",CF,fmt=NB,align=AR,border=True)
