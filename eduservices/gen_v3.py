@@ -11,6 +11,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.utils import get_column_letter as GL, column_index_from_string as CI
 from openpyxl.formatting.rule import ColorScaleRule
+from openpyxl.chart import BarChart, Reference
 
 OUT="/home/user/demo5/eduservices/EDUSERVICES_Modele_CA_v3.xlsx"
 
@@ -673,6 +674,57 @@ for col in ["B","C","E","F","G","I","J","K"]: C(ws,f"{col}{mk}"," ",fill=FTOT,bo
 for col,fmt in [("D",NB),("H",NB),("L",NB),("M",EUR),("N",EUR)]: C(ws,f"{col}{mk}",f"=SUM({col}{MK0}:{col}{mk-1})",CFB,FTOT,fmt=fmt,align=AR,border=True)
 ws.freeze_panes="A7"
 C(ws,f"A{mk+2}","Exemple : mettez +0,03 en « Δ yield » sur une ligne → l'effectif ajusté ③ et le CA remontent, l'écart à la cible se réduit. En Tagetik, chaque contrôleur a ce masque sur SON périmètre (sécurité par entité).",CIT,align=AL); ws.merge_cells(f"A{mk+2}:N{mk+3}"); ws.row_dimensions[mk+2].height=28
+
+# ============================================================ 09_Reporting (KPIs live + bridge de variance)
+ws=wb.create_sheet("09_Reporting"); ws.sheet_view.showGridLines=False
+for c,w in {"A":2,"B":15,"C":15,"D":14,"E":3,"F":16,"G":13,"H":13,"I":12,"J":2,"K":12,"L":12,"M":12,"N":12}.items(): ws.column_dimensions[c].width=w
+ws.merge_cells("B1:N1"); C(ws,"B1","REPORTING — impact live du cadrage · pont d'explication CA & EBITDA",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=26
+mCA=f"'04_Moteur'!$AA${MTOT}"; mEFF=f"'04_Moteur'!$Y${MTOT}"; mNOUV=f"'04_Moteur'!$W${MTOT}"
+cK=f"SUM('03_Campagnes'!$K${CR0}:$K${CRN})"; cL=f"SUM('03_Campagnes'!$L${CR0}:$L${CRN})"; cM=f"SUM('03_Campagnes'!$M${CR0}:$M${CRN})"
+BIG=Font(name=Fn,bold=True,size=16,color="1F3864")
+def tile(r,c,label,formula,fmt,fill=FLIGHT):
+    a=GL(c); b=GL(c+2)
+    for rr in (r,r+1):
+        for col in range(c,c+3): ws.cell(row=rr,column=col).fill=fill; ws.cell(row=rr,column=col).border=BORD
+    ws.merge_cells(f"{a}{r}:{b}{r}"); ws.merge_cells(f"{a}{r+1}:{b}{r+1}")
+    v=ws[f"{a}{r}"]; v.value=formula; v.font=BIG; v.alignment=AC; v.number_format=fmt
+    l=ws[f"{a}{r+1}"]; l.value=label; l.font=CIT; l.alignment=AC
+tile(3,2,"CA construit (budget)",f"={mCA}",EUR)
+tile(3,5,"EBITDA construit",f"={PNL_EBb}",EUR)
+tile(3,8,"Marge EBITDA",f"=IFERROR({PNL_EBb}/{mCA},0)",PCT,FGRN)
+tile(3,11,"Effectif construit",f"={mEFF}",NB)
+tile(6,2,"Écart à la cible CA","='01_Cadrage'!F7",EUR)
+tile(6,5,"Reste à trouver CA","='01_Cadrage'!D12",EUR,FYEL)
+tile(6,8,"CPL effectif moyen",f"=IFERROR({cK}/{cL},0)",EUR)
+tile(6,11,"Coût d'acquisition / inscrit",f"=IFERROR({cK}/{mNOUV},0)",EUR)
+# --- Pont CA (Référence → Construit) ---
+band(ws,10,"B","D","Pont CA : Référence 2026 → Budget construit")
+C(ws,"B11","CA Référence 2026",CB,align=AL,border=True); C(ws,"D11",REFCA,CL,fmt=EUR,align=AR,border=True)
+C(ws,"B12","+ Effet volume",CF,align=AL,border=True); C(ws,"D12",f"=({mEFF}-{REFEFF})*({REFCA}/{REFEFF})",CF,fmt=EUR,align=AR,border=True)
+C(ws,"B13","+ Effet prix & mix",CF,align=AL,border=True); C(ws,"D13",f"={mCA}-{REFCA}-D12",CF,fmt=EUR,align=AR,border=True)
+C(ws,"B14","→ CA Budget construit",CFB,FTOT,align=AL,border=True); C(ws,"D14",f"={mCA}",CFB,FTOT,fmt=EUR,align=AR,border=True)
+# --- Pont EBITDA (Référence → Construit) ---
+band(ws,16,"B","D","Pont EBITDA : Référence 2026 → Budget construit")
+C(ws,"B17","EBITDA Référence 2026",CB,align=AL,border=True); C(ws,"D17",f"={PNL_EBc}",CL,fmt=EUR,align=AR,border=True)
+C(ws,"B18","+ Effet CA (à marge réf.)",CF,align=AL,border=True); C(ws,"D18",f"=({mCA}-{REFCA})*IFERROR({PNL_EBc}/{REFCA},0)",CF,fmt=EUR,align=AR,border=True)
+C(ws,"B19","+ Effet coûts & levier op.",CF,align=AL,border=True); C(ws,"D19",f"={PNL_EBb}-{PNL_EBc}-D18",CF,fmt=EUR,align=AR,border=True)
+C(ws,"B20","→ EBITDA Budget construit",CFB,FTOT,align=AL,border=True); C(ws,"D20",f"={PNL_EBb}",CFB,FTOT,fmt=EUR,align=AR,border=True)
+# --- Par marque : cible vs construit ---
+MOA=f"'04_Moteur'!$A${MR0}:$A${MRN}"; MOAA=f"'04_Moteur'!$AA${MR0}:$AA${MRN}"; MOAJ=f"'04_Moteur'!$AJ${MR0}:$AJ${MRN}"
+band(ws,10,"F","I","CA par marque : cible vs construit")
+for i,h in enumerate(["Marque","🎯 Cible","🔧 Construit","Écart"]): C(ws,f"{GL(6+i)}11",h,CHDR,FBLUE,align=AC,border=True)
+r=12
+for m in MARQUES:
+    C(ws,f"F{r}",m,CL,align=AL,border=True)
+    C(ws,f"G{r}",f'=SUMIFS({MOAJ},{MOA},F{r})',CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"H{r}",f'=SUMIFS({MOAA},{MOA},F{r})',CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"I{r}",f"=H{r}-G{r}",CF,fmt=EUR,align=AR,border=True); r+=1
+# graphe barres cible vs construit par marque
+ch=BarChart(); ch.type="col"; ch.title="CA par marque — cible vs construit"; ch.height=7.5; ch.width=15
+data=Reference(ws,min_col=7,max_col=8,min_row=11,max_row=11+len(MARQUES)); cats=Reference(ws,min_col=6,min_row=12,max_row=11+len(MARQUES))
+ch.add_data(data,titles_from_data=True); ch.set_categories(cats); ch.y_axis.numFmt='#,##0'
+ws.add_chart(ch,"F20")
+C(ws,"B23","Les tuiles et les ponts se recalculent en direct quand on bouge un levier du cadrage ou un scénario.",CIT,align=AL); ws.merge_cells("B23:N23")
 
 try: wb.calculation.fullCalcOnLoad=True
 except Exception: pass
