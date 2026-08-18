@@ -308,23 +308,19 @@ for rng,txt in grp:
     C(ws,f"A{gr}",rng,CB,FLIGHT,align=AC,border=True); ws.merge_cells(f"B{gr}:H{gr}"); C(ws,f"B{gr}",txt,CREG,align=ALW,border=True); gr+=1
 
 # ============================================================ COÛTS / P&L  (comptes PCG 6 & 7)
-# Plan comptable : code, libellé, sens, ligne SIG, rattachement, driver, % du CA (atterrissage), Variable/Fixe
+# ACCTS : code, libellé, sens, ligne SIG, rattachement, driver, % du CA (atterrissage), Variable/Fixe
 ACCTS=[
- # PRODUITS (classe 7) — split du CA déjà construit
  ("7062","Prestations de formation — alternance (OPCO)","Produit","Produits","campus","alt",None,"V"),
  ("706","Prestations de formation — scolarité (initial)","Produit","Produits","campus","init",None,"V"),
  ("708","Frais de dossier & droits d'inscription","Produit","Produits","campus","frais",None,"V"),
- # COÛTS DIRECTS (marge de contribution)
  ("621","Personnel extérieur — vacataires & intervenants","Charge","Coûts directs","campus","classes",0.070,"V"),
  ("604","Sous-traitance pédagogique","Charge","Coûts directs","campus","effectif",0.030,"V"),
  ("6063","Fournitures pédagogiques & petit équipement","Charge","Coûts directs","campus","effectif",0.020,"V"),
  ("6231","Publicité & marketing d'acquisition (leads)","Charge","Coûts directs","campus","classes",0.021,"V"),
- # PERSONNEL
  ("6411","Rémunération enseignants permanents","Charge","Personnel","campus","classes",0.170,"F"),
  ("6413","Rémunération personnel administratif & pédagogique","Charge","Personnel","campus","effectif",0.090,"F"),
  ("6414","Rémunération direction & fonctions support (siège)","Charge","Personnel","groupe","CA",0.055,"F"),
  ("645","Charges sociales & de prévoyance","Charge","Personnel","campus","effectif",0.140,"F"),
- # STRUCTURE
  ("613","Loyers & charges locatives (campus)","Charge","Structure","campus","classes",0.105,"F"),
  ("615","Entretien & maintenance","Charge","Structure","campus","classes",0.015,"F"),
  ("616","Primes d'assurance","Charge","Structure","campus","effectif",0.010,"F"),
@@ -333,18 +329,33 @@ ACCTS=[
  ("625","Déplacements, missions & réceptions","Charge","Structure","campus","effectif",0.015,"F"),
  ("626","Télécom, systèmes d'information & affranchissement","Charge","Structure","groupe","effectif",0.020,"F"),
  ("6281","Cotisations, documentation & abonnements","Charge","Structure","groupe","CA",0.008,"F"),
- # IMPÔTS & TAXES
  ("6331","Taxe sur les salaires","Charge","Impôts & taxes","groupe","effectif",0.015,"F"),
  ("63511","Cotisation foncière & CVAE","Charge","Impôts & taxes","campus","classes",0.010,"F"),
  ("6333","Participation formation professionnelle","Charge","Impôts & taxes","groupe","CA",0.005,"F"),
- # DOTATIONS (sous l'EBITDA)
  ("6811","Dotations aux amortissements (D&A)","Charge","Dotations","campus","classes",0.060,"F"),
 ]
-GROW_HIST=1.06   # croissance annuelle du CA
-VERS=[("2023 (N-2)",2),("2024 (N-1)",1),("2025 (Atterr.)",0)]
+GROW_HIST=1.06
 # marge EBITDA cible par version (progression douce = levier opérationnel réaliste ~0,7 pt/an)
 TARGETS={2:0.132,1:0.140,0:0.146}
 NONDA_PCT=sum(a[6] for a in ACCTS if a[3]!="Dotations" and a[6] is not None)  # = 0,854
+# dimension Version (codes prêts Tagetik) : (code, libellé exercice, n en arrière, type, année)
+VERS=[("2023ACT_VDEF","2023 (N-2)",2,"Actual",2023),
+      ("2024ACT_VDEF","2024 (N-1)",1,"Actual",2024),
+      ("2025ATT_VDEF","2025 (Atterr.)",0,"Forecast",2025)]
+# hiérarchies : PCG (poste) et gestion (SIG agrégat + nœud parent)
+def poste_of(code):
+    if code[0]=="7": return "70 — Prestations de services"
+    return {"60":"60 — Achats","61":"61 — Services extérieurs","62":"62 — Autres services extérieurs",
+            "63":"63 — Impôts & taxes","64":"64 — Charges de personnel","68":"68 — Dotations & amort."}[code[:2]]
+def classe_of(code): return "7 — Produits d'exploitation" if code[0]=="7" else "6 — Charges d'exploitation"
+AGG={"Produits":"Marge de contribution","Coûts directs":"Marge de contribution","Personnel":"EBITDA",
+     "Structure":"EBITDA","Impôts & taxes":"EBITDA","Dotations":"Résultat d'exploitation (EBIT)"}
+SIGNODE={"Produits":"SIG_PROD","Coûts directs":"SIG_DIR","Personnel":"SIG_PERS",
+         "Structure":"SIG_STRUCT","Impôts & taxes":"SIG_IMP","Dotations":"SIG_DOT"}
+def slug(s):
+    s=s.upper()
+    for a,b in [("É","E"),("È","E"),("Ê","E"),("À","A"),("Ç","C"),("'",""),(" ","_"),("-","_")]: s=s.replace(a,b)
+    return s
 # drivers par campus (depuis la base)
 capm={}
 for r in rows:
@@ -354,75 +365,103 @@ for r in rows:
     d["frais"]+=r["nouv"]*FRAIS_DEF
 CA_T=REFCA; EFF_T=REFEFF; CLS_T=sum(d["cls"] for d in capm.values())
 def share(k,drv):
-    d=capm[k]
-    return {"CA":d["ca"]/CA_T,"effectif":d["eff"]/EFF_T,"classes":d["cls"]/CLS_T}[drv]
+    d=capm[k]; return {"CA":d["ca"]/CA_T,"effectif":d["eff"]/EFF_T,"classes":d["cls"]/CLS_T}[drv]
 def ca_ver(n): return REFCA/(GROW_HIST**n)
-def amount(pct,sig,n):  # total groupe d'un compte pour la version n (0=ATT)
-    if sig=="Dotations": return pct*ca_ver(n)                    # D&A ~6% du CA
-    return pct*ca_ver(n)*(1-TARGETS[n])/NONDA_PCT               # charges calées sur la marge cible
-# construction du jeu de données (compta)
-compta=[]  # (entite,marque,ville,compte,libelle,sens,sig,version,montant)
+def amount(pct,sig,n):
+    if sig=="Dotations": return pct*ca_ver(n)
+    return pct*ca_ver(n)*(1-TARGETS[n])/NONDA_PCT
+# construction de la compta : (ecode,elib,marque,ville,compte,lib,poste,sens,sig,vcode,exlab,montant)
+compta=[]
 for code,lib,sens,sig,niv,drv,pct,vf in ACCTS:
-    for vlab,n in VERS:
+    poste=poste_of(code)
+    for vcode,exlab,n,vtype,vyear in VERS:
         if sens=="Produit":
             for k,d in capm.items():
                 val={"alt":d["alt"],"init":d["init"],"frais":d["frais"]}[drv]*(ca_ver(n)/REFCA)
-                if val>0: compta.append((f"{k[0]} {k[1]}",k[0],k[1],code,lib,sens,sig,vlab,round(val)))
+                if val>0: compta.append((slug(k[0])+"_"+slug(k[1]),f"{k[0]} {k[1]}",k[0],k[1],code,lib,poste,sens,sig,vcode,exlab,round(val)))
         else:
             tot=amount(pct,sig,n)
             if niv=="groupe":
-                compta.append(("GROUPE — Siège","(groupe)","(groupe)",code,lib,sens,sig,vlab,round(tot)))
+                compta.append(("GROUPE","GROUPE — Siège","(groupe)","(groupe)",code,lib,poste,sens,sig,vcode,exlab,round(tot)))
             else:
-                for k in capm: compta.append((f"{k[0]} {k[1]}",k[0],k[1],code,lib,sens,sig,vlab,round(tot*share(k,drv))))
+                for k in capm: compta.append((slug(k[0])+"_"+slug(k[1]),f"{k[0]} {k[1]}",k[0],k[1],code,lib,poste,sens,sig,vcode,exlab,round(tot*share(k,drv))))
 # vérification EBITDA par version
-for vlab,n in VERS:
-    ca=sum(m for (_,_,_,_,_,se,_,vl,m) in compta if se=="Produit" and vl==vlab)
-    ch=sum(m for (_,_,_,_,_,se,sg,vl,m) in compta if se=="Charge" and sg!="Dotations" and vl==vlab)
-    da=sum(m for (_,_,_,_,_,se,sg,vl,m) in compta if sg=="Dotations" and vl==vlab)
-    print("[py] %s  CA=%d  EBITDA=%d (%.1f%%)  EBIT=%d (%.1f%%)"%(vlab,ca,ca-ch,(ca-ch)/ca*100,ca-ch-da,(ca-ch-da)/ca*100))
+for vcode,exlab,n,vt,vy in VERS:
+    ca=sum(m for row in compta for m in [row[11]] if row[7]=="Produit" and row[9]==vcode)
+    ch=sum(row[11] for row in compta if row[7]=="Charge" and row[8]!="Dotations" and row[9]==vcode)
+    da=sum(row[11] for row in compta if row[8]=="Dotations" and row[9]==vcode)
+    print("[py] %s  CA=%d  EBITDA=%d (%.1f%%)  EBIT=%d (%.1f%%)"%(exlab,ca,ca-ch,(ca-ch)/ca*100,ca-ch-da,(ca-ch-da)/ca*100))
 
 # ---- 05_Plan_Comptable ----
 ws=wb.create_sheet("05_Plan_Comptable"); ws.sheet_view.showGridLines=False
-pcols=["Compte","Libellé","Sens","Ligne de gestion (SIG)","Rattachement","Driver d'allocation","% du CA (atterr.)","V/F"]
-for i,w in enumerate([9,44,9,18,12,18,13,6]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells(f"A1:{GL(len(pcols))}1"); C(ws,"A1","PLAN COMPTABLE — comptes PCG (classe 7 produits · classe 6 charges) · prêt Tagetik (dimension Compte)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
+pcols=["Compte","Libellé","Classe PCG","Poste PCG","Ligne SIG","Agrégat SIG","Sens","Rattachement","Driver","% du CA","V/F"]
+for i,w in enumerate([9,42,26,30,17,26,9,11,10,9,5]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells(f"A1:{GL(len(pcols))}1"); C(ws,"A1","PLAN COMPTABLE — comptes PCG · double hiérarchie (comptable + gestion) · prêt Tagetik (dimension Compte)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
 for i,h in enumerate(pcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[3].height=28
 r=4
 for code,lib,sens,sig,niv,drv,pct,vf in ACCTS:
-    C(ws,f"A{r}",code,CFB if sens=="Produit" else CF,align=AC,border=True); C(ws,f"B{r}",lib,CREG,align=AL,border=True)
-    C(ws,f"C{r}",sens,CL,align=AC,border=True); C(ws,f"D{r}",sig,CF,align=AL,border=True)
-    C(ws,f"E{r}",{"campus":"Campus","groupe":"Groupe","cellule":"Cellule"}[niv],CF,align=AC,border=True)
-    C(ws,f"F{r}",("—" if sens=="Produit" else drv),CF,align=AC,border=True)
-    C(ws,f"G{r}",("—" if pct is None else pct),CF,fmt=(None if pct is None else PCT),align=AC,border=True)
-    C(ws,f"H{r}",("—" if sens=="Produit" else vf),CF,align=AC,border=True); r+=1
+    C(ws,f"A{r}",code,(CFB if sens=="Produit" else CF),align=AC,border=True); C(ws,f"B{r}",lib,CREG,align=AL,border=True)
+    C(ws,f"C{r}",classe_of(code),CF,align=AL,border=True); C(ws,f"D{r}",poste_of(code),CF,align=AL,border=True)
+    C(ws,f"E{r}",sig,CF,align=AL,border=True); C(ws,f"F{r}",AGG[sig],CF,align=AL,border=True)
+    C(ws,f"G{r}",sens,CL,align=AC,border=True)
+    C(ws,f"H{r}",{"campus":"Campus","groupe":"Groupe","cellule":"Cellule"}[niv],CF,align=AC,border=True)
+    C(ws,f"I{r}",("—" if sens=="Produit" else drv),CF,align=AC,border=True)
+    C(ws,f"J{r}",("—" if pct is None else pct),CF,fmt=(None if pct is None else PCT),align=AC,border=True)
+    C(ws,f"K{r}",("—" if sens=="Produit" else vf),CF,align=AC,border=True); r+=1
+# hiérarchie de gestion (parent -> enfant) prête Tagetik
+r+=2; band(ws,r,"A","D","Hiérarchie de gestion (dimension Compte — parent → enfant, prêt Tagetik)"); r+=1
+for i,h in enumerate(["Code nœud","Libellé","Parent","Type"]): C(ws,f"{GL(1+i)}{r}",h,CHDR,FBLUE,align=AC,border=True)
+r+=1
+HIER=[("RESULTAT_EXPL","Résultat d'exploitation (EBIT)","(racine)","Agrégat"),
+ ("EBITDA","EBITDA","RESULTAT_EXPL","Agrégat"),
+ ("MARGE_CONTRIB","Marge de contribution","EBITDA","Agrégat"),
+ ("SIG_PROD","Produits d'exploitation","MARGE_CONTRIB","Regroupement"),
+ ("SIG_DIR","Coûts directs","MARGE_CONTRIB","Regroupement"),
+ ("SIG_PERS","Charges de personnel","EBITDA","Regroupement"),
+ ("SIG_STRUCT","Charges de structure","EBITDA","Regroupement"),
+ ("SIG_IMP","Impôts & taxes","EBITDA","Regroupement"),
+ ("SIG_DOT","Dotations aux amortissements","RESULTAT_EXPL","Regroupement")]
+for cnode,lnode,par,typ in HIER:
+    C(ws,f"A{r}",cnode,CFB,align=AL,border=True); C(ws,f"B{r}",lnode,CB,align=AL,border=True)
+    C(ws,f"C{r}",par,CF,align=AL,border=True); C(ws,f"D{r}",typ,CIT,align=AC,border=True); r+=1
+for code,lib,sens,sig,*_ in ACCTS:
+    C(ws,f"A{r}",code,CF,align=AL,border=True); C(ws,f"B{r}",lib,CREG,align=AL,border=True)
+    C(ws,f"C{r}",SIGNODE[sig],CF,align=AL,border=True); C(ws,f"D{r}","Compte (détail)",CIT,align=AC,border=True); r+=1
+# dimension Version (référentiel)
+r+=2; band(ws,r,"A","D","Dimension Version (référentiel — prêt Tagetik)"); r+=1
+for i,h in enumerate(["Code version","Libellé","Type","Année"]): C(ws,f"{GL(1+i)}{r}",h,CHDR,FBLUE,align=AC,border=True)
+r+=1
+for vcode,exlab,n,vtype,vyear in VERS:
+    C(ws,f"A{r}",vcode,CFB,align=AL,border=True); C(ws,f"B{r}",exlab,CREG,align=AL,border=True)
+    C(ws,f"C{r}",vtype,CF,align=AC,border=True); C(ws,f"D{r}",vyear,CF,align=AC,border=True); r+=1
 
-# ---- 06_Compta (jeu de données chargé) ----
+# ---- 06_Compta (jeu de données chargé, clés + version) ----
 ws=wb.create_sheet("06_Compta"); ws.sheet_view.showGridLines=False
-kcols=["Entité","Marque","Ville","Compte","Libellé","Sens","Ligne SIG","Version","Montant"]
-for i,w in enumerate([20,16,11,9,42,9,15,15,12]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells(f"A1:{GL(len(kcols))}1"); C(ws,"A1","COMPTA CHARGÉE — jeu de données par entité × compte × version (format long, prêt Tagetik)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
-ws.merge_cells(f"A2:{GL(len(kcols))}2"); C(ws,"A2","Charges réparties à leur niveau naturel (campus / groupe) par driver. 3 versions : réalisé N-2, réalisé N-1, atterrissage. Somme des comptes = CA & EBITDA du P&L.",CIT,align=ALW); ws.row_dimensions[2].height=16
+kcols=["Code entité","Entité","Marque","Ville","Compte","Libellé compte","Poste PCG","Sens","Ligne SIG","Version","Exercice","Montant"]
+for i,w in enumerate([18,20,16,11,9,40,28,9,15,15,15,12]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells(f"A1:{GL(len(kcols))}1"); C(ws,"A1","COMPTA CHARGÉE — écritures par entité × compte × version (format long, clés Tagetik)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
+ws.merge_cells(f"A2:{GL(len(kcols))}2"); C(ws,"A2","Clés : code entité (marque_ville), compte PCG, poste, version (2023ACT_VDEF / 2024ACT_VDEF / 2025ATT_VDEF). Charges réparties par driver. Somme des comptes = CA & EBITDA du P&L.",CIT,align=ALW); ws.row_dimensions[2].height=16
 for i,h in enumerate(kcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 KP0=4
 for idx,row in enumerate(compta):
     r=KP0+idx
     for i,v in enumerate(row):
-        al=AR if i==8 else (AL if i in(0,1,4) else AC)
-        C(ws,f"{GL(1+i)}{r}",v,CL,fmt=(EUR if i==8 else None),align=al,border=True)
+        al=AR if i==11 else (AL if i in(1,5) else AC)
+        C(ws,f"{GL(1+i)}{r}",v,CL,fmt=(EUR if i==11 else None),align=al,border=True)
 KPN=KP0+len(compta)-1
-ws.freeze_panes="A4"
-KACC=f"'06_Compta'!$D${KP0}:$D${KPN}"; KVER=f"'06_Compta'!$H${KP0}:$H${KPN}"; KMT=f"'06_Compta'!$I${KP0}:$I${KPN}"
-KSIG=f"'06_Compta'!$G${KP0}:$G${KPN}"; KSENS=f"'06_Compta'!$F${KP0}:$F${KPN}"
+ws.freeze_panes="E4"
+KACC=f"'06_Compta'!$E${KP0}:$E${KPN}"; KVER=f"'06_Compta'!$J${KP0}:$J${KPN}"; KMT=f"'06_Compta'!$L${KP0}:$L${KPN}"
+KSIG=f"'06_Compta'!$I${KP0}:$I${KPN}"; KSENS=f"'06_Compta'!$H${KP0}:$H${KPN}"
 
 # ---- 07_PnL (cascade SIG, 3 versions + variance) ----
 ws=wb.create_sheet("07_PnL"); ws.sheet_view.showGridLines=False
 for c,w in {"A":2,"B":10,"C":44,"D":14,"E":14,"F":14,"G":14,"H":9}.items(): ws.column_dimensions[c].width=w
 ws.merge_cells("B1:H1"); C(ws,"B1","COMPTE DE RÉSULTAT (SIG) — réalisé N-2 · réalisé N-1 · atterrissage N",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=26
-hdr=["Compte","Libellé","2023 (N-2)","2024 (N-1)","2025 (Atterr.)","Var N-1→N €","Var %"]
+hdr=["Compte","Libellé"]+[v[1] for v in VERS]+["Var N-1→N €","Var %"]
 for i,h in enumerate(hdr): C(ws,f"{GL(2+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[3].height=26
-VC=["2023 (N-2)","2024 (N-1)","2025 (Atterr.)"]
+VC=[v[0] for v in VERS]   # codes version pour les SUMIFS
 def sif(code=None,sig=None,sens=None,ver=""):
     parts=[KMT]
     if code is not None: parts+=[KACC,f'"{code}"']
