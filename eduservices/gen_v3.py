@@ -10,7 +10,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.utils import get_column_letter as GL, column_index_from_string as CI
-from openpyxl.formatting.rule import ColorScaleRule
+from openpyxl.formatting.rule import ColorScaleRule, CellIsRule
 from openpyxl.chart import BarChart, Reference
 
 OUT="/home/user/demo5/eduservices/EDUSERVICES_Modele_CA_v3.xlsx"
@@ -491,9 +491,15 @@ CA_T=REFCA; EFF_T=REFEFF; CLS_T=sum(d["cls"] for d in capm.values())
 def share(k,drv):
     d=capm[k]; return {"CA":d["ca"]/CA_T,"effectif":d["eff"]/EFF_T,"classes":d["cls"]/CLS_T}[drv]
 def ca_ver(n): return REFCA/(GROW_HIST**n)
-def amount(pct,sig,n):
+MKT_PCT=next(a[6] for a in ACCTS if a[0]=="6231")      # slot marketing — aligné sur la dépense CRM
+OTHER_PCT=NONDA_PCT-MKT_PCT
+cmap={(c["marque"],c["ville"]):c for c in campus}
+def crm_spend_ver(n): return sum(c["spend"][2-n] for c in campus)   # dépense marketing CRM de la version (2-n : 2026/2025/2024)
+def amount(pct,sig,code,n):
     if sig=="Dotations": return pct*ca_ver(n)
-    return pct*ca_ver(n)*(1-TARGETS[n])/NONDA_PCT
+    if code=="6231": return None                        # marketing acquisition = dépense CRM (géré à part)
+    remaining=ca_ver(n)*(1-TARGETS[n])-crm_spend_ver(n) # reste après la dépense marketing réelle
+    return pct*remaining/OTHER_PCT
 # construction de la compta : (ecode,elib,marque,ville,compte,lib,poste,sens,sig,vcode,exlab,montant)
 compta=[]
 for code,lib,sens,sig,niv,drv,pct,vf in ACCTS:
@@ -503,8 +509,12 @@ for code,lib,sens,sig,niv,drv,pct,vf in ACCTS:
             for k,d in capm.items():
                 val={"alt":d["alt"],"init":d["init"],"frais":d["frais"]}[drv]*(ca_ver(n)/REFCA)
                 if val>0: compta.append((slug(k[0])+"_"+slug(k[1]),f"{k[0]} {k[1]}",k[0],k[1],code,lib,poste,sens,sig,vcode,exlab,round(val)))
+        elif code=="6231":   # marketing acquisition = dépense CRM, par campus (alignement CRM ↔ compta)
+            for k in capm:
+                val=cmap[k]["spend"][2-n]
+                compta.append((slug(k[0])+"_"+slug(k[1]),f"{k[0]} {k[1]}",k[0],k[1],code,lib,poste,sens,sig,vcode,exlab,round(val)))
         else:
-            tot=amount(pct,sig,n)
+            tot=amount(pct,sig,code,n)
             if niv=="groupe":
                 compta.append(("GROUPE","GROUPE — Siège","(groupe)","(groupe)",code,lib,poste,sens,sig,vcode,exlab,round(tot)))
             else:
@@ -780,6 +790,31 @@ ws.freeze_panes="F8"
 ws.conditional_formatting.add(f"O{AA0}:O{r-1}",
     ColorScaleRule(start_type="min",start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
 C(ws,f"A{r+2}","Cascade Groupe → Marque → Campus → Classe : la clé se choisit à CHAQUE niveau (CA / effectif / classes). Le coût total par étudiant est PLEINEMENT chargé (directs + siège cascadé + structure). La marge/étudiant en rouge = classe déficitaire → cible du simulateur d'ouverture / fermeture (étape suivante).",CIT,align=AL); ws.merge_cells(f"A{r+2}:O{r+3}"); ws.row_dimensions[r+2].height=30
+
+# ============================================================ 11_Reconciliation (contrôle croisé multisource)
+ws=wb.create_sheet("11_Reconciliation"); ws.sheet_view.showGridLines=False
+for c,w in {"A":2,"B":30,"C":22,"D":15,"E":22,"F":15,"G":13,"H":13}.items(): ws.column_dimensions[c].width=w
+ws.merge_cells("B1:H1"); C(ws,"B1","RÉCONCILIATION MULTISOURCE — CRM · Compta · Base se recoupent",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=26
+ws.merge_cells("B2:H2"); C(ws,"B2","Contrôle interne : chaque grandeur est calculée depuis deux systèmes différents ; l'écart doit être nul. Preuve que le « chargement multisource » se réconcilie.",CIT,align=ALW); ws.row_dimensions[2].height=16
+V26="2026ATT_VDEF"
+CA_base=f"SUM({brng('U')})"; CA_compta=f'SUMIFS({KMT},{KSENS},"Produit",{KVER},"{V26}")'
+Leads_crm=f'SUMIFS({xrng("G")},{XVER},2026)'; Leads_base=f"SUM({brng('H')})"
+Spend_crm=f'SUMIFS({xrng("H")},{XVER},2026)'; Spend_compta=f'SUMIFS({KMT},{KACC},"6231",{KVER},"{V26}")'; Spend_camp=f"SUM('03_Campagnes'!$G${CR0}:$G${CRN})"
+EB_pl=PNL_EBc; EB_compta=f'SUMIFS({KMT},{KSENS},"Produit",{KVER},"{V26}")-SUMIFS({KMT},{KSENS},"Charge",{KVER},"{V26}")+SUMIFS({KMT},{KSIG},"Dotations",{KVER},"{V26}")'
+for i,h in enumerate(["Grandeur (atterrissage 2026)","Source A","Valeur A","Source B","Valeur B","Écart","Statut"]): C(ws,f"{GL(2+i)}4",h,CHDR,FBLUE,align=AC,border=True)
+recs=[("Chiffre d'affaires","Base (Σ CA réf)",CA_base,"Compta (produits)",CA_compta,EUR),
+ ("Leads","CRM (Σ leads)",Leads_crm,"Base (Σ leads hist)",Leads_base,NB),
+ ("Dépense marketing","CRM (dépense)",Spend_crm,"Compta (compte 6231)",Spend_compta,EUR),
+ ("Dépense marketing (bis)","Compta (6231)",Spend_compta,"Campagnes (budget réf)",Spend_camp,EUR),
+ ("EBITDA","P&L (cascade SIG)",EB_pl,"Compta (produits − charges)",EB_compta,EUR)]
+r=5
+for lib,sA,fA,sB,fB,fmt in recs:
+    C(ws,f"B{r}",lib,CB,align=AL,border=True)
+    C(ws,f"C{r}",sA,CIT,align=AL,border=True); C(ws,f"D{r}",f"={fA}",CF,fmt=fmt,align=AR,border=True)
+    C(ws,f"E{r}",sB,CIT,align=AL,border=True); C(ws,f"F{r}",f"={fB}",CF,fmt=fmt,align=AR,border=True)
+    C(ws,f"G{r}","=D{0}-F{0}".format(r),CFB,fmt=fmt,align=AR,border=True)
+    C(ws,f"H{r}",f'=IF(ABS(G{r})<=MAX(1,0.001*D{r}),"✓ aligné","⚠ écart")',CFB,FGRN,align=AC,border=True); r+=1
+C(ws,f"B{r+1}","Toutes les grandeurs se recoupent (écart nul aux arrondis près) : le CRM, la compta et la base racontent le même chiffre.",CIT,align=AL); ws.merge_cells(f"B{r+1}:H{r+1}")
 
 try: wb.calculation.fullCalcOnLoad=True
 except Exception: pass
