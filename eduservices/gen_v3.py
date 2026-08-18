@@ -326,7 +326,7 @@ for m in MARQUES:
     C(ws,f"N{r}",CAP_EFF[m],CF,FGRN,fmt=X2,align=AC,border=True)
     C(ws,f"O{r}",CAP_MOM[m],CF,FGRN,fmt=X2,align=AC,border=True)
     C(ws,f"P{r}",CAP_POT[m],CF,FGRN,fmt=X2,align=AC,border=True); r+=1
-C(ws,"J20","Caps PROPOSÉS (vert) = suggestions mesurées sur l'historique ; le CFO garde la main via « Cap retenu » (bleu). Seuls les caps RELATIFS comptent (la formule normalise). Éff. = efficience (CAC marginal bas) · Mom. = momentum (croissance leads 24→26) · Pot. = potentiel (sous-investissement marketing).",CIT,align=ALW); ws.merge_cells("J20:P20"); ws.row_dimensions[20].height=40
+C(ws,"J20","Cap retenu (bleu) = choix CFO · Caps proposés (vert) = Éff./Mom./Pot. mesurés sur l'historique. Détail de chacun dans le Lexique (bas de feuille).",CIT,align=ALW); ws.merge_cells("J20:P20"); ws.row_dimensions[20].height=30
 # --- ③ indice prix par ville — DÉDUIT du réalisé (informationnel, plus de saisie) ---
 vrev={}; veff={}
 for rr in rows: vrev[rr["ville"]]=vrev.get(rr["ville"],0)+rr["rev"]*rr["eff"]; veff[rr["ville"]]=veff.get(rr["ville"],0)+rr["eff"]
@@ -398,7 +398,11 @@ LEX=[
  ("Croissance","Construit ÷ Référence − 1 : la progression réelle vs l'atterrissage. La couleur (rouge→vert) montre d'un coup d'œil où le cadrage crée ou détruit de la croissance."),
  ("Effectif constr.","L'effectif qui découle du CA construit (conséquence, jamais saisi). Utile pour vérifier la faisabilité opérationnelle (salles, classes)."),
  ("🔵 Coeff prix (marque)","Sensibilité de la marque à une décision de prix : prix appliqué = prix réf × (1 + levier prix × coeff). N'agit que si le levier prix ≠ 0. Crée de la valeur (effet CA réel)."),
- ("🔵 Cap stratégique","Concentre le BUDGET MARKETING d'acquisition sur une marque, à enveloppe groupe CONSTANTE (somme nulle). Monter le cap d'une marque → plus de budget → plus de leads → son CA CONSTRUIT monte, celui des autres baisse. Cap = 1 partout = aucune redistribution."),
+ ("🔵 Cap retenu","LE choix du CFO. Concentre le BUDGET MARKETING d'acquisition sur une marque, à enveloppe groupe CONSTANTE (somme nulle). Monter le cap d'une marque → plus de budget → plus de leads → son CA CONSTRUIT monte, celui des autres baisse. Cap = 1 partout = aucune redistribution. Seuls les caps RELATIFS comptent (la formule normalise)."),
+ ("🟢 Cap éff. (proposé)","SUGGESTION mesurée : cap ∝ 1 / CAC marginal. Pousse le budget là où l'euro marketing produit le plus d'inscrits (rendement élevé, CAC bas). Le plus rigoureux — tend vers l'allocation qui égalise le CAC marginal entre marques. Cap > 1 = marque efficace, à renforcer."),
+ ("🟢 Cap mom. (proposé)","SUGGESTION mesurée : cap ∝ taux de croissance des leads 2024→2026. Pousse les marques qui montent déjà. Suit la dynamique commerciale — mais peut sur-investir une marque proche du plafond. Cap > 1 = marque en accélération."),
+ ("🟢 Cap pot. (proposé)","SUGGESTION mesurée : cap ∝ 1 / intensité marketing (budget ÷ CA). Pousse les marques SOUS-investies vs leur taille — le potentiel dormant. Plus spéculatif : on parie que la marge de progression existe. Cap > 1 = marque sous-exploitée."),
+ ("Lire les 3 ensemble","Le plus instructif est la DIVERGENCE. Ex. une marque avec Éff. et Pot. élevés mais Mom. bas = rentable et sous-exploitée, mais son élan faiblit → au CFO de trancher : je pousse (pari) ou je laisse (prudence) ? Les caps proposés éclairent, ils ne décident pas."),
  ("Indice prix ville","DÉDUIT du réalisé (prix moyen ville ÷ national). Informationnel : la géographie tarifaire est déjà dans les revenus. Non saisissable (sinon double compte)."),
  ("🔵 Clés d'allocation","Le driver de répartition des coûts (CA / effectif / classes), figé par le CFO. Méthode centrale ; les campus ne la choisissent pas, ils contestent l'assiette."),
 ]
@@ -502,7 +506,7 @@ mcols=["Marque","Ville","Programme","Année","Mod.","Entrée",
  "🟢 Δ L→C","🟢 Δ yield","🟢 Δ passage",
  "Poids","CA ① cible","Effectif ① cible","Écart CA ③−①","Écart eff ③−①"]
 for i,w in enumerate([14,9,16,6,5,6]+[8]*(len(mcols)-6)): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells(f"A1:{GL(len(mcols))}1"); C(ws,"A1","MOTEUR DE CA (cellule) — ① CIBLE (éclatée top-down) · ② CADRÉ (semé) · ③ AJUSTÉ (semé + ajustement contrôleur) · écart",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
+ws.merge_cells(f"A1:{GL(len(mcols))}1"); C(ws,"A1","MOTEUR DE CA (cellule) — ① CIBLE (éclatée top-down) · ② CADRÉ (groupe) · ③ AJUSTÉ (cadré + ajustement contrôleur) · écart",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
 for i,h in enumerate(mcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[3].height=30
 MO_CIBLE=f"({REFCA}*(1+{CROISS}))"    # CA cible groupe = référence × (1 + croissance cible)
@@ -560,8 +564,8 @@ band(ws,gr,"A","H","Guide de lecture — les 3 états côte à côte :"); gr+=1
 grp=[("A–Q","Identité + reprise base + taux mesurés (funnel, passage)"),
  ("R–V","Acquisition : leads cellule → candidatures → admis"),
  ("W–AA","③ AJUSTÉ : nouveaux/réinscrits/effectif/CA avec ajustements contrôleur (= budget final)"),
- ("AB–AE","② CADRÉ : le même SANS ajustement (pré-budget semé top-down)"),
- ("AF–AH","🟢 AJUSTEMENTS contrôleur (Δ lead→cand / Δ yield / Δ passage) — s'ajoutent au semé, n'écrasent rien"),
+ ("AB–AE","② CADRÉ : le même SANS ajustement (pré-budget cadré par le groupe, top-down)"),
+ ("AF–AH","🟢 AJUSTEMENTS contrôleur (Δ lead→cand / Δ yield / Δ passage) — s'ajoutent au cadré, n'écrasent rien"),
  ("AI–AK","① CIBLE éclatée : poids (CA réf, proportionnel) → CA cible → effectif cible"),
  ("AL–AM","ÉCART ③ − ① : le construit atteint-il la cible ?")]
 for rng,txt in grp:
@@ -777,10 +781,10 @@ for i in range(4): C(ws,f"{GL(4+i)}{r}",f"=IFERROR({GL(4+i)}{rowEBIT}/{GL(4+i)}{
 
 # ============================================================ 08_Saisie_Campus (masque de saisie — exemple MBway Lyon)
 ws=wb.create_sheet("08_Saisie_Campus"); ws.sheet_view.showGridLines=False
-scols=["Programme","Année","Mod.","Leads semé","Taux L→C","Yield","Passage","Effectif semé ②","🟢 Δ L→C","🟢 Δ yield","🟢 Δ passage","Effectif ajusté ③","CA ajusté ③","CA cible ①"]
+scols=["Programme","Année","Mod.","Leads cadrés (groupe)","Taux L→C","Yield","Passage","Effectif cadré ② (groupe)","🟢 Δ L→C","🟢 Δ yield","🟢 Δ passage","Effectif ajusté ③","CA ajusté ③","CA cible ①"]
 for i,w in enumerate([22,7,6,10,9,8,9,14,10,10,11,15,13,13]): ws.column_dimensions[GL(1+i)].width=w
 ws.merge_cells(f"A1:{GL(len(scols))}1"); C(ws,"A1","SAISIE BUDGÉTAIRE 2027 — Campus MBWAY LYON",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=26
-ws.merge_cells(f"A2:{GL(len(scols))}2"); C(ws,"A2","Votre périmètre. Vous n'ajustez que vos TAUX OPÉRATIONNELS (🟢 jaune) — prix, budget marketing et cible sont fixés par le groupe. Vos ajustements s'AJOUTENT au semé (ils ne l'écrasent pas) et remontent au modèle en temps réel.",CIT,align=ALW); ws.row_dimensions[2].height=30
+ws.merge_cells(f"A2:{GL(len(scols))}2"); C(ws,"A2","Votre périmètre. « Cadrés (groupe) » = valeurs pré-allouées par le groupe (budget marketing, cible) que vous recevez. Vous n'ajustez que vos TAUX OPÉRATIONNELS (🟢 jaune) — prix, budget marketing et cible sont fixés par le groupe. Vos ajustements s'AJOUTENT au cadré (ils ne l'écrasent pas) et remontent au modèle en temps réel.",CIT,align=ALW); ws.row_dimensions[2].height=30
 mkT=MK0+len(ML_IDX)   # ligne total
 C(ws,"A4","Cible campus :",CB,align=AR); C(ws,f"C4",f"=N{mkT}",CFB,fmt=EUR,align=AL,border=True)
 C(ws,"E4","Construit (ajusté) :",CB,align=AR); C(ws,f"G4",f"=M{mkT}",CFB,fmt=EUR,align=AL,border=True)
