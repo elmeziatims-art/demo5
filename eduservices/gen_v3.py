@@ -307,6 +307,170 @@ grp=[("A–F","Identité : marque, ville, programme, année, modalité, entrée 
 for rng,txt in grp:
     C(ws,f"A{gr}",rng,CB,FLIGHT,align=AC,border=True); ws.merge_cells(f"B{gr}:H{gr}"); C(ws,f"B{gr}",txt,CREG,align=ALW,border=True); gr+=1
 
+# ============================================================ COÛTS / P&L  (comptes PCG 6 & 7)
+# Plan comptable : code, libellé, sens, ligne SIG, rattachement, driver, % du CA (atterrissage), Variable/Fixe
+ACCTS=[
+ # PRODUITS (classe 7) — split du CA déjà construit
+ ("7062","Prestations de formation — alternance (OPCO)","Produit","Produits","campus","alt",None,"V"),
+ ("706","Prestations de formation — scolarité (initial)","Produit","Produits","campus","init",None,"V"),
+ ("708","Frais de dossier & droits d'inscription","Produit","Produits","campus","frais",None,"V"),
+ # COÛTS DIRECTS (marge de contribution)
+ ("621","Personnel extérieur — vacataires & intervenants","Charge","Coûts directs","campus","classes",0.070,"V"),
+ ("604","Sous-traitance pédagogique","Charge","Coûts directs","campus","effectif",0.030,"V"),
+ ("6063","Fournitures pédagogiques & petit équipement","Charge","Coûts directs","campus","effectif",0.020,"V"),
+ ("6231","Publicité & marketing d'acquisition (leads)","Charge","Coûts directs","campus","classes",0.021,"V"),
+ # PERSONNEL
+ ("6411","Rémunération enseignants permanents","Charge","Personnel","campus","classes",0.170,"F"),
+ ("6413","Rémunération personnel administratif & pédagogique","Charge","Personnel","campus","effectif",0.090,"F"),
+ ("6414","Rémunération direction & fonctions support (siège)","Charge","Personnel","groupe","CA",0.055,"F"),
+ ("645","Charges sociales & de prévoyance","Charge","Personnel","campus","effectif",0.140,"F"),
+ # STRUCTURE
+ ("613","Loyers & charges locatives (campus)","Charge","Structure","campus","classes",0.105,"F"),
+ ("615","Entretien & maintenance","Charge","Structure","campus","classes",0.015,"F"),
+ ("616","Primes d'assurance","Charge","Structure","campus","effectif",0.010,"F"),
+ ("6226","Honoraires (audit, conseil, juridique)","Charge","Structure","groupe","CA",0.025,"F"),
+ ("6236","Marketing de marque, salons & JPO","Charge","Structure","groupe","CA",0.030,"F"),
+ ("625","Déplacements, missions & réceptions","Charge","Structure","campus","effectif",0.015,"F"),
+ ("626","Télécom, systèmes d'information & affranchissement","Charge","Structure","groupe","effectif",0.020,"F"),
+ ("6281","Cotisations, documentation & abonnements","Charge","Structure","groupe","CA",0.008,"F"),
+ # IMPÔTS & TAXES
+ ("6331","Taxe sur les salaires","Charge","Impôts & taxes","groupe","effectif",0.015,"F"),
+ ("63511","Cotisation foncière & CVAE","Charge","Impôts & taxes","campus","classes",0.010,"F"),
+ ("6333","Participation formation professionnelle","Charge","Impôts & taxes","groupe","CA",0.005,"F"),
+ # DOTATIONS (sous l'EBITDA)
+ ("6811","Dotations aux amortissements (D&A)","Charge","Dotations","campus","classes",0.060,"F"),
+]
+GROW_HIST=1.06   # croissance annuelle du CA
+VERS=[("2023 (N-2)",2),("2024 (N-1)",1),("2025 (Atterr.)",0)]
+# marge EBITDA cible par version (progression douce = levier opérationnel réaliste ~0,7 pt/an)
+TARGETS={2:0.132,1:0.140,0:0.146}
+NONDA_PCT=sum(a[6] for a in ACCTS if a[3]!="Dotations" and a[6] is not None)  # = 0,854
+# drivers par campus (depuis la base)
+capm={}
+for r in rows:
+    k=(r["marque"],r["ville"]); d=capm.setdefault(k,dict(ca=0,eff=0,cls=0,alt=0,init=0,frais=0))
+    d["ca"]+=r["eff"]*r["rev"]+r["nouv"]*FRAIS_DEF; d["eff"]+=r["eff"]; d["cls"]+=r["classes"]
+    d["alt"]+=(r["eff"]*r["rev"] if r["mod"]=="ALT" else 0); d["init"]+=(r["eff"]*r["rev"] if r["mod"]=="INIT" else 0)
+    d["frais"]+=r["nouv"]*FRAIS_DEF
+CA_T=REFCA; EFF_T=REFEFF; CLS_T=sum(d["cls"] for d in capm.values())
+def share(k,drv):
+    d=capm[k]
+    return {"CA":d["ca"]/CA_T,"effectif":d["eff"]/EFF_T,"classes":d["cls"]/CLS_T}[drv]
+def ca_ver(n): return REFCA/(GROW_HIST**n)
+def amount(pct,sig,n):  # total groupe d'un compte pour la version n (0=ATT)
+    if sig=="Dotations": return pct*ca_ver(n)                    # D&A ~6% du CA
+    return pct*ca_ver(n)*(1-TARGETS[n])/NONDA_PCT               # charges calées sur la marge cible
+# construction du jeu de données (compta)
+compta=[]  # (entite,marque,ville,compte,libelle,sens,sig,version,montant)
+for code,lib,sens,sig,niv,drv,pct,vf in ACCTS:
+    for vlab,n in VERS:
+        if sens=="Produit":
+            for k,d in capm.items():
+                val={"alt":d["alt"],"init":d["init"],"frais":d["frais"]}[drv]*(ca_ver(n)/REFCA)
+                if val>0: compta.append((f"{k[0]} {k[1]}",k[0],k[1],code,lib,sens,sig,vlab,round(val)))
+        else:
+            tot=amount(pct,sig,n)
+            if niv=="groupe":
+                compta.append(("GROUPE — Siège","(groupe)","(groupe)",code,lib,sens,sig,vlab,round(tot)))
+            else:
+                for k in capm: compta.append((f"{k[0]} {k[1]}",k[0],k[1],code,lib,sens,sig,vlab,round(tot*share(k,drv))))
+# vérification EBITDA par version
+for vlab,n in VERS:
+    ca=sum(m for (_,_,_,_,_,se,_,vl,m) in compta if se=="Produit" and vl==vlab)
+    ch=sum(m for (_,_,_,_,_,se,sg,vl,m) in compta if se=="Charge" and sg!="Dotations" and vl==vlab)
+    da=sum(m for (_,_,_,_,_,se,sg,vl,m) in compta if sg=="Dotations" and vl==vlab)
+    print("[py] %s  CA=%d  EBITDA=%d (%.1f%%)  EBIT=%d (%.1f%%)"%(vlab,ca,ca-ch,(ca-ch)/ca*100,ca-ch-da,(ca-ch-da)/ca*100))
+
+# ---- 05_Plan_Comptable ----
+ws=wb.create_sheet("05_Plan_Comptable"); ws.sheet_view.showGridLines=False
+pcols=["Compte","Libellé","Sens","Ligne de gestion (SIG)","Rattachement","Driver d'allocation","% du CA (atterr.)","V/F"]
+for i,w in enumerate([9,44,9,18,12,18,13,6]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells(f"A1:{GL(len(pcols))}1"); C(ws,"A1","PLAN COMPTABLE — comptes PCG (classe 7 produits · classe 6 charges) · prêt Tagetik (dimension Compte)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
+for i,h in enumerate(pcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
+ws.row_dimensions[3].height=28
+r=4
+for code,lib,sens,sig,niv,drv,pct,vf in ACCTS:
+    C(ws,f"A{r}",code,CFB if sens=="Produit" else CF,align=AC,border=True); C(ws,f"B{r}",lib,CREG,align=AL,border=True)
+    C(ws,f"C{r}",sens,CL,align=AC,border=True); C(ws,f"D{r}",sig,CF,align=AL,border=True)
+    C(ws,f"E{r}",{"campus":"Campus","groupe":"Groupe","cellule":"Cellule"}[niv],CF,align=AC,border=True)
+    C(ws,f"F{r}",("—" if sens=="Produit" else drv),CF,align=AC,border=True)
+    C(ws,f"G{r}",("—" if pct is None else pct),CF,fmt=(None if pct is None else PCT),align=AC,border=True)
+    C(ws,f"H{r}",("—" if sens=="Produit" else vf),CF,align=AC,border=True); r+=1
+
+# ---- 06_Compta (jeu de données chargé) ----
+ws=wb.create_sheet("06_Compta"); ws.sheet_view.showGridLines=False
+kcols=["Entité","Marque","Ville","Compte","Libellé","Sens","Ligne SIG","Version","Montant"]
+for i,w in enumerate([20,16,11,9,42,9,15,15,12]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells(f"A1:{GL(len(kcols))}1"); C(ws,"A1","COMPTA CHARGÉE — jeu de données par entité × compte × version (format long, prêt Tagetik)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
+ws.merge_cells(f"A2:{GL(len(kcols))}2"); C(ws,"A2","Charges réparties à leur niveau naturel (campus / groupe) par driver. 3 versions : réalisé N-2, réalisé N-1, atterrissage. Somme des comptes = CA & EBITDA du P&L.",CIT,align=ALW); ws.row_dimensions[2].height=16
+for i,h in enumerate(kcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
+KP0=4
+for idx,row in enumerate(compta):
+    r=KP0+idx
+    for i,v in enumerate(row):
+        al=AR if i==8 else (AL if i in(0,1,4) else AC)
+        C(ws,f"{GL(1+i)}{r}",v,CL,fmt=(EUR if i==8 else None),align=al,border=True)
+KPN=KP0+len(compta)-1
+ws.freeze_panes="A4"
+KACC=f"'06_Compta'!$D${KP0}:$D${KPN}"; KVER=f"'06_Compta'!$H${KP0}:$H${KPN}"; KMT=f"'06_Compta'!$I${KP0}:$I${KPN}"
+KSIG=f"'06_Compta'!$G${KP0}:$G${KPN}"; KSENS=f"'06_Compta'!$F${KP0}:$F${KPN}"
+
+# ---- 07_PnL (cascade SIG, 3 versions + variance) ----
+ws=wb.create_sheet("07_PnL"); ws.sheet_view.showGridLines=False
+for c,w in {"A":2,"B":10,"C":44,"D":14,"E":14,"F":14,"G":14,"H":9}.items(): ws.column_dimensions[c].width=w
+ws.merge_cells("B1:H1"); C(ws,"B1","COMPTE DE RÉSULTAT (SIG) — réalisé N-2 · réalisé N-1 · atterrissage N",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=26
+hdr=["Compte","Libellé","2023 (N-2)","2024 (N-1)","2025 (Atterr.)","Var N-1→N €","Var %"]
+for i,h in enumerate(hdr): C(ws,f"{GL(2+i)}3",h,CHDR,FBLUE,align=AC,border=True)
+ws.row_dimensions[3].height=26
+VC=["2023 (N-2)","2024 (N-1)","2025 (Atterr.)"]
+def sif(code=None,sig=None,sens=None,ver=""):
+    parts=[KMT]
+    if code is not None: parts+=[KACC,f'"{code}"']
+    if sig is not None: parts+=[KSIG,f'"{sig}"']
+    if sens is not None: parts+=[KSENS,f'"{sens}"']
+    parts+=[KVER,f'"{ver}"']
+    return "SUMIFS("+",".join(parts)+")"
+r=4
+def line(code,lib,getf,bold=False,fill=None,res=False):
+    global r
+    fnt=CFB if (bold or res) else CF
+    C(ws,f"B{r}",code,fnt,fill,align=AC,border=True); C(ws,f"C{r}",lib,fnt,fill,align=AL,border=True)
+    for i,vl in enumerate(VC):
+        C(ws,f"{GL(4+i)}{r}",getf(vl),fnt,fill,fmt=EUR,align=AR,border=True)
+    C(ws,f"G{r}",f"=F{r}-E{r}",fnt,fill,fmt=EUR,align=AR,border=True); C(ws,f"H{r}",f"=IFERROR((F{r}-E{r})/E{r},0)",fnt,fill,fmt=PCT,align=AR,border=True)
+    r+=1
+def band2(txt):
+    global r; band(ws,r,"B","H",txt,fill=FBLUE); r+=1
+def result(lib,getf):
+    global r
+    C(ws,f"B{r}"," ",CFB,FTOT,border=True); C(ws,f"C{r}",lib,CFB,FTOT,align=AL,border=True)
+    for i,vl in enumerate(VC): C(ws,f"{GL(4+i)}{r}",getf(vl),CFB,FTOT,fmt=EUR,align=AR,border=True)
+    C(ws,f"G{r}",f"=F{r}-E{r}",CFB,FTOT,fmt=EUR,align=AR,border=True); C(ws,f"H{r}",f"=IFERROR((F{r}-E{r})/E{r},0)",CFB,FTOT,fmt=PCT,align=AR,border=True)
+    rr=r; r+=1; return rr
+band2("PRODUITS")
+for code,lib,sens,sig,*_ in ACCTS:
+    if sens=="Produit": line(code,lib,lambda vl,c=code:f"={sif(code=c,ver=vl)}")
+rowCA=result("CHIFFRE D'AFFAIRES",lambda vl:f"={sif(sens='Produit',ver=vl)}")
+band2("COÛTS DIRECTS")
+for code,lib,sens,sig,*_ in ACCTS:
+    if sig=="Coûts directs": line(code,lib,lambda vl,c=code:f"=-{sif(code=c,ver=vl)}")
+rowMC=result("MARGE DE CONTRIBUTION",lambda vl:f"={sif(sens='Produit',ver=vl)}-{sif(sig='Coûts directs',ver=vl)}")
+for grp in ["Personnel","Structure","Impôts & taxes"]:
+    band2(grp.upper())
+    for code,lib,sens,sig,*_ in ACCTS:
+        if sig==grp: line(code,lib,lambda vl,c=code:f"=-{sif(code=c,ver=vl)}")
+rowEB=result("EBITDA",lambda vl:f"={sif(sens='Produit',ver=vl)}-{sif(sens='Charge',ver=vl)}+{sif(sig='Dotations',ver=vl)}")
+band2("DOTATIONS")
+for code,lib,sens,sig,*_ in ACCTS:
+    if sig=="Dotations": line(code,lib,lambda vl,c=code:f"=-{sif(code=c,ver=vl)}")
+rowEBIT=result("EBIT / RÉSULTAT D'EXPLOITATION",lambda vl:f"={sif(sens='Produit',ver=vl)}-{sif(sens='Charge',ver=vl)}")
+# marges %
+C(ws,f"C{r}","Marge EBITDA %",CIT,align=AL);
+for i in range(3): C(ws,f"{GL(4+i)}{r}",f"=IFERROR({GL(4+i)}{rowEB}/{GL(4+i)}{rowCA},0)",CIT,fmt=PCT,align=AR)
+r+=1
+C(ws,f"C{r}","Marge EBIT %",CIT,align=AL)
+for i in range(3): C(ws,f"{GL(4+i)}{r}",f"=IFERROR({GL(4+i)}{rowEBIT}/{GL(4+i)}{rowCA},0)",CIT,fmt=PCT,align=AR)
+
 try: wb.calculation.fullCalcOnLoad=True
 except Exception: pass
 wb.properties.calcMode="auto"
