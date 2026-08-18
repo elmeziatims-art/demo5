@@ -10,6 +10,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.utils import get_column_letter as GL, column_index_from_string as CI
+from openpyxl.formatting.rule import ColorScaleRule
 
 OUT="/home/user/demo5/eduservices/EDUSERVICES_Modele_CA_v3.xlsx"
 
@@ -44,8 +45,16 @@ PASS={"B2":0.93,"B3":0.95,"M2":0.96,"2":0.94}
 # TAUX DU FUNNEL (mesurés, différenciés) — issus de la recherche secteur (privé non sélectif, alternance)
 #  INIT = intention forte (Parcoursup) ; ALT = leads plateforme + déperdition "signature contrat"
 RATES={"INIT":dict(rlc=0.28,rca=0.72,yld=0.60),"ALT":dict(rlc=0.20,rca=0.70,yld=0.42)}
-REND_DEF=0.5      # rendement d'acquisition (part payante uniquement)
-PORG_DEF=0.40     # part ORGANIQUE des leads (site, salons, Parcoursup, bouche-à-oreille) — indépendante du budget
+REND_DEF=0.5      # rendement d'acquisition (repli)
+PORG_DEF=0.40     # part organique moyenne (repli)
+# part ORGANIQUE différenciée par campus : force de marque (↑) − intensité concurrentielle de la ville (↓)
+PORG_BRAND={"MBway":0.46,"ISCOM":0.48,"Ipac Bachelor Factory":0.34,"Pigier":0.50,"Tunon":0.40}
+PORG_CITY ={"Paris":-0.10,"Lyon":-0.03,"Nantes":0.02,"Bordeaux":0.03,"Lille":0.02,"Toulouse":0.03,"Rennes":0.05,"Montpellier":0.04}
+def part_org(m,v): return min(0.60,max(0.22,PORG_BRAND[m]+PORG_CITY[v]))
+# RENDEMENT d'acquisition différencié : sophistication marketing (marque) + marge de marché (ville moins saturée ↑)
+REND_BRAND={"MBway":0.52,"ISCOM":0.50,"Ipac Bachelor Factory":0.55,"Pigier":0.46,"Tunon":0.48}
+REND_CITY ={"Paris":-0.06,"Lyon":-0.02,"Nantes":0.01,"Bordeaux":0.02,"Lille":0.02,"Toulouse":0.02,"Rennes":0.04,"Montpellier":0.03}
+def rend_c(m,v): return min(0.62,max(0.38,REND_BRAND[m]+REND_CITY[v]))
 CPL_BASE=40       # coût par lead payant de référence (€)
 FRAIS_DEF=90      # frais de dossier / nouvel inscrit (€)
 
@@ -92,11 +101,12 @@ for r in rows:
     cc=[x for x in rows if (x["marque"],x["ville"])==k]
     sleads=sum(x["leads"] for x in cc)
     cpl=round(CPL_BASE*CITY_CPL[r["ville"]])
-    paid_att=sleads*(1-PORG_DEF); org_att=sleads*PORG_DEF; spend_att=paid_att*cpl
-    org  =[round(org_att/GORG**2),  round(org_att/GORG),     round(org_att)]      # N-2, N-1, ATT
-    paid =[round(paid_att/GSP),     round(paid_att/GSP**0.5), round(paid_att)]
-    spend=[round(spend_att/GSP**2), round(spend_att/GSP),     round(spend_att)]
-    campus.append(dict(marque=r["marque"],ville=r["ville"],sleads=sleads,cpl=cpl,
+    porg=part_org(r["marque"],r["ville"]); rc=rend_c(r["marque"],r["ville"])   # différenciés par campus
+    paid_att=sleads*(1-porg); org_att=sleads*porg; spend_att=paid_att*cpl
+    org  =[round(org_att/GORG**2),      round(org_att/GORG),    round(org_att)]      # N-2, N-1, ATT
+    paid =[round(paid_att/GSP**(2*rc)), round(paid_att/GSP**rc), round(paid_att)]    # → rendement mesuré = rc
+    spend=[round(spend_att/GSP**2),     round(spend_att/GSP),    round(spend_att)]
+    campus.append(dict(marque=r["marque"],ville=r["ville"],sleads=sleads,cpl=cpl,porg=porg,rc=rc,
         org=org,paid=paid,spend=spend,budget_paid_ref=spend[2]))
 CG=len(campus)
 
@@ -315,8 +325,8 @@ def xsum(col,key,yr): return f'SUMIFS({xrng(col)},{XKEY},{key},{XVER},{yr})'
 
 # ============================================================ 03_Campagnes (mesure CPL/rendement/part org + budget->leads)
 ws=wb.create_sheet("03_Campagnes"); ws.sheet_view.showGridLines=False
-ccols=["Marque","Ville","clé","Leads organiques","Leads payants réf","Leads total réf","Dépense mkt réf","Part organique","CPL mesuré","Rendement mesuré","Budget payant actif","Leads payants actif","Leads actif total","CPL effectif"]
-for i,w in enumerate([15,11,14,14,14,13,14,12,11,14,14,14,13,11]): ws.column_dimensions[GL(1+i)].width=w
+ccols=["Marque","Ville","clé","Leads organiques","Leads payants réf","Leads total réf","Dépense mkt réf","Part organique","CPL mesuré","Rendement mesuré","Budget payant actif","Leads payants actif","Leads actif total","CPL effectif","Conv. lead→inscrit","CAC marginal /inscrit"]
+for i,w in enumerate([15,11,14,14,14,13,14,12,11,14,14,14,13,11,14,16]): ws.column_dimensions[GL(1+i)].width=w
 ws.merge_cells(f"A1:{GL(len(ccols))}1"); C(ws,"A1","MOTEUR D'ACQUISITION (campus) — CPL · rendement · part organique MESURÉS depuis le CRM, puis budget → leads",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
 ws.merge_cells(f"A2:{GL(len(ccols))}2"); C(ws,"A2","Part org = org÷total (ATT). CPL = dépense÷payants (ATT). Rendement = ln(payants ATT÷N-2) ÷ ln(dépense ATT÷N-2). Leads payants actif = payants réf × (budget actif÷réf)^rendement. Total = organiques + payants.",CIT,align=ALW); ws.row_dimensions[2].height=22
 for i,h in enumerate(ccols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
@@ -337,6 +347,13 @@ for idx,cc in enumerate(campus):
     C(ws,f"L{r}",f"=E{r}*(K{r}/G{r})^J{r}",CFB,fmt=NB,align=AR,border=True)
     C(ws,f"M{r}",f"=D{r}+L{r}",CFB,fmt=NB,align=AR,border=True)
     C(ws,f"N{r}",f"=IFERROR(K{r}/L{r},0)",CF,fmt=EUR,align=AR,border=True)
+    critc=f'{brng("A")},A{r},{brng("B")},B{r},{brng("G")},1'
+    C(ws,f"O{r}",f"=IFERROR(SUMIFS({brng('K')},{critc})/SUMIFS({brng('H')},{critc}),0)",CF,fmt=PCT,align=AC,border=True)  # conversion globale lead→inscrit (mesurée)
+    C(ws,f"P{r}",f"=IFERROR(I{r}/(J{r}*O{r}),0)",CFB,fmt=EUR,align=AR,border=True)  # CAC marginal = CPL ÷ (rendement × conversion)
+# indicateur d'attractivité : CAC marginal (vert = l'euro marketing rapporte le + / rouge = cher)
+ws.conditional_formatting.add(f"P{CR0}:P{CRN}",
+    ColorScaleRule(start_type="min",start_color="63BE7B",mid_type="percentile",mid_value=50,mid_color="FFEB84",end_type="max",end_color="F8696B"))
+C(ws,f"A{CRN+2}","Indicateur d'attractivité : CAC marginal = coût marketing du prochain inscrit. Vert = investir ici (l'euro rapporte) · Rouge = marché cher/saturé.",CIT,align=AL); ws.merge_cells(f"A{CRN+2}:P{CRN+2}")
 CKEY=f"{CAMP}$C${CR0}:$C${CRN}"; CLEADS=f"{CAMP}$M${CR0}:$M${CRN}"; CSLEADS=f"{CAMP}$F${CR0}:$F${CRN}"
 
 # ============================================================ 04_Moteur (funnel -> CA)
