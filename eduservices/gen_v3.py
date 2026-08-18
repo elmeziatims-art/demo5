@@ -315,18 +315,19 @@ r=7
 for m in MARQUES:
     C(ws,f"J{r}",m,CL,align=AL,border=True); C(ws,f"K{r}",CPRIX_M[m],CINB,FYEL,fmt=X2,align=AC,border=True); r+=1
 # --- ② cap stratégique par marque : PILOTE LE BUDGET MARKETING (enveloppe groupe constante → somme nulle) ---
+JD0=92   # ligne de départ du tableau de justification des caps (bas de feuille) — les caps proposés y sont calculés
 band(ws,13,"J","P","Cap stratégique — concentre le budget marketing (→ CA construit) · caps proposés depuis l'historique")
 for i,h in enumerate(["Marque","Budget mkt réf","🔵 Cap retenu","Part budget","Cap éff.","Cap mom.","Cap pot."]): C(ws,f"{GL(10+i)}14",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[14].height=26
-r=15
-for m in MARQUES:
+for i,m in enumerate(MARQUES):
+    r=15+i
     C(ws,f"J{r}",m,CL,align=AL,border=True); C(ws,f"K{r}",BUD_M[m],CF,fmt=EUR,align=AR,border=True)
     C(ws,f"L{r}",1.0,CINB,FYEL,fmt=X2,align=AC,border=True)
     C(ws,f"M{r}",f"=IFERROR(K{r}*L{r}/SUMPRODUCT($K$15:$K$19,$L$15:$L$19),0)",CF,fmt=PCT,align=AC,border=True)
-    C(ws,f"N{r}",CAP_EFF[m],CF,FGRN,fmt=X2,align=AC,border=True)
-    C(ws,f"O{r}",CAP_MOM[m],CF,FGRN,fmt=X2,align=AC,border=True)
-    C(ws,f"P{r}",CAP_POT[m],CF,FGRN,fmt=X2,align=AC,border=True); r+=1
-C(ws,"J20","Cap retenu (bleu) = choix CFO · Caps proposés (vert) = Éff./Mom./Pot. mesurés sur l'historique. Détail de chacun dans le Lexique (bas de feuille).",CIT,align=ALW); ws.merge_cells("J20:P20"); ws.row_dimensions[20].height=30
+    C(ws,f"N{r}",f"=F{JD0+i}",CF,FGRN,fmt=X2,align=AC,border=True)   # cap éff. (drill → justification)
+    C(ws,f"O{r}",f"=G{JD0+i}",CF,FGRN,fmt=X2,align=AC,border=True)   # cap mom.
+    C(ws,f"P{r}",f"=H{JD0+i}",CF,FGRN,fmt=X2,align=AC,border=True)   # cap pot.
+C(ws,"J20","Cap retenu (bleu) = choix CFO · Caps proposés (vert) = calculés dans « Justification des caps » (bas de feuille) : cliquez un cap pour voir sa formule et ses inputs mesurés.",CIT,align=ALW); ws.merge_cells("J20:P20"); ws.row_dimensions[20].height=30
 # --- ③ indice prix par ville — DÉDUIT du réalisé (informationnel, plus de saisie) ---
 vrev={}; veff={}
 for rr in rows: vrev[rr["ville"]]=vrev.get(rr["ville"],0)+rr["rev"]*rr["eff"]; veff[rr["ville"]]=veff.get(rr["ville"],0)+rr["eff"]
@@ -952,6 +953,30 @@ for lib,sA,fA,sB,fB,fmt in recs:
     C(ws,f"G{r}","=D{0}-F{0}".format(r),CFB,fmt=fmt,align=AR,border=True)
     C(ws,f"H{r}",f'=IF(ABS(G{r})<=MAX(1,0.001*D{r}),"✓ aligné","⚠ écart")',CFB,FGRN,align=AC,border=True); r+=1
 C(ws,f"B{r+1}","Toutes les grandeurs se recoupent (écart nul aux arrondis près) : le CRM, la compta et la base racontent le même chiffre.",CIT,align=AL); ws.merge_cells(f"B{r+1}:H{r+1}")
+
+# ============================================================ JUSTIFICATION DES CAPS (sur 01_Cadrage, en fin car dépend du CRM/Campagnes/Base)
+ws=wb["01_Cadrage"]
+CmA=f"{CAMP}$A${CR0}:$A${CRN}"; CmE=f"{CAMP}$E${CR0}:$E${CRN}"; CmG=f"{CAMP}$G${CR0}:$G${CRN}"; CmJ=f"{CAMP}$J${CR0}:$J${CRN}"
+BKn=brng('K'); BHl=brng('H'); BUr=brng('U'); BAr=brng('A'); xG=xrng('G'); xA=xrng('A')
+JN=len(MARQUES); Crng=f"$C${JD0}:$C${JD0+JN-1}"; Drng=f"$D${JD0}:$D${JD0+JN-1}"; Erng=f"$E${JD0}:$E${JD0+JN-1}"
+band(ws,JD0-2,"B","H","Justification des caps proposés — le calcul, marque par marque (inputs MESURÉS → formule → cap)")
+for i,h in enumerate(["Marque","CAC marginal (mesuré)","Croiss. leads 24→26","Intensité mkt (bud÷CA)","🟢 Cap éff.","🟢 Cap mom.","🟢 Cap pot."]): C(ws,f"{GL(2+i)}{JD0-1}",h,CHDR,FBLUE,align=AC,border=True)
+ws.row_dimensions[JD0-1].height=28
+for i,m in enumerate(MARQUES):
+    rr=JD0+i; b=f"B{rr}"
+    C(ws,b,m,CL,align=AL,border=True)
+    cpl=f"(SUMIFS({CmG},{CmA},{b})/SUMIFS({CmE},{CmA},{b}))"
+    rend=f"(SUMPRODUCT(({CmA}={b})*{CmJ}*{CmE})/SUMIFS({CmE},{CmA},{b}))"
+    conv=f"(SUMIFS({BKn},{BAr},{b})/SUMIFS({BHl},{BAr},{b}))"
+    C(ws,f"C{rr}",f"=IFERROR({cpl}/({rend}*{conv}),0)",CF,fmt=EUR,align=AR,border=True)                       # CAC marginal marque (mesuré)
+    C(ws,f"D{rr}",f"=IFERROR(SUMIFS({xG},{xA},{b},{XVER},2026)/SUMIFS({xG},{xA},{b},{XVER},2024)-1,0)",CF,fmt=PCT,align=AC,border=True)  # croissance leads 24→26
+    C(ws,f"E{rr}",f"=IFERROR(SUMIFS({CmG},{CmA},{b})/SUMIFS({BUr},{BAr},{b}),0)",CF,fmt=PCT,align=AC,border=True)  # intensité marketing
+    C(ws,f"F{rr}",f"=IFERROR((1/C{rr})/(SUMPRODUCT(1/{Crng})/COUNT({Crng})),0)",CF,FGRN,fmt=X2,align=AC,border=True)   # cap éff normalisé
+    C(ws,f"G{rr}",f"=IFERROR(D{rr}/(SUM({Drng})/COUNT({Drng})),0)",CF,FGRN,fmt=X2,align=AC,border=True)               # cap mom normalisé
+    C(ws,f"H{rr}",f"=IFERROR((1/E{rr})/(SUMPRODUCT(1/{Erng})/COUNT({Erng})),0)",CF,FGRN,fmt=X2,align=AC,border=True)  # cap pot normalisé
+jleg=JD0+JN+1
+C(ws,f"B{jleg}","Formules : CAC marginal = CPL ÷ (rendement × conversion) ; Cap éff. = (1÷CAC) ÷ moyenne(1÷CAC) · Cap mom. = croissance ÷ moyenne(croissance) · Cap pot. = (1÷intensité) ÷ moyenne(1÷intensité). Normalisés à moyenne 1 (seul le relatif compte).",CIT,align=ALW); ws.merge_cells(f"B{jleg}:H{jleg}"); ws.row_dimensions[jleg].height=30
+C(ws,f"B{jleg+1}","Sources (100 % mesuré, rien de saisi) : CAC marginal, rendement & budget = 03_Campagnes (mesurés sur le CRM) · croissance des leads = 02_CRM (2024→2026) · CA & effectif = 02_Base. Le cap du bloc en haut = ces cellules (drill).",CIT,align=ALW); ws.merge_cells(f"B{jleg+1}:H{jleg+1}"); ws.row_dimensions[jleg+1].height=28
 
 try: wb.calculation.fullCalcOnLoad=True
 except Exception: pass
