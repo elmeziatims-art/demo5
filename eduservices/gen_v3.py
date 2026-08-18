@@ -10,7 +10,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.utils import get_column_letter as GL, column_index_from_string as CI
-from openpyxl.formatting.rule import ColorScaleRule, CellIsRule
+from openpyxl.formatting.rule import ColorScaleRule, CellIsRule, DataBarRule
 from openpyxl.chart import BarChart, Reference
 
 OUT="/home/user/demo5/eduservices/EDUSERVICES_Modele_CA_v3.xlsx"
@@ -233,7 +233,7 @@ C(ws,f"B{r+2}","Au budget de référence, tous leviers à 0, le moteur reproduit
 
 # ============================================================ 01_Cadrage
 ws=wb.create_sheet("01_Cadrage"); ws.sheet_view.showGridLines=False
-for c,w in {"A":2,"B":36,"C":8,"D":13,"E":12,"F":12,"G":12,"H":13,"I":2,"J":16,"K":11,"L":11,"M":16}.items(): ws.column_dimensions[c].width=w
+for c,w in {"A":2,"B":36,"C":13,"D":13,"E":13,"F":12,"G":12,"H":13,"I":2,"J":16,"K":11,"L":11,"M":16}.items(): ws.column_dimensions[c].width=w
 ws.merge_cells("B1:H1"); C(ws,"B1","POSTE DE COMMANDE CFO — Cadrage CA & EBITDA",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=28
 C(ws,"B3","Scénario actif :",CB,align=AR); C(ws,"D3","Cadrage",CINB,FYEL,align=AC,border=True)
 dv=DataValidation(type="list",formula1='"Référence,Cadrage,Optimiste,Prudent"',allow_blank=False); ws.add_data_validation(dv); dv.add(ws["D3"])
@@ -324,6 +324,64 @@ for rr,lab,dft in [(36,"① Groupe → Marque","Chiffre d'affaires"),(37,"② Ma
     C(ws,f"L{rr}",dft,CINB,FYEL,align=AC,border=True); ws.merge_cells(f"L{rr}:M{rr}"); dva.add(ws[f"L{rr}"])
 C(ws,"J40","La CLÉ (méthode) est une décision de gouvernance : le CFO la fige ici, elle s'applique à tout le groupe pour rester comparable. Le contrôleur ne choisit pas la clé — il conteste la MATIÈRE (assiette réelle) dans 10_Allocation.",CIT,align=ALW); ws.merge_cells("J40:M42"); ws.row_dimensions[40].height=42
 ALLOC_N1=f"{CAD}$L$36"; ALLOC_N2=f"{CAD}$L$37"; ALLOC_N3=f"{CAD}$L$38"
+# --- ⑤ TRADUCTION DU CADRAGE : le CA cible/construit éclaté par marque puis par campus (recalcul live) ---
+BAU=brng('U'); BAA=brng('A'); BAB=brng('B')
+MOA_=f"'04_Moteur'!$A${MR0}:$A${MRN}"; MOB_=f"'04_Moteur'!$B${MR0}:$B${MRN}"
+MOAA_=f"'04_Moteur'!$AA${MR0}:$AA${MRN}"; MOAJ_=f"'04_Moteur'!$AJ${MR0}:$AJ${MRN}"; MOY_=f"'04_Moteur'!$Y${MR0}:$Y${MRN}"
+hdrt=["", "CA référence","🎯 CA cible","🔧 CA construit","Écart","Croissance","Effectif constr."]
+band(ws,44,"B","H","⑤ Traduction du cadrage — le CA se répartit sur chaque marque / campus (recalcul live quand on bouge un levier, un cap, un prix ou le scénario)")
+def transhdr(row,first):
+    C(ws,f"B{row}",first,CHDR,FBLUE,align=AL,border=True)
+    for i,h in enumerate(hdrt[1:]): C(ws,f"{GL(3+i)}{row}",h,CHDR,FBLUE,align=AC,border=True)
+    ws.row_dimensions[row].height=24
+transhdr(45,"Par marque")
+r=46; mstart=r
+for m in MARQUES:
+    C(ws,f"B{r}",m,CL,align=AL,border=True)
+    C(ws,f"C{r}",f'=SUMIFS({BAU},{BAA},B{r})',CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"D{r}",f'=SUMIFS({MOAJ_},{MOA_},B{r})',CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"E{r}",f'=SUMIFS({MOAA_},{MOA_},B{r})',CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"F{r}",f'=E{r}-D{r}',CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"G{r}",f'=IFERROR(E{r}/C{r}-1,0)',CF,fmt=PCT,align=AC,border=True)
+    C(ws,f"H{r}",f'=SUMIFS({MOY_},{MOA_},B{r})',CF,fmt=NB,align=AR,border=True); r+=1
+C(ws,f"B{r}","TOTAL GROUPE",CFB,FTOT,align=AL,border=True)
+for col in ("C","D","E","F","H"): C(ws,f"{col}{r}",f"=SUM({col}{mstart}:{col}{r-1})",CFB,FTOT,fmt=(NB if col=="H" else EUR),align=AR,border=True)
+C(ws,f"G{r}",f"=IFERROR(E{r}/C{r}-1,0)",CFB,FTOT,fmt=PCT,align=AC,border=True)
+ws.conditional_formatting.add(f"E{mstart}:E{r-1}",DataBarRule(start_type="min",end_type="max",color="5B9BD5"))
+ws.conditional_formatting.add(f"G{mstart}:G{r-1}",ColorScaleRule(start_type="min",start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
+# par campus
+r+=2; transhdr(r,"Par campus (marque — ville)"); r+=1; cstart=r
+for c in campus:
+    m=c["marque"]; v=c["ville"]
+    C(ws,f"B{r}",f"{m} — {v}",CL,align=AL,border=True)
+    C(ws,f"C{r}",f'=SUMIFS({BAU},{BAA},"{m}",{BAB},"{v}")',CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"D{r}",f'=SUMIFS({MOAJ_},{MOA_},"{m}",{MOB_},"{v}")',CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"E{r}",f'=SUMIFS({MOAA_},{MOA_},"{m}",{MOB_},"{v}")',CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"F{r}",f'=E{r}-D{r}',CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"G{r}",f'=IFERROR(E{r}/C{r}-1,0)',CF,fmt=PCT,align=AC,border=True)
+    C(ws,f"H{r}",f'=SUMIFS({MOY_},{MOA_},"{m}",{MOB_},"{v}")',CF,fmt=NB,align=AR,border=True); r+=1
+C(ws,f"B{r}","TOTAL GROUPE",CFB,FTOT,align=AL,border=True)
+for col in ("C","D","E","F","H"): C(ws,f"{col}{r}",f"=SUM({col}{cstart}:{col}{r-1})",CFB,FTOT,fmt=(NB if col=="H" else EUR),align=AR,border=True)
+C(ws,f"G{r}",f"=IFERROR(E{r}/C{r}-1,0)",CFB,FTOT,fmt=PCT,align=AC,border=True)
+ws.conditional_formatting.add(f"E{cstart}:E{r-1}",DataBarRule(start_type="min",end_type="max",color="5B9BD5"))
+ws.conditional_formatting.add(f"G{cstart}:G{r-1}",ColorScaleRule(start_type="min",start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
+# --- lexique des colonnes / paramètres qui méritent une explication ---
+r+=2; band(ws,r,"B","H","Lexique — que veut dire chaque colonne / paramètre ?"); r+=1
+LEX=[
+ ("CA référence","Le CA de l'atterrissage 2026, marque/campus (base réelle). C'est le point de départ : leviers à 0 → le construit revient dessus."),
+ ("🎯 CA cible","La part du CA cible du GROUPE (réf × croissance) attribuée à cette marque/campus par l'ÉCLATEMENT top-down : poids = CA réf × cap stratégique, normalisé. La somme des cibles = exactement l'objectif groupe."),
+ ("🔧 CA construit","Ce que le moteur RECONSTRUIT réellement du bas vers le haut (budget marketing → leads → funnel → effectif → CA), après leviers et ajustements des contrôleurs. C'est le budget réel."),
+ ("Écart","Construit − Cible. Positif = la marque/campus dépasse sa cible ; négatif = il reste à trouver. C'est là que le CFO voit qui tient la promesse."),
+ ("Croissance","Construit ÷ Référence − 1 : la progression réelle vs l'atterrissage. La couleur (rouge→vert) montre d'un coup d'œil où le cadrage crée ou détruit de la croissance."),
+ ("Effectif constr.","L'effectif qui découle du CA construit (conséquence, jamais saisi). Utile pour vérifier la faisabilité opérationnelle (salles, classes)."),
+ ("🔵 Coeff prix (marque)","Sensibilité de la marque à une décision de prix : prix appliqué = prix réf × (1 + levier prix × coeff). N'agit que si le levier prix ≠ 0. Crée de la valeur (effet CA réel)."),
+ ("🔵 Cap stratégique","Poids d'arbitrage : concentre ou allège la croissance sur une marque. Jeu à SOMME NULLE — le total groupe ne bouge pas, seule la répartition change."),
+ ("Indice prix ville","DÉDUIT du réalisé (prix moyen ville ÷ national). Informationnel : la géographie tarifaire est déjà dans les revenus. Non saisissable (sinon double compte)."),
+ ("🔵 Clés d'allocation","Le driver de répartition des coûts (CA / effectif / classes), figé par le CFO. Méthode centrale ; les campus ne la choisissent pas, ils contestent l'assiette."),
+]
+for term,desc in LEX:
+    C(ws,f"B{r}",term,CB,FLIGHT,align=AL,border=True)
+    C(ws,f"C{r}",desc,CREG,align=ALW,border=True); ws.merge_cells(f"C{r}:H{r}"); ws.row_dimensions[r].height=(42 if len(desc)>150 else 30); r+=1
 
 # ============================================================ 02_Base
 ws=wb.create_sheet("02_Base"); ws.sheet_view.showGridLines=False
