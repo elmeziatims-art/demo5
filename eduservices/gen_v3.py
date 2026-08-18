@@ -229,17 +229,17 @@ C(ws,"G3","Marge EBITDA cible :",CB,align=AR); C(ws,"H3",0.15,CINB,FYEL,fmt=PCT,
 # --- réconciliation top-down / bottom-up ---
 band(ws,5,"B","G","① Réconciliation — Référence · 🎯 Cible (top-down) · 🔧 Construit (bottom-up) · Écart")
 for i,h in enumerate(["Indicateur","Référence","🎯 Cible","🔧 Construit","Écart","Écart %"]): C(ws,f"{GL(2+i)}6",h,CHDR,FBLUE,align=AC,border=True)
-TOTCA=f"'04_Moteur'!$AA${MTOT}"; TOTEFF=f"'04_Moteur'!$Y${MTOT}"; EFFCIB=f"'04_Moteur'!$AJ${MTOT}"
+TOTCA=f"'04_Moteur'!$AA${MTOT}"; TOTEFF=f"'04_Moteur'!$Y${MTOT}"; EFFCIB=f"'04_Moteur'!$AK${MTOT}"
 C(ws,"B7","Chiffre d'affaires",CB,align=AL,border=True)
-C(ws,"C7",REFCA,CL,fmt=EUR,align=AR,border=True); C(ws,"D7",f"={REFCA}*(1+F3)",CINB,fmt=EUR,align=AR,border=True); C(ws,"E7",f"={TOTCA}",CFB,fmt=EUR,align=AR,border=True)
+C(ws,"C7",REFCA,CL,fmt=EUR,align=AR,border=True); C(ws,"D7",f"={REFCA}*(1+F3)",CFB,fmt=EUR,align=AR,border=True); C(ws,"E7",f"={TOTCA}",CFB,fmt=EUR,align=AR,border=True)
 C(ws,"F7","=E7-D7",CF,fmt=EUR,align=AR,border=True); C(ws,"G7","=IFERROR(E7/D7-1,0)",CF,fmt=PCT,align=AR,border=True)
 C(ws,"B8","EBITDA  (calculé)",CB,align=AL,border=True)
-C(ws,"C8",f"={PNL_EBc}",CFB,fmt=EUR,align=AR,border=True); C(ws,"D8","=D7*H3",CINB,fmt=EUR,align=AR,border=True); C(ws,"E8",f"={PNL_EBb}",CFB,fmt=EUR,align=AR,border=True)
+C(ws,"C8",f"={PNL_EBc}",CFB,fmt=EUR,align=AR,border=True); C(ws,"D8","=D7*H3",CFB,fmt=EUR,align=AR,border=True); C(ws,"E8",f"={PNL_EBb}",CFB,fmt=EUR,align=AR,border=True)
 C(ws,"F8","=E8-D8",CF,fmt=EUR,align=AR,border=True); C(ws,"G8","=IFERROR(E8/D8-1,0)",CF,fmt=PCT,align=AR,border=True)
 C(ws,"B9","Marge EBITDA %",CIT,align=AL,border=True)
 C(ws,"C9","=IFERROR(C8/C7,0)",CF,fmt=PCT,align=AR,border=True); C(ws,"D9","=H3",CF,fmt=PCT,align=AR,border=True); C(ws,"E9","=IFERROR(E8/E7,0)",CFB,fmt=PCT,align=AR,border=True); C(ws,"G9","=IFERROR(E9-D9,0)",CF,fmt=PCT,align=AR,border=True)
 C(ws,"B10","Effectif total",CB,align=AL,border=True)
-C(ws,"C10",REFEFF,CL,fmt=NB,align=AR,border=True); C(ws,"D10",f"={EFFCIB}",CINB,fmt=NB,align=AR,border=True); C(ws,"E10",f"={TOTEFF}",CFB,fmt=NB,align=AR,border=True)
+C(ws,"C10",REFEFF,CL,fmt=NB,align=AR,border=True); C(ws,"D10",f"={EFFCIB}",CFB,fmt=NB,align=AR,border=True); C(ws,"E10",f"={TOTEFF}",CFB,fmt=NB,align=AR,border=True)
 C(ws,"F10","=E10-D10",CF,fmt=NB,align=AR,border=True); C(ws,"G10","=IFERROR(E10/D10-1,0)",CF,fmt=PCT,align=AR,border=True)
 C(ws,"B12","RESTE À TROUVER — CA :",CB,align=AR); ws.merge_cells("B12:C12")
 C(ws,"D12","=IF(D7-E7>0,D7-E7,0)",CFB,FYEL,fmt=EUR,align=AR,border=True); C(ws,"E12","EBITDA :",CB,align=AR); C(ws,"F12","=IF(D8-E8>0,D8-E8,0)",CFB,FYEL,fmt=EUR,align=AR,border=True)
@@ -377,13 +377,17 @@ mcols=["Marque","Ville","Programme","Année","Mod.","Entrée",
  "Part leads","Leads campus","Leads cellule","Candidatures","Admis",
  "Nouveaux ③","Réinscrits ③","Effectif ③","Revenu actif","CA ③ ajusté",
  "Nouveaux ②","Réinscr. ②","Effectif ②","CA ② cadré",
- "🟢 Ajust.conv","🟢 Ajust.pass",
+ "🟢 Δ L→C","🟢 Δ yield","🟢 Δ passage",
  "Poids","CA ① cible","Effectif ① cible","Écart CA ③−①","Écart eff ③−①"]
 for i,w in enumerate([14,9,16,6,5,6]+[8]*(len(mcols)-6)): ws.column_dimensions[GL(1+i)].width=w
 ws.merge_cells(f"A1:{GL(len(mcols))}1"); C(ws,"A1","MOTEUR DE CA (cellule) — ① CIBLE (éclatée top-down) · ② CADRÉ (semé) · ③ AJUSTÉ (semé + ajustement contrôleur) · écart",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
 for i,h in enumerate(mcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[3].height=30
 MO_CIBLE=f"({REFCA}*(1+{CROISS}))"    # CA cible groupe = référence × (1 + croissance cible)
+# masque de saisie : exemple campus MBway Lyon — ses cellules lisent leurs ajustements depuis 08_Saisie_Campus
+MASKS="'08_Saisie_Campus'!"; MK0=7
+ML_IDX=[i for i,rr in enumerate(rows) if rr["marque"]=="MBway" and rr["ville"]=="Lyon"]
+mask_of={idx:MK0+j for j,idx in enumerate(ML_IDX)}
 for idx in range(N):
     r=MR0+idx; b=BR0+idx
     Lk=lambda col:f"={BASE}{col}{b}"
@@ -397,43 +401,47 @@ for idx in range(N):
     C(ws,f"R{r}",f"=IF(F{r}=1,IFERROR(G{r}/INDEX({CSLEADS},MATCH({key},{CKEY},0)),0),0)",CF,fmt=PCT,align=AC,border=True)
     C(ws,f"S{r}",f"=INDEX({CLEADS},MATCH({key},{CKEY},0))",CF,fmt=NB,align=AR,border=True)
     C(ws,f"T{r}",f"=S{r}*R{r}",CF,fmt=NB,align=AR,border=True)
-    C(ws,f"U{r}",f"=IF(F{r}=1,T{r}*(O{r}+{LGLC}),0)",CF,fmt=NB,align=AR,border=True)
+    C(ws,f"U{r}",f"=IF(F{r}=1,T{r}*(O{r}+{LGLC}+AF{r}),0)",CF,fmt=NB,align=AR,border=True)   # +Δ lead→cand (contrôleur)
     C(ws,f"V{r}",f"=U{r}*P{r}",CF,fmt=NB,align=AR,border=True)
-    # ③ AJUSTÉ : semé (groupe) + ajustement contrôleur AF/AG (jamais d'écrasement)
-    C(ws,f"W{r}",f"=IF(F{r}=1,V{r}*(Q{r}+{LGCV}+AF{r}),0)",CFB,fmt=NB,align=AR,border=True)
-    C(ws,f"X{r}",f"=IF(F{r}=1,0,L{r}*(N{r}+{LPASS}+AG{r}))",CF,fmt=NB,align=AR,border=True)
+    # ③ AJUSTÉ : semé (groupe) + ajustements contrôleur AF/AG/AH (jamais d'écrasement)
+    C(ws,f"W{r}",f"=IF(F{r}=1,V{r}*(Q{r}+{LGCV}+AG{r}),0)",CFB,fmt=NB,align=AR,border=True)
+    C(ws,f"X{r}",f"=IF(F{r}=1,0,L{r}*(N{r}+{LPASS}+AH{r}))",CF,fmt=NB,align=AR,border=True)
     C(ws,f"Y{r}",f"=W{r}+X{r}",CFB,fmt=NB,align=AR,border=True)
     C(ws,f"Z{r}",f"=M{r}*(1+{LPRIX}*INDEX({CPVAL},MATCH({key},{CPKEY},0)))",CF,fmt=EUR,align=AR,border=True)
     C(ws,f"AA{r}",f"=Y{r}*Z{r}+W{r}*{KFRAIS}",CFB,fmt=EUR,align=AR,border=True)
-    # ② CADRÉ : semé seul (sans ajustement contrôleur)
-    C(ws,f"AB{r}",f"=IF(F{r}=1,V{r}*(Q{r}+{LGCV}),0)",CF,fmt=NB,align=AR,border=True)
+    # ② CADRÉ : semé seul, auto-porté (sans aucun ajustement contrôleur)
+    C(ws,f"AB{r}",f"=IF(F{r}=1,T{r}*(O{r}+{LGLC})*P{r}*(Q{r}+{LGCV}),0)",CF,fmt=NB,align=AR,border=True)
     C(ws,f"AC{r}",f"=IF(F{r}=1,0,L{r}*(N{r}+{LPASS}))",CF,fmt=NB,align=AR,border=True)
     C(ws,f"AD{r}",f"=AB{r}+AC{r}",CF,fmt=NB,align=AR,border=True)
     C(ws,f"AE{r}",f"=AD{r}*Z{r}+AB{r}*{KFRAIS}",CF,fmt=EUR,align=AR,border=True)
-    # ajustement contrôleur (delta, 0 = pas d'ajustement) — jamais d'écrasement du semé
-    C(ws,f"AF{r}",0,CINB,FYEL,fmt=PCT,align=AC,border=True); C(ws,f"AG{r}",0,CINB,FYEL,fmt=PCT,align=AC,border=True)
+    # 🟢 ajustements contrôleur (delta, 0 = pas d'ajustement). Pour MBway Lyon, lus depuis le masque de saisie
+    if idx in mask_of:
+        _mk=mask_of[idx]
+        C(ws,f"AF{r}",f"={MASKS}I{_mk}",CL,fmt=PCT,align=AC,border=True); C(ws,f"AG{r}",f"={MASKS}J{_mk}",CL,fmt=PCT,align=AC,border=True); C(ws,f"AH{r}",f"={MASKS}K{_mk}",CL,fmt=PCT,align=AC,border=True)
+    else:
+        C(ws,f"AF{r}",0,CINB,FYEL,fmt=PCT,align=AC,border=True); C(ws,f"AG{r}",0,CINB,FYEL,fmt=PCT,align=AC,border=True); C(ws,f"AH{r}",0,CINB,FYEL,fmt=PCT,align=AC,border=True)
     # ① CIBLE éclatée : poids = CA réf × cap marque ; CA cible = cible groupe × poids normalisé
-    C(ws,f"AH{r}",f"=K{r}*M{r}*INDEX({CAPVAL},MATCH(A{r},{CAPKEY},0))",CF,fmt=NB,align=AR,border=True)
-    C(ws,f"AI{r}",f"=IFERROR({MO_CIBLE}*AH{r}/SUM($AH${MR0}:$AH${MRN}),0)",CFB,fmt=EUR,align=AR,border=True)
-    C(ws,f"AJ{r}",f"=IFERROR(AI{r}/Z{r},0)",CF,fmt=NB,align=AR,border=True)
-    C(ws,f"AK{r}",f"=AA{r}-AI{r}",CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"AL{r}",f"=Y{r}-AJ{r}",CF,fmt=NB,align=AR,border=True)
+    C(ws,f"AI{r}",f"=K{r}*M{r}*INDEX({CAPVAL},MATCH(A{r},{CAPKEY},0))",CF,fmt=NB,align=AR,border=True)
+    C(ws,f"AJ{r}",f"=IFERROR({MO_CIBLE}*AI{r}/SUM($AI${MR0}:$AI${MRN}),0)",CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"AK{r}",f"=IFERROR(AJ{r}/Z{r},0)",CF,fmt=NB,align=AR,border=True)
+    C(ws,f"AL{r}",f"=AA{r}-AJ{r}",CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"AM{r}",f"=Y{r}-AK{r}",CF,fmt=NB,align=AR,border=True)
 r=MTOT
 C(ws,f"A{r}","TOTAL",CFB,FTOT,align=AL,border=True)
 for col in ["B","C","D","E"]: C(ws,f"{col}{r}"," ",fill=FTOT,border=True)
 for col,fmt in [("F",NB),("G",NB),("H",NB),("I",NB),("T",NB),("U",NB),("V",NB),("W",NB),("X",NB),("Y",NB),("AA",EUR),
-                ("AD",NB),("AE",EUR),("AI",EUR),("AJ",NB),("AK",EUR),("AL",NB)]:
+                ("AD",NB),("AE",EUR),("AJ",EUR),("AK",NB),("AL",EUR),("AM",NB)]:
     C(ws,f"{col}{r}",f"=SUM({col}{MR0}:{col}{MRN})",CFB,FTOT,fmt=fmt,align=AR,border=True)
 ws.freeze_panes="G4"
 gr=r+2
 band(ws,gr,"A","H","Guide de lecture — les 3 états côte à côte :"); gr+=1
 grp=[("A–Q","Identité + reprise base + taux mesurés (funnel, passage)"),
  ("R–V","Acquisition : leads cellule → candidatures → admis"),
- ("W–AA","③ AJUSTÉ : nouveaux/réinscrits/effectif/CA avec ajustement contrôleur (= budget final)"),
+ ("W–AA","③ AJUSTÉ : nouveaux/réinscrits/effectif/CA avec ajustements contrôleur (= budget final)"),
  ("AB–AE","② CADRÉ : le même SANS ajustement (pré-budget semé top-down)"),
- ("AF–AG","🟢 AJUSTEMENT contrôleur (delta conversion / passage) — s'ajoute au semé, n'écrase rien"),
- ("AH–AJ","① CIBLE éclatée : poids (CA réf × cap marque) → CA cible → effectif cible"),
- ("AK–AL","ÉCART ③ − ① : le construit atteint-il la cible ?")]
+ ("AF–AH","🟢 AJUSTEMENTS contrôleur (Δ lead→cand / Δ yield / Δ passage) — s'ajoutent au semé, n'écrasent rien"),
+ ("AI–AK","① CIBLE éclatée : poids (CA réf × cap marque) → CA cible → effectif cible"),
+ ("AL–AM","ÉCART ③ − ① : le construit atteint-il la cible ?")]
 for rng,txt in grp:
     C(ws,f"A{gr}",rng,CB,FLIGHT,align=AC,border=True); ws.merge_cells(f"B{gr}:H{gr}"); C(ws,f"B{gr}",txt,CREG,align=ALW,border=True); gr+=1
 
@@ -629,6 +637,33 @@ for i in range(4): C(ws,f"{GL(4+i)}{r}",f"=IFERROR({GL(4+i)}{rowEB}/{GL(4+i)}{ro
 r+=1
 C(ws,f"C{r}","Marge EBIT %",CIT,align=AL)
 for i in range(4): C(ws,f"{GL(4+i)}{r}",f"=IFERROR({GL(4+i)}{rowEBIT}/{GL(4+i)}{rowCA},0)",CIT,fmt=PCT,align=AR)
+
+# ============================================================ 08_Saisie_Campus (masque de saisie — exemple MBway Lyon)
+ws=wb.create_sheet("08_Saisie_Campus"); ws.sheet_view.showGridLines=False
+scols=["Programme","Année","Mod.","Leads semé","Taux L→C","Yield","Passage","Effectif semé ②","🟢 Δ L→C","🟢 Δ yield","🟢 Δ passage","Effectif ajusté ③","CA ajusté ③","CA cible ①"]
+for i,w in enumerate([22,7,6,10,9,8,9,14,10,10,11,15,13,13]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells(f"A1:{GL(len(scols))}1"); C(ws,"A1","SAISIE BUDGÉTAIRE 2027 — Campus MBWAY LYON",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=26
+ws.merge_cells(f"A2:{GL(len(scols))}2"); C(ws,"A2","Votre périmètre. Vous n'ajustez que vos TAUX OPÉRATIONNELS (🟢 jaune) — prix, budget marketing et cible sont fixés par le groupe. Vos ajustements s'AJOUTENT au semé (ils ne l'écrasent pas) et remontent au modèle en temps réel.",CIT,align=ALW); ws.row_dimensions[2].height=30
+mkT=MK0+len(ML_IDX)   # ligne total
+C(ws,"A4","Cible campus :",CB,align=AR); C(ws,f"C4",f"=N{mkT}",CFB,fmt=EUR,align=AL,border=True)
+C(ws,"E4","Construit (ajusté) :",CB,align=AR); C(ws,f"G4",f"=M{mkT}",CFB,fmt=EUR,align=AL,border=True)
+C(ws,"I4","Reste à trouver :",CB,align=AR); C(ws,f"K4",f"=IF(N{mkT}-M{mkT}>0,N{mkT}-M{mkT},0)",CFB,FYEL,fmt=EUR,align=AL,border=True)
+for i,h in enumerate(scols): C(ws,f"{GL(1+i)}6",h,CHDR,FBLUE,align=AC,border=True)
+ws.row_dimensions[6].height=30
+mk=MK0
+for idx in ML_IDX:
+    mr=MR0+idx; MOc=lambda col:f"='04_Moteur'!{col}{mr}"
+    C(ws,f"A{mk}",MOc('C'),CL,align=AL,border=True); C(ws,f"B{mk}",MOc('D'),CL,align=AC,border=True); C(ws,f"C{mk}",MOc('E'),CL,align=AC,border=True)
+    C(ws,f"D{mk}",MOc('T'),CF,fmt=NB,align=AR,border=True); C(ws,f"E{mk}",MOc('O'),CF,fmt=PCT,align=AC,border=True); C(ws,f"F{mk}",MOc('Q'),CF,fmt=PCT,align=AC,border=True); C(ws,f"G{mk}",MOc('N'),CF,fmt=PCT,align=AC,border=True)
+    C(ws,f"H{mk}",MOc('AD'),CF,fmt=NB,align=AR,border=True)
+    C(ws,f"I{mk}",0,CINB,FYEL,fmt=PCT,align=AC,border=True); C(ws,f"J{mk}",0,CINB,FYEL,fmt=PCT,align=AC,border=True); C(ws,f"K{mk}",0,CINB,FYEL,fmt=PCT,align=AC,border=True)
+    C(ws,f"L{mk}",MOc('Y'),CFB,fmt=NB,align=AR,border=True); C(ws,f"M{mk}",MOc('AA'),CFB,fmt=EUR,align=AR,border=True); C(ws,f"N{mk}",MOc('AJ'),CF,fmt=EUR,align=AR,border=True)
+    mk+=1
+C(ws,f"A{mk}","TOTAL CAMPUS",CFB,FTOT,align=AL,border=True)
+for col in ["B","C","E","F","G","I","J","K"]: C(ws,f"{col}{mk}"," ",fill=FTOT,border=True)
+for col,fmt in [("D",NB),("H",NB),("L",NB),("M",EUR),("N",EUR)]: C(ws,f"{col}{mk}",f"=SUM({col}{MK0}:{col}{mk-1})",CFB,FTOT,fmt=fmt,align=AR,border=True)
+ws.freeze_panes="A7"
+C(ws,f"A{mk+2}","Exemple : mettez +0,03 en « Δ yield » sur une ligne → l'effectif ajusté ③ et le CA remontent, l'écart à la cible se réduit. En Tagetik, chaque contrôleur a ce masque sur SON périmètre (sécurité par entité).",CIT,align=AL); ws.merge_cells(f"A{mk+2}:N{mk+3}"); ws.row_dimensions[mk+2].height=28
 
 try: wb.calculation.fullCalcOnLoad=True
 except Exception: pass
