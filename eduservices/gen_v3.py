@@ -42,7 +42,7 @@ CITY_CPL ={"Paris":1.35,"Lyon":1.10,"Nantes":1.00,"Bordeaux":0.95,"Lille":1.00,"
 CAPT={"BTS":30,"BAC":32,"MAST":26}
 # revenu / étudiant / an de référence (€) par cycle x modalité (benchmarks secteur — illustratif)
 REV={("BTS","ALT"):6000,("BTS","INIT"):5500,("BAC","ALT"):7000,("BAC","INIT"):7500,("MAST","ALT"):7500,("MAST","INIT"):9000}
-PASS={"B2":0.93,"B3":0.95,"M2":0.96,"2":0.94}
+PASS={"B2":0.97,"B3":0.98,"M2":0.98,"2":0.97}   # rétention intra-cycle proche de 100 % (privé alternance : peu de décrochage)
 # TAUX DU FUNNEL (mesurés, différenciés) — issus de la recherche secteur (privé non sélectif, alternance)
 #  INIT = intention forte (Parcoursup) ; ALT = leads plateforme + déperdition "signature contrat"
 RATES={"INIT":dict(rlc=0.28,rca=0.72,yld=0.60),"ALT":dict(rlc=0.20,rca=0.70,yld=0.42)}
@@ -314,6 +314,7 @@ CPRIX_M={"MBway":1.20,"ISCOM":1.15,"Ipac Bachelor Factory":0.95,"Pigier":0.90,"T
 r=7
 for m in MARQUES:
     C(ws,f"J{r}",m,CL,align=AL,border=True); C(ws,f"K{r}",CPRIX_M[m],CINB,FYEL,fmt=X2,align=AC,border=True); r+=1
+C(ws,"J12","Coeff prix = décision MARQUE. Override prix par CAMPUS possible dans 03_Campagnes (exception locale, colonne « Override prix »).",CIT,align=ALW); ws.merge_cells("J12:M12"); ws.row_dimensions[12].height=26
 # --- ② cap stratégique par marque : PILOTE LE BUDGET MARKETING (enveloppe groupe constante → somme nulle) ---
 JD0=92   # ligne de départ du tableau de justification des caps (bas de feuille) — les caps proposés y sont calculés
 band(ws,13,"J","P","Cap stratégique — concentre le budget marketing (→ CA construit) · caps proposés depuis l'historique")
@@ -327,7 +328,7 @@ for i,m in enumerate(MARQUES):
     C(ws,f"N{r}",f"=F{JD0+i}",CF,FGRN,fmt=X2,align=AC,border=True)   # cap éff. (drill → justification)
     C(ws,f"O{r}",f"=G{JD0+i}",CF,FGRN,fmt=X2,align=AC,border=True)   # cap mom.
     C(ws,f"P{r}",f"=H{JD0+i}",CF,FGRN,fmt=X2,align=AC,border=True)   # cap pot.
-C(ws,"J20","Cap retenu (bleu) = choix CFO · Caps proposés (vert) = calculés dans « Justification des caps » (bas de feuille) : cliquez un cap pour voir sa formule et ses inputs mesurés.",CIT,align=ALW); ws.merge_cells("J20:P20"); ws.row_dimensions[20].height=30
+C(ws,"J20","Cap retenu (bleu) = choix CFO au niveau MARQUE (cascade sur ses campus). Override par CAMPUS (marque×ville) possible dans 03_Campagnes. Caps proposés (vert) = calculés dans « Justification des caps » (bas de feuille) — cliquez pour voir formule & inputs.",CIT,align=ALW); ws.merge_cells("J20:P20"); ws.row_dimensions[20].height=40
 # --- ③ indice prix par ville — DÉDUIT du réalisé (informationnel, plus de saisie) ---
 vrev={}; veff={}
 for rr in rows: vrev[rr["ville"]]=vrev.get(rr["ville"],0)+rr["rev"]*rr["eff"]; veff[rr["ville"]]=veff.get(rr["ville"],0)+rr["eff"]
@@ -398,8 +399,8 @@ LEX=[
  ("Écart","Construit − Cible. Positif = la marque/campus dépasse sa cible ; négatif = il reste à trouver. C'est là que le CFO voit qui tient la promesse."),
  ("Croissance","Construit ÷ Référence − 1 : la progression réelle vs l'atterrissage. La couleur (rouge→vert) montre d'un coup d'œil où le cadrage crée ou détruit de la croissance."),
  ("Effectif constr.","L'effectif qui découle du CA construit (conséquence, jamais saisi). Utile pour vérifier la faisabilité opérationnelle (salles, classes)."),
- ("🔵 Coeff prix (marque)","Sensibilité de la marque à une décision de prix : prix appliqué = prix réf × (1 + levier prix × coeff). N'agit que si le levier prix ≠ 0. Crée de la valeur (effet CA réel)."),
- ("🔵 Cap retenu","LE choix du CFO. Concentre le BUDGET MARKETING d'acquisition sur une marque, à enveloppe groupe CONSTANTE (somme nulle). Monter le cap d'une marque → plus de budget → plus de leads → son CA CONSTRUIT monte, celui des autres baisse. Cap = 1 partout = aucune redistribution. Seuls les caps RELATIFS comptent (la formule normalise)."),
+ ("🔵 Coeff prix (marque)","Sensibilité de la marque à une décision de prix : prix appliqué = prix réf × (1 + levier prix × coeff + override campus). Décision au niveau MARQUE ; l'écart de prix entre villes est déjà déduit dans la base. Un override par CAMPUS (03_Campagnes) gère les exceptions locales sans double compte."),
+ ("🔵 Cap retenu","LE choix du CFO. Concentre le BUDGET MARKETING d'acquisition, à enveloppe groupe CONSTANTE (somme nulle). Saisi au niveau MARQUE (cascade sur ses campus) ; override par CAMPUS (marque×ville) dans 03_Campagnes → cap effectif = marque × override. Monter le cap → plus de budget → plus de leads → CA CONSTRUIT en hausse (baisse ailleurs). Cap = 1 partout = aucune redistribution ; seuls les caps RELATIFS comptent."),
  ("🟢 Cap éff. (proposé)","SUGGESTION mesurée : cap ∝ 1 / CAC marginal. Pousse le budget là où l'euro marketing produit le plus d'inscrits (rendement élevé, CAC bas). Le plus rigoureux — tend vers l'allocation qui égalise le CAC marginal entre marques. Cap > 1 = marque efficace, à renforcer."),
  ("🟢 Cap mom. (proposé)","SUGGESTION mesurée : cap ∝ taux de croissance des leads 2024→2026. Pousse les marques qui montent déjà. Suit la dynamique commerciale — mais peut sur-investir une marque proche du plafond. Cap > 1 = marque en accélération."),
  ("🟢 Cap pot. (proposé)","SUGGESTION mesurée : cap ∝ 1 / intensité marketing (budget ÷ CA). Pousse les marques SOUS-investies vs leur taille — le potentiel dormant. Plus spéculatif : on parie que la marge de progression existe. Cap > 1 = marque sous-exploitée."),
@@ -423,14 +424,19 @@ for i,h in enumerate(bcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=Tru
 ws.row_dimensions[3].height=30
 for idx,rr in enumerate(rows):
     r=BR0+idx
+    frr=f"{CAD}$D$29"   # frais de dossier de référence (constante cadrage)
     vals=[rr["marque"],rr["ville"],rr["prog"],rr["type"],rr["niv"],("Alternance" if rr["mod"]=="ALT" else "Initial"),rr["entry"],
           rr["leads"],rr["cand"],rr["admis"],rr["nouv"],rr["rein"],rr["eff"],rr["eff_prev"],rr["classes"],
-          rr["rev"],round(rr["passage"],4),round(rr["rlc"],4),round(rr["rca"],4),round(rr["yld"],4),
-          round(rr["eff"]*rr["rev"]+rr["nouv"]*FRAIS_DEF)]
+          rr["rev"],
+          f"=IFERROR(M{r}/N{r},0)",   # Q passage = effectif ÷ effectif année inf.
+          f"=IFERROR(I{r}/H{r},0)",   # R lead→cand = candidatures ÷ leads
+          f"=IFERROR(J{r}/I{r},0)",   # S cand→admis = admis ÷ candidatures
+          f"=IFERROR(K{r}/J{r},0)",   # T yield = nouveaux ÷ admis
+          f"=M{r}*P{r}+K{r}*{frr}"]   # U CA réf = effectif×revenu + nouveaux×frais
     fmts=[None,None,None,None,None,None,NB,NB,NB,NB,NB,NB,NB,NB,NB,EUR,PCT,PCT,PCT,PCT,EUR]
     for i,(v,f) in enumerate(zip(vals,fmts)):
         al=AL if i<6 else AC
-        C(ws,f"{GL(1+i)}{r}",v,CL,fmt=f,align=al,border=True)
+        C(ws,f"{GL(1+i)}{r}",v,(CF if i>=16 else CL),fmt=f,align=al,border=True)
 ws.freeze_panes="A4"
 
 # ============================================================ 02_CRM (historique multisource, format LONG, par ANNÉE)
@@ -459,8 +465,8 @@ def xsum(col,key,yr): return f'SUMIFS({xrng(col)},{XKEY},{key},{XVER},{yr})'
 
 # ============================================================ 03_Campagnes (mesure CPL/rendement/part org + budget->leads)
 ws=wb.create_sheet("03_Campagnes"); ws.sheet_view.showGridLines=False
-ccols=["Marque","Ville","clé","Leads organiques","Leads payants réf","Leads total réf","Dépense acq. réf","Part organique","CPL mesuré","Rendement acq.","Budget acq. actif","Leads payants actif","Leads actif total","CPL effectif","Conv. lead→inscrit","CAC marginal /inscrit","Dépense marque réf","Rendement marque","Budget marque actif","Leads org. actif","Cap marque"]
-for i,w in enumerate([15,11,14,13,13,12,13,11,10,12,13,13,12,10,13,15,14,13,14,13,10]): ws.column_dimensions[GL(1+i)].width=w
+ccols=["Marque","Ville","clé","Leads organiques","Leads payants réf","Leads total réf","Dépense acq. réf","Part organique","CPL mesuré","Rendement acq.","Budget acq. actif","Leads payants actif","Leads actif total","CPL effectif","Conv. lead→inscrit","CAC marginal /inscrit","Dépense marque réf","Rendement marque","Budget marque actif","Leads org. actif","Cap marque","🟢 Cap campus (override)","Cap effectif","🟢 Override prix %"]
+for i,w in enumerate([15,11,14,13,13,12,13,11,10,12,13,13,12,10,13,15,14,13,14,13,10,13,11,12]): ws.column_dimensions[GL(1+i)].width=w
 ws.merge_cells(f"A1:{GL(len(ccols))}1"); C(ws,"A1","MOTEUR D'ACQUISITION (campus) — 2 leviers marketing : ACQUISITION (achat de leads → payant) & MARQUE (notoriété → organique), rendements MESURÉS",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
 ws.merge_cells(f"A2:{GL(len(ccols))}2"); C(ws,"A2","ACQUISITION : leads payants = payants réf × (budget acq.÷réf)^rendement acq. · MARQUE : leads organiques = org réf × (budget marque÷réf)^rendement marque (mesuré en AGRÉGÉ, org vs dépense marque sur 3 ans — pas d'attribution au lead). Total = organiques actif + payants actif.",CIT,align=ALW); ws.row_dimensions[2].height=34
 for i,h in enumerate(ccols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
@@ -477,9 +483,12 @@ for idx,cc in enumerate(campus):
     C(ws,f"H{r}",f"=IFERROR(D{r}/F{r},0)",CF,fmt=PCT,align=AC,border=True)  # part org MESURÉE
     C(ws,f"I{r}",f"=IFERROR(G{r}/E{r},0)",CF,fmt=EUR,align=AR,border=True)  # CPL MESURÉ
     C(ws,f"J{r}",f"=IFERROR(LN(E{r}/{xsum('F',key,YOLD)})/LN(G{r}/{xsum('H',key,YOLD)}),0.5)",CF,fmt=X2,align=AC,border=True)  # rendement MESURÉ
-    C(ws,f"U{r}",f"=INDEX({CAPVAL},MATCH(A{r},{CAPKEY},0))",CF,fmt=X2,align=AC,border=True)  # cap de la marque (pilote le budget)
-    # budget acquisition actif = budget réf × (1+levier global) × tilt du cap (redistribution à enveloppe groupe CONSTANTE)
-    C(ws,f"K{r}",f"=G{r}*(1+{LMKT})*U{r}*SUM($G${CR0}:$G${CRN})/SUMPRODUCT($G${CR0}:$G${CRN},$U${CR0}:$U${CRN})",CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"U{r}",f"=INDEX({CAPVAL},MATCH(A{r},{CAPKEY},0))",CF,fmt=X2,align=AC,border=True)  # cap MARQUE (cascade depuis le cadrage)
+    C(ws,f"V{r}",1.0,CINB,FYEL,fmt=X2,align=AC,border=True)                                   # 🟢 override CAMPUS (marque×ville) — saisie locale
+    C(ws,f"W{r}",f"=U{r}*V{r}",CFB,fmt=X2,align=AC,border=True)                               # cap EFFECTIF campus = marque × override
+    C(ws,f"X{r}",0,CINB,FYEL,fmt=PCT,align=AC,border=True)                                    # 🟢 override PRIX campus (exception locale)
+    # budget acquisition actif = budget réf × (1+levier global) × tilt du cap EFFECTIF (enveloppe groupe CONSTANTE)
+    C(ws,f"K{r}",f"=G{r}*(1+{LMKT})*W{r}*SUM($G${CR0}:$G${CRN})/SUMPRODUCT($G${CR0}:$G${CRN},$W${CR0}:$W${CRN})",CFB,fmt=EUR,align=AR,border=True)
     C(ws,f"L{r}",f"=E{r}*(K{r}/G{r})^J{r}",CFB,fmt=NB,align=AR,border=True)
     C(ws,f"M{r}",f"=T{r}+L{r}",CFB,fmt=NB,align=AR,border=True)   # total = organiques ACTIF (piloté marque) + payants actif
     C(ws,f"N{r}",f"=IFERROR(K{r}/L{r},0)",CF,fmt=EUR,align=AR,border=True)
@@ -494,8 +503,9 @@ for idx,cc in enumerate(campus):
 # indicateur d'attractivité : CAC marginal (vert = l'euro marketing rapporte le + / rouge = cher)
 ws.conditional_formatting.add(f"P{CR0}:P{CRN}",
     ColorScaleRule(start_type="min",start_color="63BE7B",mid_type="percentile",mid_value=50,mid_color="FFEB84",end_type="max",end_color="F8696B"))
-C(ws,f"A{CRN+2}","Indicateur d'attractivité : CAC marginal = coût marketing du prochain inscrit. Vert = investir ici (l'euro rapporte) · Rouge = marché cher/saturé. Colonnes Q-T : le socle ORGANIQUE répond au budget de MARQUE. Colonne U : le cap concentre le budget d'acquisition par marque (enveloppe groupe constante).",CIT,align=AL); ws.merge_cells(f"A{CRN+2}:U{CRN+2}")
+C(ws,f"A{CRN+2}","CAC marginal = coût marketing du prochain inscrit (vert = investir, rouge = cher). Q-T : le socle ORGANIQUE répond au budget de MARQUE. U-W : cap MARQUE (cascade cadrage) × override CAMPUS = cap effectif (marque×ville) qui concentre le budget. X : override prix local (exception).",CIT,align=AL); ws.merge_cells(f"A{CRN+2}:X{CRN+2}")
 CKEY=f"{CAMP}$C${CR0}:$C${CRN}"; CLEADS=f"{CAMP}$M${CR0}:$M${CRN}"; CSLEADS=f"{CAMP}$F${CR0}:$F${CRN}"
+CPROV=f"{CAMP}$X${CR0}:$X${CRN}"   # override prix campus (exception locale) → lu par le moteur
 
 # ============================================================ 04_Moteur (funnel -> CA)
 ws=wb.create_sheet("04_Moteur"); ws.sheet_view.showGridLines=False
@@ -534,7 +544,7 @@ for idx in range(N):
     C(ws,f"W{r}",f"=IF(F{r}=1,V{r}*(Q{r}+{LGCV}+AG{r}),0)",CFB,fmt=NB,align=AR,border=True)
     C(ws,f"X{r}",f"=IF(F{r}=1,0,L{r}*(N{r}+{LPASS}+AH{r}))",CF,fmt=NB,align=AR,border=True)
     C(ws,f"Y{r}",f"=W{r}+X{r}",CFB,fmt=NB,align=AR,border=True)
-    C(ws,f"Z{r}",f"=M{r}*(1+{LPRIX}*INDEX({CPVAL},MATCH(A{r},{CPKEY},0)))",CF,fmt=EUR,align=AR,border=True)  # hausse × coeff prix marque
+    C(ws,f"Z{r}",f"=M{r}*(1+{LPRIX}*INDEX({CPVAL},MATCH(A{r},{CPKEY},0))+INDEX({CPROV},MATCH({key},{CKEY},0)))",CF,fmt=EUR,align=AR,border=True)  # prix : hausse × coeff marque + override campus
     C(ws,f"AA{r}",f"=Y{r}*Z{r}+W{r}*{KFRAIS}",CFB,fmt=EUR,align=AR,border=True)
     # ② CADRÉ : semé seul, auto-porté (sans aucun ajustement contrôleur)
     C(ws,f"AB{r}",f"=IF(F{r}=1,T{r}*(O{r}+{LGLC})*P{r}*(Q{r}+{LGCV}),0)",CF,fmt=NB,align=AR,border=True)
