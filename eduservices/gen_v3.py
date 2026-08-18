@@ -116,6 +116,18 @@ REFEFF=sum(r["eff"] for r in rows)
 REFALT=sum(r["eff"] for r in rows if r["mod"]=="ALT")
 REFBUD=sum(c["budget_paid_ref"] for c in campus)
 REFLEADS=sum(c["sleads"] for c in campus)
+# marketing de MARQUE (notoriété) : dépense qui pilote le SOCLE ORGANIQUE. Mesuré en AGRÉGÉ (marketing-mix),
+#  pas par lead : on ne prétend pas savoir d'où vient un lead organique, on mesure comment le socle répond au budget marque.
+def rend_marque(po): return round(min(0.45,max(0.25,0.20+0.30*po)),3)  # rendement de marque (agrégé) < rendement acquisition
+tot_org_att=sum(c["org"][2] for c in campus)
+BRAND_CPO=0.030*REFCA/tot_org_att if tot_org_att else 0   # ~3 % du CA en budget de marque, au prorata de l'organique
+for c in campus:
+    rb=rend_marque(c["porg"]); c["rb"]=rb
+    bref=round(c["org"][2]*BRAND_CPO); c["bref"]=bref
+    GBR=math.exp(math.log(GORG)/rb) if rb>0 else GORG      # croissance dépense marque → rendement marque mesuré = rb
+    c["bspend"]=[round(bref/GBR**2),round(bref/GBR),bref]  # N-2, N-1, ATT
+REFBRAND=sum(c["bref"] for c in campus)
+print("[py] budget MARQUE réf=%d € (%.1f%% du CA)  rendement marque≈%.2f"%(REFBRAND,REFBRAND/REFCA*100,sum(c["rb"] for c in campus)/CG))
 print("[py] N=%d cellules  campus=%d"%(N,CG))
 print("[py] CA réf=%d €  effectif=%d  alternance=%.0f%%"%(REFCA,REFEFF,REFALT/REFEFF*100))
 print("[py] leads réf=%d  budget PAYANT réf=%d € (%.1f%% du CA, part organique %.0f%%)"%(REFLEADS,REFBUD,REFBUD/REFCA*100,PORG_DEF*100))
@@ -153,8 +165,8 @@ wb=openpyxl.Workbook()
 
 # ============================================================ REFS 01_Cadrage
 CAD="'01_Cadrage'!"
-LMKT,LPRIX,LGLC,LGCV,LPASS,LINFL,LSAL,LEFFP,LPROD=(f"{CAD}$H${_r}" for _r in (16,17,18,19,20,21,22,23,24))  # leviers ACTIF
-KFRAIS=f"{CAD}$H$28"    # frais de dossier (décision) ; rendement/part org/CPL sont MESURÉS (03_Campagnes)
+LMKT,LBRAND,LPRIX,LGLC,LGCV,LPASS,LINFL,LSAL,LEFFP,LPROD=(f"{CAD}$H${_r}" for _r in range(16,26))  # leviers ACTIF (10)
+KFRAIS=f"{CAD}$H$29"    # frais de dossier (décision) ; rendement/part org/CPL sont MESURÉS (03_Campagnes)
 CROISS=f"{CAD}$F$3"; MARGEC=f"{CAD}$H$3"                 # cible top-down : croissance CA & marge EBITDA
 CAPKEY=f"{CAD}$J$15:$J$19"; CAPVAL=f"{CAD}$L$15:$L$19"   # cap stratégique par marque (éclatement)
 CPKEY=f"{CAD}$J$7:$J$11"; CPVAL=f"{CAD}$K$7:$K$11"      # coeff prix par MARQUE (décision)
@@ -248,7 +260,8 @@ C(ws,"D12","=IF(D7-E7>0,D7-E7,0)",CFB,FYEL,fmt=EUR,align=AR,border=True); C(ws,"
 band(ws,14,"B","H","② Leviers — bascule par scénario (colonne ACTIF)")
 for i,h in enumerate(["Paramètre","Unité","Référence","Cadrage","Optimiste","Prudent","ACTIF"]): C(ws,f"{GL(2+i)}15",h,CHDR,FBLUE,align=AC,border=True)
 MATCHSC='MATCH($D$3,$D$15:$G$15,0)'   # colonne D = scénario "Référence" (leviers à 0)
-levs=[("Variation du budget marketing (→ leads payants)","%",0,0.08,0.15,-0.05),
+levs=[("Variation du budget d'acquisition (→ leads payants)","%",0,0.08,0.15,-0.05),
+ ("Variation du budget de marque (→ socle organique)","%",0,0.10,0.20,-0.05),
  ("Hausse tarifaire (prix)","%",0,0.025,0.035,0.02),
  ("Gain taux lead → candidature","pts",0,0.01,0.03,0.0),
  ("Gain conversion admis → inscrit","pts",0,0.01,0.025,0.0),
@@ -262,17 +275,17 @@ for lib,u,ba,cad,opt,pru in levs:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True); C(ws,f"C{r}",u,CREG,align=AC,border=True); C(ws,f"D{r}",ba,CIT,fmt=PCT,align=AC,border=True)
     C(ws,f"E{r}",cad,CIN,fmt=PCT,align=AC,border=True); C(ws,f"F{r}",opt,CIN,fmt=PCT,align=AC,border=True); C(ws,f"G{r}",pru,CIN,fmt=PCT,align=AC,border=True)
     C(ws,f"H{r}",f"=INDEX(D{r}:G{r},{MATCHSC})",CFB,FLIGHT,fmt=PCT,align=AC,border=True); r+=1
-C(ws,"B25",'Leviers 1-5 → CA (moteur) · leviers 6-9 → coûts (P&L Budget → EBITDA). « Référence » remet tout à 0 = atterrissage.',CIT,align=AL); ws.merge_cells("B25:H25")
+C(ws,"B26",'Leviers 1-6 → CA (moteur) · leviers 7-10 → coûts (P&L Budget → EBITDA). Acquisition = achat de leads (payant) · Marque = notoriété (socle organique). « Référence » remet tout à 0 = atterrissage.',CIT,align=AL); ws.merge_cells("B26:H26")
 # --- constantes ---
-band(ws,26,"B","H","③ Constante — frais de dossier (décision)")
-for i,h in enumerate(["Paramètre","Unité","Référence","Cadrage","Optimiste","Prudent","ACTIF"]): C(ws,f"{GL(2+i)}27",h,CHDR,FBLUE,align=AC,border=True)
+band(ws,27,"B","H","③ Constante — frais de dossier (décision)")
+for i,h in enumerate(["Paramètre","Unité","Référence","Cadrage","Optimiste","Prudent","ACTIF"]): C(ws,f"{GL(2+i)}28",h,CHDR,FBLUE,align=AC,border=True)
 consts=[("Frais de dossier / nouvel inscrit","€",FRAIS_DEF,EUR)]
-r=28
+r=29
 for lib,u,val,fmt in consts:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True); C(ws,f"C{r}",u,CREG,align=AC,border=True); C(ws,f"D{r}",val,CIT,fmt=fmt,align=AC,border=True)
     C(ws,f"E{r}",val,CIN,fmt=fmt,align=AC,border=True); C(ws,f"F{r}",val,CIN,fmt=fmt,align=AC,border=True); C(ws,f"G{r}",val,CIN,fmt=fmt,align=AC,border=True)
     C(ws,f"H{r}",f"=INDEX(D{r}:G{r},{MATCHSC})",CFB,FLIGHT,fmt=fmt,align=AC,border=True); r+=1
-C(ws,"B30","Rendement, CPL et part organique ne sont pas saisis : ils sont MESURÉS depuis le CRM (voir 03_Campagnes).",CIT,align=AL); ws.merge_cells("B30:H30")
+C(ws,"B31","Rendement, CPL, part organique et rendement de marque ne sont pas saisis : ils sont MESURÉS depuis le CRM (voir 03_Campagnes).",CIT,align=AL); ws.merge_cells("B31:H31")
 MARQUES=list(BRANDS.keys())
 # --- ① coefficient prix par MARQUE (décision : pouvoir de prix différencié) ---
 band(ws,5,"J","M","Coeff prix par marque (décision)")
@@ -302,6 +315,15 @@ for v in sorted(vrev,key=lambda x:-vrev[x]/veff[x]):
     C(ws,f"J{r}",v,CL,align=AL,border=True); C(ws,f"K{r}",round(vrev[v]/veff[v]),CF,fmt=EUR,align=AR,border=True)
     C(ws,f"L{r}",round((vrev[v]/veff[v])/natavg,3),CF,fmt=X2,align=AC,border=True); r+=1
 C(ws,f"J{r+1}","Indice = prix moyen ville ÷ national, calculé sur le réalisé (le niveau de prix par ville est déjà dans les revenus). Le pouvoir de prix se pilote par MARQUE ci-dessus.",CIT,align=AL); ws.merge_cells(f"J{r+1}:M{r+2}"); ws.row_dimensions[r+1].height=28
+# --- ④ clés d'allocation — DÉCISION CFO (top-down) : la MÉTHODE est centrale, figée ; les campus n'ajustent que la MATIÈRE ---
+band(ws,34,"J","M","Clés d'allocation — décision CFO (top-down)")
+for i,h in enumerate(["Niveau de cascade","🔵 Clé retenue"]): C(ws,f"{GL(10+i*2)}35",h,CHDR,FBLUE,align=AC,border=True); ws.merge_cells(f"{GL(10+i*2)}35:{GL(11+i*2)}35")
+dva=DataValidation(type="list",formula1='"Chiffre d\'affaires,Effectif,Nombre de classes"',allow_blank=False); ws.add_data_validation(dva)
+for rr,lab,dft in [(36,"① Groupe → Marque","Chiffre d'affaires"),(37,"② Marque → Campus","Effectif"),(38,"③ Campus → Classe","Nombre de classes")]:
+    C(ws,f"J{rr}",lab,CL,align=AL,border=True); ws.merge_cells(f"J{rr}:K{rr}")
+    C(ws,f"L{rr}",dft,CINB,FYEL,align=AC,border=True); ws.merge_cells(f"L{rr}:M{rr}"); dva.add(ws[f"L{rr}"])
+C(ws,"J40","La CLÉ (méthode) est une décision de gouvernance : le CFO la fige ici, elle s'applique à tout le groupe pour rester comparable. Le contrôleur ne choisit pas la clé — il conteste la MATIÈRE (assiette réelle) dans 10_Allocation.",CIT,align=ALW); ws.merge_cells("J40:M42"); ws.row_dimensions[40].height=42
+ALLOC_N1=f"{CAD}$L$36"; ALLOC_N2=f"{CAD}$L$37"; ALLOC_N3=f"{CAD}$L$38"
 
 # ============================================================ 02_Base
 ws=wb.create_sheet("02_Base"); ws.sheet_view.showGridLines=False
@@ -328,10 +350,10 @@ ws.freeze_panes="A4"
 # ============================================================ 02_CRM (historique multisource, format LONG, par ANNÉE)
 CRMY=[2024,2025,2026]   # 2024 (N-2) · 2025 (N-1) · 2026 (atterrissage)  →  on construit le budget 2027
 ws=wb.create_sheet("02_CRM"); ws.sheet_view.showGridLines=False
-xcols=["Marque","Ville","clé","Année","Leads organiques","Leads payants","Leads totaux","Dépense marketing"]
-for i,w in enumerate([15,11,15,10,15,14,13,15]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells(f"A1:{GL(len(xcols))}1"); C(ws,"A1","CRM & MARKETING — historique multisource (format long, par année) : leads organiques/payants + dépense",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
-ws.merge_cells(f"A2:{GL(len(xcols))}2"); C(ws,"A2","Source : CRM (leads, tag organique/payant) + compta (dépense). 3 années réelles (2024·2025·2026). 03_Campagnes MESURE le CPL, le rendement et la part organique depuis cet historique — rien n'est saisi.",CIT,align=ALW); ws.row_dimensions[2].height=22
+xcols=["Marque","Ville","clé","Année","Leads organiques","Leads payants","Leads totaux","Dépense acquisition","Dépense marque"]
+for i,w in enumerate([15,11,15,10,15,14,13,16,14]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells(f"A1:{GL(len(xcols))}1"); C(ws,"A1","CRM & MARKETING — historique multisource (format long, par année) : leads organiques/payants + dépenses acquisition & marque",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
+ws.merge_cells(f"A2:{GL(len(xcols))}2"); C(ws,"A2","Source : CRM (leads, tag organique/payant) + compta (2 postes : ACQUISITION = achat de leads, compte 6231 · MARQUE = notoriété/salons, compte 6236). 3 années réelles. 03_Campagnes MESURE CPL, rendements et part organique — rien n'est saisi.",CIT,align=ALW); ws.row_dimensions[2].height=30
 for i,h in enumerate(xcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 XR0=4; xr=XR0
 for cc in campus:
@@ -341,6 +363,7 @@ for cc in campus:
         C(ws,f"D{xr}",yr,CL,align=AC,border=True)
         C(ws,f"E{xr}",cc["org"][vi],CL,fmt=NB,align=AR,border=True); C(ws,f"F{xr}",cc["paid"][vi],CL,fmt=NB,align=AR,border=True)
         C(ws,f"G{xr}",f"=E{xr}+F{xr}",CF,fmt=NB,align=AR,border=True); C(ws,f"H{xr}",cc["spend"][vi],CL,fmt=EUR,align=AR,border=True)
+        C(ws,f"I{xr}",cc["bspend"][vi],CL,fmt=EUR,align=AR,border=True)
         xr+=1
 XRN=xr-1; ws.freeze_panes="A4"
 CRM="'02_CRM'!"
@@ -350,10 +373,10 @@ def xsum(col,key,yr): return f'SUMIFS({xrng(col)},{XKEY},{key},{XVER},{yr})'
 
 # ============================================================ 03_Campagnes (mesure CPL/rendement/part org + budget->leads)
 ws=wb.create_sheet("03_Campagnes"); ws.sheet_view.showGridLines=False
-ccols=["Marque","Ville","clé","Leads organiques","Leads payants réf","Leads total réf","Dépense mkt réf","Part organique","CPL mesuré","Rendement mesuré","Budget payant actif","Leads payants actif","Leads actif total","CPL effectif","Conv. lead→inscrit","CAC marginal /inscrit"]
-for i,w in enumerate([15,11,14,14,14,13,14,12,11,14,14,14,13,11,14,16]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells(f"A1:{GL(len(ccols))}1"); C(ws,"A1","MOTEUR D'ACQUISITION (campus) — CPL · rendement · part organique MESURÉS depuis le CRM, puis budget → leads",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
-ws.merge_cells(f"A2:{GL(len(ccols))}2"); C(ws,"A2","Part org = org÷total (ATT). CPL = dépense÷payants (ATT). Rendement = ln(payants ATT÷N-2) ÷ ln(dépense ATT÷N-2). Leads payants actif = payants réf × (budget actif÷réf)^rendement. Total = organiques + payants.",CIT,align=ALW); ws.row_dimensions[2].height=22
+ccols=["Marque","Ville","clé","Leads organiques","Leads payants réf","Leads total réf","Dépense acq. réf","Part organique","CPL mesuré","Rendement acq.","Budget acq. actif","Leads payants actif","Leads actif total","CPL effectif","Conv. lead→inscrit","CAC marginal /inscrit","Dépense marque réf","Rendement marque","Budget marque actif","Leads org. actif"]
+for i,w in enumerate([15,11,14,13,13,12,13,11,10,12,13,13,12,10,13,15,14,13,14,13]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells(f"A1:{GL(len(ccols))}1"); C(ws,"A1","MOTEUR D'ACQUISITION (campus) — 2 leviers marketing : ACQUISITION (achat de leads → payant) & MARQUE (notoriété → organique), rendements MESURÉS",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
+ws.merge_cells(f"A2:{GL(len(ccols))}2"); C(ws,"A2","ACQUISITION : leads payants = payants réf × (budget acq.÷réf)^rendement acq. · MARQUE : leads organiques = org réf × (budget marque÷réf)^rendement marque (mesuré en AGRÉGÉ, org vs dépense marque sur 3 ans — pas d'attribution au lead). Total = organiques actif + payants actif.",CIT,align=ALW); ws.row_dimensions[2].height=34
 for i,h in enumerate(ccols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[3].height=30
 YATT=2026; YOLD=2024
@@ -370,15 +393,20 @@ for idx,cc in enumerate(campus):
     C(ws,f"J{r}",f"=IFERROR(LN(E{r}/{xsum('F',key,YOLD)})/LN(G{r}/{xsum('H',key,YOLD)}),0.5)",CF,fmt=X2,align=AC,border=True)  # rendement MESURÉ
     C(ws,f"K{r}",f"=G{r}*(1+{LMKT})",CFB,fmt=EUR,align=AR,border=True)
     C(ws,f"L{r}",f"=E{r}*(K{r}/G{r})^J{r}",CFB,fmt=NB,align=AR,border=True)
-    C(ws,f"M{r}",f"=D{r}+L{r}",CFB,fmt=NB,align=AR,border=True)
+    C(ws,f"M{r}",f"=T{r}+L{r}",CFB,fmt=NB,align=AR,border=True)   # total = organiques ACTIF (piloté marque) + payants actif
     C(ws,f"N{r}",f"=IFERROR(K{r}/L{r},0)",CF,fmt=EUR,align=AR,border=True)
     critc=f'{brng("A")},A{r},{brng("B")},B{r},{brng("G")},1'
     C(ws,f"O{r}",f"=IFERROR(SUMIFS({brng('K')},{critc})/SUMIFS({brng('H')},{critc}),0)",CF,fmt=PCT,align=AC,border=True)  # conversion globale lead→inscrit (mesurée)
     C(ws,f"P{r}",f"=IFERROR(I{r}/(J{r}*O{r}),0)",CFB,fmt=EUR,align=AR,border=True)  # CAC marginal = CPL ÷ (rendement × conversion)
+    # --- MARQUE (notoriété) : pilote le socle ORGANIQUE, rendement mesuré en AGRÉGÉ (org vs dépense marque) ---
+    C(ws,f"Q{r}",f"={xsum('I',key,YATT)}",CF,fmt=EUR,align=AR,border=True)                          # dépense marque ATT
+    C(ws,f"R{r}",f"=IFERROR(LN(D{r}/{xsum('E',key,YOLD)})/LN(Q{r}/{xsum('I',key,YOLD)}),0.35)",CF,fmt=X2,align=AC,border=True)  # rendement marque MESURÉ
+    C(ws,f"S{r}",f"=Q{r}*(1+{LBRAND})",CFB,fmt=EUR,align=AR,border=True)                            # budget marque actif
+    C(ws,f"T{r}",f"=D{r}*(S{r}/Q{r})^R{r}",CFB,fmt=NB,align=AR,border=True)                          # leads organiques ACTIF
 # indicateur d'attractivité : CAC marginal (vert = l'euro marketing rapporte le + / rouge = cher)
 ws.conditional_formatting.add(f"P{CR0}:P{CRN}",
     ColorScaleRule(start_type="min",start_color="63BE7B",mid_type="percentile",mid_value=50,mid_color="FFEB84",end_type="max",end_color="F8696B"))
-C(ws,f"A{CRN+2}","Indicateur d'attractivité : CAC marginal = coût marketing du prochain inscrit. Vert = investir ici (l'euro rapporte) · Rouge = marché cher/saturé.",CIT,align=AL); ws.merge_cells(f"A{CRN+2}:P{CRN+2}")
+C(ws,f"A{CRN+2}","Indicateur d'attractivité : CAC marginal = coût marketing du prochain inscrit. Vert = investir ici (l'euro rapporte) · Rouge = marché cher/saturé. Colonnes Q-T : le socle ORGANIQUE n'est plus gratuit — il répond au budget de MARQUE (rendement mesuré en agrégé).",CIT,align=AL); ws.merge_cells(f"A{CRN+2}:T{CRN+2}")
 CKEY=f"{CAMP}$C${CR0}:$C${CRN}"; CLEADS=f"{CAMP}$M${CR0}:$M${CRN}"; CSLEADS=f"{CAMP}$F${CR0}:$F${CRN}"
 
 # ============================================================ 04_Moteur (funnel -> CA)
@@ -491,14 +519,16 @@ CA_T=REFCA; EFF_T=REFEFF; CLS_T=sum(d["cls"] for d in capm.values())
 def share(k,drv):
     d=capm[k]; return {"CA":d["ca"]/CA_T,"effectif":d["eff"]/EFF_T,"classes":d["cls"]/CLS_T}[drv]
 def ca_ver(n): return REFCA/(GROW_HIST**n)
-MKT_PCT=next(a[6] for a in ACCTS if a[0]=="6231")      # slot marketing — aligné sur la dépense CRM
-OTHER_PCT=NONDA_PCT-MKT_PCT
+MKT_PCT=next(a[6] for a in ACCTS if a[0]=="6231")      # slot acquisition — aligné sur la dépense CRM
+BRAND_PCT=next(a[6] for a in ACCTS if a[0]=="6236")    # slot marque — aligné sur la dépense CRM
+OTHER_PCT=NONDA_PCT-MKT_PCT-BRAND_PCT
 cmap={(c["marque"],c["ville"]):c for c in campus}
-def crm_spend_ver(n): return sum(c["spend"][2-n] for c in campus)   # dépense marketing CRM de la version (2-n : 2026/2025/2024)
+def crm_spend_ver(n): return sum(c["spend"][2-n] for c in campus)   # dépense ACQUISITION CRM (2-n : 2026/2025/2024)
+def brand_spend_ver(n): return sum(c["bspend"][2-n] for c in campus) # dépense MARQUE CRM
 def amount(pct,sig,code,n):
     if sig=="Dotations": return pct*ca_ver(n)
-    if code=="6231": return None                        # marketing acquisition = dépense CRM (géré à part)
-    remaining=ca_ver(n)*(1-TARGETS[n])-crm_spend_ver(n) # reste après la dépense marketing réelle
+    if code in ("6231","6236"): return None             # marketing (acquisition & marque) = dépense CRM (géré à part)
+    remaining=ca_ver(n)*(1-TARGETS[n])-crm_spend_ver(n)-brand_spend_ver(n) # reste après les 2 dépenses marketing réelles
     return pct*remaining/OTHER_PCT
 # construction de la compta : (ecode,elib,marque,ville,compte,lib,poste,sens,sig,vcode,exlab,montant)
 compta=[]
@@ -513,6 +543,8 @@ for code,lib,sens,sig,niv,drv,pct,vf in ACCTS:
             for k in capm:
                 val=cmap[k]["spend"][2-n]
                 compta.append((slug(k[0])+"_"+slug(k[1]),f"{k[0]} {k[1]}",k[0],k[1],code,lib,poste,sens,sig,vcode,exlab,round(val)))
+        elif code=="6236":   # marketing de marque = dépense CRM, pilotée au SIÈGE (fonction centrale)
+            compta.append(("GROUPE","GROUPE — Siège","(groupe)","(groupe)",code,lib,poste,sens,sig,vcode,exlab,round(brand_spend_ver(n))))
         else:
             tot=amount(pct,sig,code,n)
             if niv=="groupe":
@@ -609,7 +641,8 @@ MEFF=f"'04_Moteur'!$Y${MTOT}"; MCA=f"'04_Moteur'!$AA${MTOT}"
 CAf=f"({MCA}/{REFCA})"; EFFf=f"({MEFF}/{REFEFF})"
 def bfac(code,sens,sig):
     if sens=="Produit": return CAf                                  # produits : croissance du CA moteur
-    if code=="6231": return f"(1+{LMKT})"                           # marketing acquisition : suit le budget marketing
+    if code=="6231": return f"(1+{LMKT})"                           # marketing acquisition : suit le budget d'acquisition
+    if code=="6236": return f"(1+{LBRAND})"                         # marketing de marque : suit le budget de marque
     if sig=="Coûts directs": return f"({CAf}*(1-{LPROD}))"          # autres directs : volume − productivité
     if sig=="Personnel": return f"((1+{LSAL})*(1+{LEFFP}))"         # personnel : salaire × effectifs permanents
     if sig in ("Structure","Impôts & taxes"): return f"((1+{LINFL})*(1-{LPROD}))"  # structure : inflation − productivité
@@ -739,9 +772,9 @@ C(ws,"B23","Les tuiles et les ponts se recalculent en direct quand on bouge un l
 
 # ============================================================ 10_Allocation (cascade 3 niveaux → classe, clé/niveau, coût/étudiant)
 ws=wb.create_sheet("10_Allocation"); ws.sheet_view.showGridLines=False
-acols=["Marque","Ville","Programme","Année","Mod.","CA","Effectif","Classes","Coûts directs","Siège alloué","Structure allouée","Coût total","Coût / étudiant","Coût / classe","Marge / étu."]
-for i,w in enumerate([13,10,17,6,5,12,8,7,12,12,13,13,12,12,12]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells(f"A1:{GL(len(acols))}1"); C(ws,"A1","ALLOCATION EN CASCADE (3 niveaux, clé au choix par niveau) — jusqu'à la classe · vrai coût par étudiant",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
+acols=["Marque","Ville","Programme","Année","Mod.","CA","Effectif","Classes","Coûts directs","Siège alloué","Structure allouée","Coût total","Coût / étudiant","Coût / classe","Marge / étu.","🟢 Contestation Δ (niv.3)"]
+for i,w in enumerate([13,10,17,6,5,12,8,7,12,12,13,13,12,12,12,14]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells(f"A1:{GL(len(acols))}1"); C(ws,"A1","ALLOCATION EN CASCADE (3 niveaux) — MÉTHODE (clé) figée par le CFO · MATIÈRE (assiette) contestable par le contrôleur · jusqu'à la classe",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
 A26V="2026ATT_VDEF"; DIR_PCT=round(sum(a[6] for a in ACCTS if a[3]=="Coûts directs"),4)
 KMARQUE=f"'06_Compta'!$C${KP0}:$C${KPN}"; KVILLE=f"'06_Compta'!$D${KP0}:$D${KPN}"; KENT=f"'06_Compta'!$A${KP0}:$A${KPN}"
 BU=brng('U'); BM=brng('M'); BO=brng('O'); BA=brng('A'); BB=brng('B')
@@ -751,15 +784,16 @@ def dvf(sel,crit=None):
         return f'IF({sel}="Effectif",SUMIFS({BM},{crit}),{inner})'
     inner=f'IF({sel}="Nombre de classes",SUM({BO}),SUM({BU}))'
     return f'IF({sel}="Effectif",SUM({BM}),{inner})'
-dvl=DataValidation(type="list",formula1='"Chiffre d\'affaires,Effectif,Nombre de classes"',allow_blank=False); ws.add_data_validation(dvl)
-for rr,lab,dft in [(3,"Niveau 1 — Groupe → Marque, clé :","Chiffre d'affaires"),(4,"Niveau 2 — Marque → Campus, clé :","Effectif"),(5,"Niveau 3 — Campus → Classe, clé :","Nombre de classes")]:
-    C(ws,f"B{rr}",lab,CB,align=AR); ws.merge_cells(f"B{rr}:D{rr}"); C(ws,f"E{rr}",dft,CINB,FYEL,align=AC,border=True); dvl.add(ws[f"E{rr}"])
+# les CLÉS (méthode) sont figées par le CFO au cadrage : ici on les LIT (vert, verrouillé), on ne les choisit pas
+for rr,lab,src in [(3,"Niveau 1 — Groupe → Marque, clé (CFO) :",ALLOC_N1),(4,"Niveau 2 — Marque → Campus, clé (CFO) :",ALLOC_N2),(5,"Niveau 3 — Campus → Classe, clé (CFO) :",ALLOC_N3)]:
+    C(ws,f"B{rr}",lab,CB,align=AR); ws.merge_cells(f"B{rr}:D{rr}"); C(ws,f"E{rr}",f"={src}",CL,FGRN,align=AC,border=True)
 GRP_CHG=f'SUMIFS({KMT},{KENT},"GROUPE",{KSENS},"Charge",{KVER},"{A26V}")'
 C(ws,"G3","Coûts siège à cascader :",CB,align=AR); C(ws,"I3",f"={GRP_CHG}",CFB,fmt=EUR,align=AR,border=True)
-D1S,D2S,D3S="$E$3","$E$4","$E$5"
+D1S,D2S,D3S=ALLOC_N1,ALLOC_N2,ALLOC_N3
 for i,h in enumerate(acols): C(ws,f"{GL(1+i)}7",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[7].height=28
-AA0=8
+AA0=8; AAN=AA0+N-1
+PALL=f"$P${AA0}:$P${AAN}"; AALLOC=f"$A${AA0}:$A${AAN}"; BALLOC=f"$B${AA0}:$B${AAN}"   # contestation : delta d'assiette niveau 3
 for idx in range(N):
     r=AA0+idx; b=BR0+idx
     C(ws,f"A{r}",f"={BASE}A{b}",CL,align=AL,border=True); C(ws,f"B{r}",f"={BASE}B{b}",CL,align=AC,border=True); C(ws,f"C{r}",f"={BASE}C{b}",CL,align=AL,border=True)
@@ -769,7 +803,9 @@ for idx in range(N):
     msh=f'IFERROR({dvf(D1S,mC)}/{dvf(D1S)},0)'
     csh=f'IFERROR({dvf(D2S,cC)}/{dvf(D2S,mC)},0)'
     celldrv=f'IF({D3S}="Effectif",{BASE}M{b},IF({D3S}="Nombre de classes",{BASE}O{b},{BASE}U{b}))'
-    lsh=f'IFERROR(({celldrv})/{dvf(D3S,cC)},0)'
+    # contestation : le contrôleur ajoute un Δ d'assiette (P) ; numérateur ET dénominateur de campus l'intègrent
+    #  → la répartition INTRA-campus se déplace, le total campus/groupe reste identique (tie-out préservé, jamais d'écrasement)
+    lsh=f'IFERROR((({celldrv})+P{r})/({dvf(D3S,cC)}+SUMIFS({PALL},{AALLOC},A{r},{BALLOC},B{r})),0)'
     campind=f'(SUMIFS({KMT},{kC},{KSENS},"Charge")-SUMIFS({KMT},{kC},{KSIG},"Dotations")-SUMIFS({BU},{cC})*{DIR_PCT})'
     C(ws,f"I{r}",f"=F{r}*{DIR_PCT}",CF,fmt=EUR,align=AR,border=True)                       # coûts directs (taux)
     C(ws,f"J{r}",f"=$I$3*({msh})*({csh})*({lsh})",CF,fmt=EUR,align=AR,border=True)          # siège cascadé 3 niveaux
@@ -778,6 +814,7 @@ for idx in range(N):
     C(ws,f"M{r}",f"=IFERROR(L{r}/G{r},0)",CFB,fmt=EUR,align=AR,border=True)                 # coût / étudiant
     C(ws,f"N{r}",f"=IFERROR(L{r}/H{r},0)",CF,fmt=EUR,align=AR,border=True)                  # coût / classe
     C(ws,f"O{r}",f"=IFERROR(F{r}/G{r}-M{r},0)",CF,fmt=EUR,align=AR,border=True)             # marge / étudiant
+    C(ws,f"P{r}",0,CINB,FYEL,fmt=NB,align=AC,border=True)                                   # 🟢 contestation assiette (Δ, unité de la clé niv.3)
 r=AA0+N
 C(ws,f"A{r}","TOTAL",CFB,FTOT,align=AL,border=True)
 for col in ["B","C","D","E"]: C(ws,f"{col}{r}"," ",fill=FTOT,border=True)
@@ -786,10 +823,21 @@ for col,fmt in [("F",EUR),("G",NB),("H",NB),("I",EUR),("J",EUR),("K",EUR),("L",E
 C(ws,f"M{r}",f"=IFERROR(L{r}/G{r},0)",CFB,FTOT,fmt=EUR,align=AR,border=True)
 C(ws,f"N{r}",f"=IFERROR(L{r}/H{r},0)",CFB,FTOT,fmt=EUR,align=AR,border=True)
 C(ws,f"O{r}",f"=IFERROR(F{r}/G{r}-M{r},0)",CFB,FTOT,fmt=EUR,align=AR,border=True)
+C(ws,f"P{r}",f"=SUM(P{AA0}:P{r-1})",CFB,FTOT,fmt=NB,align=AC,border=True)
 ws.freeze_panes="F8"
 ws.conditional_formatting.add(f"O{AA0}:O{r-1}",
     ColorScaleRule(start_type="min",start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
-C(ws,f"A{r+2}","Cascade Groupe → Marque → Campus → Classe : la clé se choisit à CHAQUE niveau (CA / effectif / classes). Le coût total par étudiant est PLEINEMENT chargé (directs + siège cascadé + structure). La marge/étudiant en rouge = classe déficitaire → cible du simulateur d'ouverture / fermeture (étape suivante).",CIT,align=AL); ws.merge_cells(f"A{r+2}:O{r+3}"); ws.row_dimensions[r+2].height=30
+# --- panneau de gouvernance des clés : qui tient la MÉTHODE, qui tient la MATIÈRE ---
+gr=r+2
+band(ws,gr,"A","H","Gouvernance des clés — le groupe délègue la MATIÈRE, pas la MÉTHODE")
+C(ws,f"A{gr+1}","MÉTHODE (la clé)",CB,FLIGHT,align=AL,border=True); ws.merge_cells(f"A{gr+1}:B{gr+1}")
+C(ws,f"C{gr+1}","décidée par le CFO, figée au cadrage, uniforme sur tout le groupe (comparabilité). Verrouillée ici (vert).",CREG,align=ALW,border=True); ws.merge_cells(f"C{gr+1}:H{gr+1}")
+C(ws,f"A{gr+2}","MATIÈRE (l'assiette)",CB,FGRN,align=AL,border=True); ws.merge_cells(f"A{gr+2}:B{gr+2}")
+C(ws,f"C{gr+2}","le contrôleur conteste l'assiette réelle (colonne P, Δ) sur SON périmètre — jamais d'écrasement. La contestation redéploie le coût INTRA-campus ; le total campus & groupe est inchangé (tie-out préservé), elle remonte au CFO pour arbitrage.",CREG,align=ALW,border=True); ws.merge_cells(f"C{gr+2}:H{gr+2}"); ws.row_dimensions[gr+2].height=42
+C(ws,f"A{gr+4}","Contestations en attente :",CB,align=AR); ws.merge_cells(f"A{gr+4}:C{gr+4}")
+C(ws,f"D{gr+4}",f'=COUNTIF({PALL},"<>0")',CFB,FYEL,fmt=NB,align=AC,border=True)
+C(ws,f"E{gr+4}","(nombre de cellules où le contrôleur conteste l'assiette — à arbitrer par le CFO)",CIT,align=AL); ws.merge_cells(f"E{gr+4}:H{gr+4}")
+C(ws,f"A{gr+6}","Cascade Groupe → Marque → Campus → Classe : la CLÉ (méthode) est figée par le CFO au cadrage. Coût par étudiant PLEINEMENT chargé (directs + siège cascadé + structure). Marge/étudiant en rouge = classe déficitaire → cible du simulateur d'ouverture / fermeture. Testez la sensibilité : changez une clé au cadrage → une classe peut basculer de rentable à déficitaire.",CIT,align=AL); ws.merge_cells(f"A{gr+6}:O{gr+7}"); ws.row_dimensions[gr+6].height=42
 
 # ============================================================ 11_Reconciliation (contrôle croisé multisource)
 ws=wb.create_sheet("11_Reconciliation"); ws.sheet_view.showGridLines=False
@@ -800,12 +848,14 @@ V26="2026ATT_VDEF"
 CA_base=f"SUM({brng('U')})"; CA_compta=f'SUMIFS({KMT},{KSENS},"Produit",{KVER},"{V26}")'
 Leads_crm=f'SUMIFS({xrng("G")},{XVER},2026)'; Leads_base=f"SUM({brng('H')})"
 Spend_crm=f'SUMIFS({xrng("H")},{XVER},2026)'; Spend_compta=f'SUMIFS({KMT},{KACC},"6231",{KVER},"{V26}")'; Spend_camp=f"SUM('03_Campagnes'!$G${CR0}:$G${CRN})"
+Brand_crm=f'SUMIFS({xrng("I")},{XVER},2026)'; Brand_compta=f'SUMIFS({KMT},{KACC},"6236",{KVER},"{V26}")'
 EB_pl=PNL_EBc; EB_compta=f'SUMIFS({KMT},{KSENS},"Produit",{KVER},"{V26}")-SUMIFS({KMT},{KSENS},"Charge",{KVER},"{V26}")+SUMIFS({KMT},{KSIG},"Dotations",{KVER},"{V26}")'
 for i,h in enumerate(["Grandeur (atterrissage 2026)","Source A","Valeur A","Source B","Valeur B","Écart","Statut"]): C(ws,f"{GL(2+i)}4",h,CHDR,FBLUE,align=AC,border=True)
 recs=[("Chiffre d'affaires","Base (Σ CA réf)",CA_base,"Compta (produits)",CA_compta,EUR),
  ("Leads","CRM (Σ leads)",Leads_crm,"Base (Σ leads hist)",Leads_base,NB),
- ("Dépense marketing","CRM (dépense)",Spend_crm,"Compta (compte 6231)",Spend_compta,EUR),
- ("Dépense marketing (bis)","Compta (6231)",Spend_compta,"Campagnes (budget réf)",Spend_camp,EUR),
+ ("Dépense acquisition","CRM (dépense acq.)",Spend_crm,"Compta (compte 6231)",Spend_compta,EUR),
+ ("Dépense acquisition (bis)","Compta (6231)",Spend_compta,"Campagnes (budget réf)",Spend_camp,EUR),
+ ("Dépense marque","CRM (dépense marque)",Brand_crm,"Compta (compte 6236)",Brand_compta,EUR),
  ("EBITDA","P&L (cascade SIG)",EB_pl,"Compta (produits − charges)",EB_compta,EUR)]
 r=5
 for lib,sA,fA,sB,fB,fmt in recs:
