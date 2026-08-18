@@ -307,8 +307,8 @@ C(ws,f"J{r+1}","Indice = prix moyen ville ÷ national, calculé sur le réalisé
 ws=wb.create_sheet("02_Base"); ws.sheet_view.showGridLines=False
 bcols=["Marque","Ville","Programme","Cycle","Année","Modalité","Entrée",
  "Leads hist","Cand hist","Admis hist","Nouv hist","Réins hist","Effectif hist","Eff. année inf.","Classes hist",
- "Revenu/étudiant","Taux passage","Taux lead→cand","Taux cand→admis","Yield admis→inscrit"]
-for i,w in enumerate([15,10,20,6,6,7,7,9,9,9,9,9,10,11,9,12,10,11,11,12]): ws.column_dimensions[GL(1+i)].width=w
+ "Revenu/étudiant","Taux passage","Taux lead→cand","Taux cand→admis","Yield admis→inscrit","CA réf"]
+for i,w in enumerate([15,10,20,6,6,7,7,9,9,9,9,9,10,11,9,12,10,11,11,12,12]): ws.column_dimensions[GL(1+i)].width=w
 ws.merge_cells(f"A1:{GL(len(bcols))}1"); C(ws,"A1","BASE DE RÉFÉRENCE — version unique · fusion historique + paramètres · leads observés (CRM) & taux mesurés",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
 ws.merge_cells(f"A2:{GL(len(bcols))}2"); C(ws,"A2","Une ligne = marque × ville × programme × année × modalité. Leads = donnée observée (CRM). Taux = mesurés (aval÷amont). Revenu différencié alternance (OPCO) / initial (étudiant).",CIT,align=ALW); ws.row_dimensions[2].height=16
 for i,h in enumerate(bcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
@@ -317,8 +317,9 @@ for idx,rr in enumerate(rows):
     r=BR0+idx
     vals=[rr["marque"],rr["ville"],rr["prog"],rr["type"],rr["niv"],("Alternance" if rr["mod"]=="ALT" else "Initial"),rr["entry"],
           rr["leads"],rr["cand"],rr["admis"],rr["nouv"],rr["rein"],rr["eff"],rr["eff_prev"],rr["classes"],
-          rr["rev"],round(rr["passage"],4),round(rr["rlc"],4),round(rr["rca"],4),round(rr["yld"],4)]
-    fmts=[None,None,None,None,None,None,NB,NB,NB,NB,NB,NB,NB,NB,NB,EUR,PCT,PCT,PCT,PCT]
+          rr["rev"],round(rr["passage"],4),round(rr["rlc"],4),round(rr["rca"],4),round(rr["yld"],4),
+          round(rr["eff"]*rr["rev"]+rr["nouv"]*FRAIS_DEF)]
+    fmts=[None,None,None,None,None,None,NB,NB,NB,NB,NB,NB,NB,NB,NB,EUR,PCT,PCT,PCT,PCT,EUR]
     for i,(v,f) in enumerate(zip(vals,fmts)):
         al=AL if i<6 else AC
         C(ws,f"{GL(1+i)}{r}",v,CL,fmt=f,align=al,border=True)
@@ -726,42 +727,59 @@ ch.add_data(data,titles_from_data=True); ch.set_categories(cats); ch.y_axis.numF
 ws.add_chart(ch,"F20")
 C(ws,"B23","Les tuiles et les ponts se recalculent en direct quand on bouge un levier du cadrage ou un scénario.",CIT,align=AL); ws.merge_cells("B23:N23")
 
-# ============================================================ 10_Allocation (cascade groupe → campus, clé au choix)
+# ============================================================ 10_Allocation (cascade 3 niveaux → classe, clé/niveau, coût/étudiant)
 ws=wb.create_sheet("10_Allocation"); ws.sheet_view.showGridLines=False
-acols=["Marque","Ville","CA","Coûts directs","Contribution","Coûts propres campus","Clé","Part","Quote-part groupe","EBITDA campus","Marge %"]
-for i,w in enumerate([15,11,13,13,13,15,11,8,15,14,9]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells(f"A1:{GL(len(acols))}1"); C(ws,"A1","ALLOCATION EN CASCADE — coûts du siège redescendus sur les campus (clé au choix)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
-A26V="2026ATT_VDEF"
+acols=["Marque","Ville","Programme","Année","Mod.","CA","Effectif","Classes","Coûts directs","Siège alloué","Structure allouée","Coût total","Coût / étudiant","Coût / classe","Marge / étu."]
+for i,w in enumerate([13,10,17,6,5,12,8,7,12,12,13,13,12,12,12]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells(f"A1:{GL(len(acols))}1"); C(ws,"A1","ALLOCATION EN CASCADE (3 niveaux, clé au choix par niveau) — jusqu'à la classe · vrai coût par étudiant",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
+A26V="2026ATT_VDEF"; DIR_PCT=round(sum(a[6] for a in ACCTS if a[3]=="Coûts directs"),4)
 KMARQUE=f"'06_Compta'!$C${KP0}:$C${KPN}"; KVILLE=f"'06_Compta'!$D${KP0}:$D${KPN}"; KENT=f"'06_Compta'!$A${KP0}:$A${KPN}"
+BU=brng('U'); BM=brng('M'); BO=brng('O'); BA=brng('A'); BB=brng('B')
+def dvf(sel,crit=None):
+    if crit:
+        inner=f'IF({sel}="Nombre de classes",SUMIFS({BO},{crit}),SUMIFS({BU},{crit}))'
+        return f'IF({sel}="Effectif",SUMIFS({BM},{crit}),{inner})'
+    inner=f'IF({sel}="Nombre de classes",SUM({BO}),SUM({BU}))'
+    return f'IF({sel}="Effectif",SUM({BM}),{inner})'
+dvl=DataValidation(type="list",formula1='"Chiffre d\'affaires,Effectif,Nombre de classes"',allow_blank=False); ws.add_data_validation(dvl)
+for rr,lab,dft in [(3,"Niveau 1 — Groupe → Marque, clé :","Chiffre d'affaires"),(4,"Niveau 2 — Marque → Campus, clé :","Effectif"),(5,"Niveau 3 — Campus → Classe, clé :","Nombre de classes")]:
+    C(ws,f"B{rr}",lab,CB,align=AR); ws.merge_cells(f"B{rr}:D{rr}"); C(ws,f"E{rr}",dft,CINB,FYEL,align=AC,border=True); dvl.add(ws[f"E{rr}"])
 GRP_CHG=f'SUMIFS({KMT},{KENT},"GROUPE",{KSENS},"Charge",{KVER},"{A26V}")'
-C(ws,"B3","Clé d'allocation des coûts groupe :",CB,align=AR); C(ws,"E3","Chiffre d'affaires",CINB,FYEL,align=AC,border=True)
-dv=DataValidation(type="list",formula1='"Chiffre d\'affaires,Effectif,Nombre de classes"',allow_blank=False); ws.add_data_validation(dv); dv.add(ws["E3"])
-C(ws,"G3","Coûts groupe à répartir :",CB,align=AR); C(ws,"I3",f"={GRP_CHG}",CFB,fmt=EUR,align=AR,border=True)
-for i,h in enumerate(acols): C(ws,f"{GL(1+i)}5",h,CHDR,FBLUE,align=AC,border=True)
-ws.row_dimensions[5].height=28
-AA0=6
-for idx,cc in enumerate(campus):
-    r=AA0+idx; m=cc["marque"]; v=cc["ville"]
-    crit=f'{KMARQUE},A{r},{KVILLE},B{r},{KVER},"{A26V}"'
-    C(ws,f"A{r}",m,CL,align=AL,border=True); C(ws,f"B{r}",v,CL,align=AC,border=True)
-    C(ws,f"C{r}",f'=SUMIFS({KMT},{crit},{KSENS},"Produit")',CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"D{r}",f'=SUMIFS({KMT},{crit},{KSIG},"Coûts directs")',CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"E{r}",f"=C{r}-D{r}",CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"F{r}",f'=SUMIFS({KMT},{crit},{KSENS},"Charge")-D{r}-SUMIFS({KMT},{crit},{KSIG},"Dotations")',CF,fmt=EUR,align=AR,border=True)
-    eff=f'SUMIFS({brng("M")},{brng("A")},A{r},{brng("B")},B{r})'; cls=f'SUMIFS({brng("O")},{brng("A")},A{r},{brng("B")},B{r})'
-    C(ws,f"G{r}",f'=IF($E$3="Effectif",{eff},IF($E$3="Nombre de classes",{cls},C{r}))',CF,fmt=NB,align=AR,border=True)
-    C(ws,f"H{r}",f"=IFERROR(G{r}/SUM($G${AA0}:$G${AA0+CG-1}),0)",CF,fmt=PCT,align=AC,border=True)
-    C(ws,f"I{r}",f"=H{r}*$I$3",CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"J{r}",f"=E{r}-F{r}-I{r}",CFB,fmt=EUR,align=AR,border=True)
-    C(ws,f"K{r}",f"=IFERROR(J{r}/C{r},0)",CF,fmt=PCT,align=AR,border=True)
-r=AA0+CG
-C(ws,f"A{r}","TOTAL",CFB,FTOT,align=AL,border=True); C(ws,f"B{r}"," ",fill=FTOT,border=True)
-for col in ["C","D","E","F","I","J"]: C(ws,f"{col}{r}",f"=SUM({col}{AA0}:{col}{AA0+CG-1})",CFB,FTOT,fmt=EUR,align=AR,border=True)
-C(ws,f"G{r}",f"=SUM(G{AA0}:G{AA0+CG-1})",CFB,FTOT,fmt=NB,align=AR,border=True); C(ws,f"H{r}"," ",fill=FTOT,border=True)
-C(ws,f"K{r}",f"=IFERROR(J{r}/C{r},0)",CFB,FTOT,fmt=PCT,align=AR,border=True)
-ws.conditional_formatting.add(f"K{AA0}:K{AA0+CG-1}",
-    ColorScaleRule(start_type="num",start_value=0,start_color="F8696B",mid_type="num",mid_value=0.14,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
-C(ws,f"A{r+2}","Change la clé (CA / effectif / classes) → la quote-part du siège se redistribue et l'EBITDA par campus bouge. Un campus rentable en contribution peut devenir déficitaire une fois pleinement chargé (effet « piège »). Le total EBITDA reste constant.",CIT,align=AL); ws.merge_cells(f"A{r+2}:K{r+3}"); ws.row_dimensions[r+2].height=28
+C(ws,"G3","Coûts siège à cascader :",CB,align=AR); C(ws,"I3",f"={GRP_CHG}",CFB,fmt=EUR,align=AR,border=True)
+D1S,D2S,D3S="$E$3","$E$4","$E$5"
+for i,h in enumerate(acols): C(ws,f"{GL(1+i)}7",h,CHDR,FBLUE,align=AC,border=True)
+ws.row_dimensions[7].height=28
+AA0=8
+for idx in range(N):
+    r=AA0+idx; b=BR0+idx
+    C(ws,f"A{r}",f"={BASE}A{b}",CL,align=AL,border=True); C(ws,f"B{r}",f"={BASE}B{b}",CL,align=AC,border=True); C(ws,f"C{r}",f"={BASE}C{b}",CL,align=AL,border=True)
+    C(ws,f"D{r}",f"={BASE}E{b}",CL,align=AC,border=True); C(ws,f"E{r}",f"={BASE}F{b}",CL,align=AC,border=True)
+    C(ws,f"F{r}",f"={BASE}U{b}",CF,fmt=EUR,align=AR,border=True); C(ws,f"G{r}",f"={BASE}M{b}",CF,fmt=NB,align=AR,border=True); C(ws,f"H{r}",f"={BASE}O{b}",CF,fmt=NB,align=AR,border=True)
+    mC=f'{BA},A{r}'; cC=f'{BA},A{r},{BB},B{r}'; kC=f'{KMARQUE},A{r},{KVILLE},B{r},{KVER},"{A26V}"'
+    msh=f'IFERROR({dvf(D1S,mC)}/{dvf(D1S)},0)'
+    csh=f'IFERROR({dvf(D2S,cC)}/{dvf(D2S,mC)},0)'
+    celldrv=f'IF({D3S}="Effectif",{BASE}M{b},IF({D3S}="Nombre de classes",{BASE}O{b},{BASE}U{b}))'
+    lsh=f'IFERROR(({celldrv})/{dvf(D3S,cC)},0)'
+    campind=f'(SUMIFS({KMT},{kC},{KSENS},"Charge")-SUMIFS({KMT},{kC},{KSIG},"Dotations")-SUMIFS({BU},{cC})*{DIR_PCT})'
+    C(ws,f"I{r}",f"=F{r}*{DIR_PCT}",CF,fmt=EUR,align=AR,border=True)                       # coûts directs (taux)
+    C(ws,f"J{r}",f"=$I$3*({msh})*({csh})*({lsh})",CF,fmt=EUR,align=AR,border=True)          # siège cascadé 3 niveaux
+    C(ws,f"K{r}",f"={campind}*({lsh})",CF,fmt=EUR,align=AR,border=True)                     # structure campus allouée (niveau 3)
+    C(ws,f"L{r}",f"=I{r}+J{r}+K{r}",CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"M{r}",f"=IFERROR(L{r}/G{r},0)",CFB,fmt=EUR,align=AR,border=True)                 # coût / étudiant
+    C(ws,f"N{r}",f"=IFERROR(L{r}/H{r},0)",CF,fmt=EUR,align=AR,border=True)                  # coût / classe
+    C(ws,f"O{r}",f"=IFERROR(F{r}/G{r}-M{r},0)",CF,fmt=EUR,align=AR,border=True)             # marge / étudiant
+r=AA0+N
+C(ws,f"A{r}","TOTAL",CFB,FTOT,align=AL,border=True)
+for col in ["B","C","D","E"]: C(ws,f"{col}{r}"," ",fill=FTOT,border=True)
+for col,fmt in [("F",EUR),("G",NB),("H",NB),("I",EUR),("J",EUR),("K",EUR),("L",EUR)]:
+    C(ws,f"{col}{r}",f"=SUM({col}{AA0}:{col}{r-1})",CFB,FTOT,fmt=fmt,align=AR,border=True)
+C(ws,f"M{r}",f"=IFERROR(L{r}/G{r},0)",CFB,FTOT,fmt=EUR,align=AR,border=True)
+C(ws,f"N{r}",f"=IFERROR(L{r}/H{r},0)",CFB,FTOT,fmt=EUR,align=AR,border=True)
+C(ws,f"O{r}",f"=IFERROR(F{r}/G{r}-M{r},0)",CFB,FTOT,fmt=EUR,align=AR,border=True)
+ws.freeze_panes="F8"
+ws.conditional_formatting.add(f"O{AA0}:O{r-1}",
+    ColorScaleRule(start_type="min",start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
+C(ws,f"A{r+2}","Cascade Groupe → Marque → Campus → Classe : la clé se choisit à CHAQUE niveau (CA / effectif / classes). Le coût total par étudiant est PLEINEMENT chargé (directs + siège cascadé + structure). La marge/étudiant en rouge = classe déficitaire → cible du simulateur d'ouverture / fermeture (étape suivante).",CIT,align=AL); ws.merge_cells(f"A{r+2}:O{r+3}"); ws.row_dimensions[r+2].height=30
 
 try: wb.calculation.fullCalcOnLoad=True
 except Exception: pass
