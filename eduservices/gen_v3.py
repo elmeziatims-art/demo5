@@ -290,28 +290,28 @@ for idx,rr in enumerate(rows):
         C(ws,f"{GL(1+i)}{r}",v,CL,fmt=f,align=al,border=True)
 ws.freeze_panes="A4"
 
-# ============================================================ 02_CRM (historique multisource, format LONG)
-CRMV=[("2023ACT_VDEF","2023 (N-2)"),("2024ACT_VDEF","2024 (N-1)"),("2025ATT_VDEF","2025 (Atterr.)")]
+# ============================================================ 02_CRM (historique multisource, format LONG, par ANNÉE)
+CRMY=[2024,2025,2026]   # 2024 (N-2) · 2025 (N-1) · 2026 (atterrissage)  →  on construit le budget 2027
 ws=wb.create_sheet("02_CRM"); ws.sheet_view.showGridLines=False
-xcols=["Marque","Ville","clé","Version","Exercice","Leads organiques","Leads payants","Leads totaux","Dépense marketing"]
-for i,w in enumerate([15,11,15,15,15,15,14,13,15]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells(f"A1:{GL(len(xcols))}1"); C(ws,"A1","CRM & MARKETING — historique multisource (format long) : leads organiques/payants + dépense, par campus × version",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
-ws.merge_cells(f"A2:{GL(len(xcols))}2"); C(ws,"A2","Source : CRM (leads, tag organique/payant) + compta (dépense marketing). 3 exercices. C'est de cet historique que 03_Campagnes MESURE le CPL, le rendement et la part organique — rien n'est saisi.",CIT,align=ALW); ws.row_dimensions[2].height=16
+xcols=["Marque","Ville","clé","Année","Leads organiques","Leads payants","Leads totaux","Dépense marketing"]
+for i,w in enumerate([15,11,15,10,15,14,13,15]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells(f"A1:{GL(len(xcols))}1"); C(ws,"A1","CRM & MARKETING — historique multisource (format long, par année) : leads organiques/payants + dépense",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
+ws.merge_cells(f"A2:{GL(len(xcols))}2"); C(ws,"A2","Source : CRM (leads, tag organique/payant) + compta (dépense). 3 années réelles (2024·2025·2026). 03_Campagnes MESURE le CPL, le rendement et la part organique depuis cet historique — rien n'est saisi.",CIT,align=ALW); ws.row_dimensions[2].height=22
 for i,h in enumerate(xcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 XR0=4; xr=XR0
 for cc in campus:
-    for vi,(vcode,exlab) in enumerate(CRMV):
+    for vi,yr in enumerate(CRMY):
         C(ws,f"A{xr}",cc["marque"],CL,align=AL,border=True); C(ws,f"B{xr}",cc["ville"],CL,align=AC,border=True)
         C(ws,f"C{xr}",f'=A{xr}&"|"&B{xr}',CF,align=AC,border=True)
-        C(ws,f"D{xr}",vcode,CL,align=AC,border=True); C(ws,f"E{xr}",exlab,CL,align=AC,border=True)
-        C(ws,f"F{xr}",cc["org"][vi],CL,fmt=NB,align=AR,border=True); C(ws,f"G{xr}",cc["paid"][vi],CL,fmt=NB,align=AR,border=True)
-        C(ws,f"H{xr}",f"=F{xr}+G{xr}",CF,fmt=NB,align=AR,border=True); C(ws,f"I{xr}",cc["spend"][vi],CL,fmt=EUR,align=AR,border=True)
+        C(ws,f"D{xr}",yr,CL,align=AC,border=True)
+        C(ws,f"E{xr}",cc["org"][vi],CL,fmt=NB,align=AR,border=True); C(ws,f"F{xr}",cc["paid"][vi],CL,fmt=NB,align=AR,border=True)
+        C(ws,f"G{xr}",f"=E{xr}+F{xr}",CF,fmt=NB,align=AR,border=True); C(ws,f"H{xr}",cc["spend"][vi],CL,fmt=EUR,align=AR,border=True)
         xr+=1
 XRN=xr-1; ws.freeze_panes="A4"
 CRM="'02_CRM'!"
 def xrng(col): return f"{CRM}${col}${XR0}:${col}${XRN}"
 XKEY=xrng("C"); XVER=xrng("D")
-def xsum(col,key,ver): return f'SUMIFS({xrng(col)},{XKEY},{key},{XVER},"{ver}")'
+def xsum(col,key,yr): return f'SUMIFS({xrng(col)},{XKEY},{key},{XVER},{yr})'
 
 # ============================================================ 03_Campagnes (mesure CPL/rendement/part org + budget->leads)
 ws=wb.create_sheet("03_Campagnes"); ws.sheet_view.showGridLines=False
@@ -321,18 +321,18 @@ ws.merge_cells(f"A1:{GL(len(ccols))}1"); C(ws,"A1","MOTEUR D'ACQUISITION (campus
 ws.merge_cells(f"A2:{GL(len(ccols))}2"); C(ws,"A2","Part org = org÷total (ATT). CPL = dépense÷payants (ATT). Rendement = ln(payants ATT÷N-2) ÷ ln(dépense ATT÷N-2). Leads payants actif = payants réf × (budget actif÷réf)^rendement. Total = organiques + payants.",CIT,align=ALW); ws.row_dimensions[2].height=22
 for i,h in enumerate(ccols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[3].height=30
-A25="2025ATT_VDEF"; A23="2023ACT_VDEF"
+YATT=2026; YOLD=2024
 for idx,cc in enumerate(campus):
     r=CR0+idx; key=f"C{r}"
     C(ws,f"A{r}",cc["marque"],CL,align=AL,border=True); C(ws,f"B{r}",cc["ville"],CL,align=AC,border=True)
     C(ws,f"C{r}",f'=A{r}&"|"&B{r}',CF,align=AC,border=True)
-    C(ws,f"D{r}",f"={xsum('F',key,A25)}",CF,fmt=NB,align=AR,border=True)   # org ATT
-    C(ws,f"E{r}",f"={xsum('G',key,A25)}",CF,fmt=NB,align=AR,border=True)   # payants ATT
+    C(ws,f"D{r}",f"={xsum('E',key,YATT)}",CF,fmt=NB,align=AR,border=True)   # org ATT
+    C(ws,f"E{r}",f"={xsum('F',key,YATT)}",CF,fmt=NB,align=AR,border=True)   # payants ATT
     C(ws,f"F{r}",f"=D{r}+E{r}",CF,fmt=NB,align=AR,border=True)
-    C(ws,f"G{r}",f"={xsum('I',key,A25)}",CF,fmt=EUR,align=AR,border=True)  # dépense ATT
+    C(ws,f"G{r}",f"={xsum('H',key,YATT)}",CF,fmt=EUR,align=AR,border=True)  # dépense ATT
     C(ws,f"H{r}",f"=IFERROR(D{r}/F{r},0)",CF,fmt=PCT,align=AC,border=True)  # part org MESURÉE
     C(ws,f"I{r}",f"=IFERROR(G{r}/E{r},0)",CF,fmt=EUR,align=AR,border=True)  # CPL MESURÉ
-    C(ws,f"J{r}",f"=IFERROR(LN(E{r}/{xsum('G',key,A23)})/LN(G{r}/{xsum('I',key,A23)}),0.5)",CF,fmt=X2,align=AC,border=True)  # rendement MESURÉ
+    C(ws,f"J{r}",f"=IFERROR(LN(E{r}/{xsum('F',key,YOLD)})/LN(G{r}/{xsum('H',key,YOLD)}),0.5)",CF,fmt=X2,align=AC,border=True)  # rendement MESURÉ
     C(ws,f"K{r}",f"=G{r}*(1+{LMKT})",CFB,fmt=EUR,align=AR,border=True)
     C(ws,f"L{r}",f"=E{r}*(K{r}/G{r})^J{r}",CFB,fmt=NB,align=AR,border=True)
     C(ws,f"M{r}",f"=D{r}+L{r}",CFB,fmt=NB,align=AR,border=True)
@@ -392,9 +392,9 @@ GROW_HIST=1.06
 TARGETS={2:0.132,1:0.140,0:0.146}
 NONDA_PCT=sum(a[6] for a in ACCTS if a[3]!="Dotations" and a[6] is not None)  # = 0,854
 # dimension Version (codes prêts Tagetik) : (code, libellé exercice, n en arrière, type, année)
-VERS=[("2023ACT_VDEF","2023 (N-2)",2,"Actual",2023),
-      ("2024ACT_VDEF","2024 (N-1)",1,"Actual",2024),
-      ("2025ATT_VDEF","2025 (Atterr.)",0,"Forecast",2025)]
+VERS=[("2024ACT_VDEF","2024 (N-2)",2,"Actual",2024),
+      ("2025ACT_VDEF","2025 (N-1)",1,"Actual",2025),
+      ("2026ATT_VDEF","2026 (Atterr.)",0,"Forecast",2026)]
 # hiérarchies : PCG (poste) et gestion (SIG agrégat + nœud parent)
 def poste_of(code):
     if code[0]=="7": return "70 — Prestations de services"
@@ -510,8 +510,8 @@ KSIG=f"'06_Compta'!$I${KP0}:$I${KPN}"; KSENS=f"'06_Compta'!$H${KP0}:$H${KPN}"
 # ---- 07_PnL (cascade SIG, 3 versions + variance) ----
 ws=wb.create_sheet("07_PnL"); ws.sheet_view.showGridLines=False
 for c,w in {"A":2,"B":10,"C":44,"D":14,"E":14,"F":14,"G":14,"H":9}.items(): ws.column_dimensions[c].width=w
-ws.merge_cells("B1:H1"); C(ws,"B1","COMPTE DE RÉSULTAT (SIG) — réalisé N-2 · N-1 · atterrissage N · BUDGET N+1 (piloté par le cadrage)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=26
-hdr=["Compte","Libellé"]+[v[1] for v in VERS]+["🟢 Budget N+1","Var Bud/Att %"]
+ws.merge_cells("B1:H1"); C(ws,"B1","COMPTE DE RÉSULTAT (SIG) — réalisé 2024 · 2025 · atterrissage 2026 · BUDGET 2027 (piloté par le cadrage)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=26
+hdr=["Compte","Libellé"]+[v[1] for v in VERS]+["🟢 Budget 2027","Var Bud/Att %"]
 for i,h in enumerate(hdr): C(ws,f"{GL(2+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[3].height=26
 VC=[v[0] for v in VERS]   # codes version pour les SUMIFS
