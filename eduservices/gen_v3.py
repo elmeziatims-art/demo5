@@ -134,8 +134,8 @@ wb=openpyxl.Workbook()
 
 # ============================================================ REFS 01_Cadrage
 CAD="'01_Cadrage'!"
-LMKT,LPRIX,LGLC,LGCV,LPASS=(f"{CAD}$H${_r}" for _r in (14,15,16,17,18))   # leviers ACTIF
-KREND,KPORG,KFRAIS=(f"{CAD}$H${_r}" for _r in (22,23,24))                  # constantes ACTIF
+LMKT,LPRIX,LGLC,LGCV,LPASS,LINFL,LSAL=(f"{CAD}$H${_r}" for _r in (14,15,16,17,18,19,20))  # leviers ACTIF
+KREND,KPORG,KFRAIS=(f"{CAD}$H${_r}" for _r in (24,25,26))                  # constantes ACTIF
 CPKEY=f"{CAD}$M$7:$M${6+CG}"; CPVAL=f"{CAD}$L$7:$L${6+CG}"
 
 BR0=4; BRN=BR0+N-1
@@ -187,20 +187,22 @@ levs=[("Variation du budget marketing (→ leads payants)","%",0,0.10,0.20,-0.05
  ("Hausse tarifaire (prix)","%",0,0.03,0.04,0.02),
  ("Gain taux lead → candidature","pts",0,0.02,0.04,0.0),
  ("Gain conversion admis → inscrit","pts",0,0.015,0.03,0.0),
- ("Amélioration du taux de passage","pts",0,0.01,0.02,-0.01)]
+ ("Amélioration du taux de passage","pts",0,0.01,0.02,-0.01),
+ ("Inflation des charges externes (→ coûts)","%",0,0.02,0.015,0.03),
+ ("Politique salariale (→ personnel)","%",0,0.025,0.02,0.03)]
 r=14
 for lib,u,ba,cad,opt,pru in levs:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True); C(ws,f"C{r}",u,CREG,align=AC,border=True); C(ws,f"D{r}",ba,CIT,fmt=PCT,align=AC,border=True)
     C(ws,f"E{r}",cad,CIN,fmt=PCT,align=AC,border=True); C(ws,f"F{r}",opt,CIN,fmt=PCT,align=AC,border=True); C(ws,f"G{r}",pru,CIN,fmt=PCT,align=AC,border=True)
     C(ws,f"H{r}",f"=INDEX(D{r}:G{r},{MATCHSC})",CFB,FLIGHT,fmt=PCT,align=AC,border=True); r+=1
-C(ws,"B19",'Astuce : choisir « Référence » remet tous les leviers à 0 → le modèle reproduit l\'atterrissage.',CIT,align=AL); ws.merge_cells("B19:H19")
+C(ws,"B21",'Leviers 1-5 → CA (moteur) · leviers 6-7 → coûts (P&L Budget N+1). « Référence » remet tout à 0 = atterrissage.',CIT,align=AL); ws.merge_cells("B21:H21")
 # --- constantes ---
-band(ws,20,"B","H","③ Constantes de référence (scénarisables)")
-for i,h in enumerate(["Paramètre","Unité","Référence","Cadrage","Optimiste","Prudent","ACTIF"]): C(ws,f"{GL(2+i)}21",h,CHDR,FBLUE,align=AC,border=True)
+band(ws,22,"B","H","③ Constantes de référence (scénarisables)")
+for i,h in enumerate(["Paramètre","Unité","Référence","Cadrage","Optimiste","Prudent","ACTIF"]): C(ws,f"{GL(2+i)}23",h,CHDR,FBLUE,align=AC,border=True)
 consts=[("Rendement d'acquisition (part payante)","x",REND_DEF,X2),
  ("Part organique des leads (hors budget)","%",PORG_DEF,PCT),
  ("Frais de dossier / nouvel inscrit","€",FRAIS_DEF,EUR)]
-r=22
+r=24
 for lib,u,val,fmt in consts:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True); C(ws,f"C{r}",u,CREG,align=AC,border=True); C(ws,f"D{r}",val,CIT,fmt=fmt,align=AC,border=True)
     C(ws,f"E{r}",val,CIN,fmt=fmt,align=AC,border=True); C(ws,f"F{r}",val,CIN,fmt=fmt,align=AC,border=True); C(ws,f"G{r}",val,CIN,fmt=fmt,align=AC,border=True)
@@ -457,8 +459,8 @@ KSIG=f"'06_Compta'!$I${KP0}:$I${KPN}"; KSENS=f"'06_Compta'!$H${KP0}:$H${KPN}"
 # ---- 07_PnL (cascade SIG, 3 versions + variance) ----
 ws=wb.create_sheet("07_PnL"); ws.sheet_view.showGridLines=False
 for c,w in {"A":2,"B":10,"C":44,"D":14,"E":14,"F":14,"G":14,"H":9}.items(): ws.column_dimensions[c].width=w
-ws.merge_cells("B1:H1"); C(ws,"B1","COMPTE DE RÉSULTAT (SIG) — réalisé N-2 · réalisé N-1 · atterrissage N",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=26
-hdr=["Compte","Libellé"]+[v[1] for v in VERS]+["Var N-1→N €","Var %"]
+ws.merge_cells("B1:H1"); C(ws,"B1","COMPTE DE RÉSULTAT (SIG) — réalisé N-2 · N-1 · atterrissage N · BUDGET N+1 (piloté par le cadrage)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=26
+hdr=["Compte","Libellé"]+[v[1] for v in VERS]+["🟢 Budget N+1","Var Bud/Att %"]
 for i,h in enumerate(hdr): C(ws,f"{GL(2+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[3].height=26
 VC=[v[0] for v in VERS]   # codes version pour les SUMIFS
@@ -470,45 +472,57 @@ def sif(code=None,sig=None,sens=None,ver=""):
     parts+=[KVER,f'"{ver}"']
     return "SUMIFS("+",".join(parts)+")"
 r=4
-def line(code,lib,getf,bold=False,fill=None,res=False):
+# facteur budget N+1 par nature de compte : CA-driven, effectif×salaire, ou inflation
+MEFF=f"'04_Moteur'!$Y${MTOT}"; MCA=f"'04_Moteur'!$AA${MTOT}"
+CAf=f"({MCA}/{REFCA})"; EFFf=f"({MEFF}/{REFEFF})"
+def bfac(sens,sig):
+    if sens=="Produit" or sig=="Coûts directs": return CAf
+    if sig=="Personnel": return f"({EFFf}*(1+{LSAL}))"
+    return f"(1+{LINFL})"
+glist={}   # groupe -> liste des lignes budget (col G)
+def line(code,lib,sgn,sens,sig):
     global r
-    fnt=CFB if (bold or res) else CF
-    C(ws,f"B{r}",code,fnt,fill,align=AC,border=True); C(ws,f"C{r}",lib,fnt,fill,align=AL,border=True)
-    for i,vl in enumerate(VC):
-        C(ws,f"{GL(4+i)}{r}",getf(vl),fnt,fill,fmt=EUR,align=AR,border=True)
-    C(ws,f"G{r}",f"=F{r}-E{r}",fnt,fill,fmt=EUR,align=AR,border=True); C(ws,f"H{r}",f"=IFERROR((F{r}-E{r})/E{r},0)",fnt,fill,fmt=PCT,align=AR,border=True)
-    r+=1
+    C(ws,f"B{r}",code,CF,align=AC,border=True); C(ws,f"C{r}",lib,CF,align=AL,border=True)
+    for i,vc in enumerate(VC): C(ws,f"{GL(4+i)}{r}",f"={sgn}{sif(code=code,ver=vc)}",CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"G{r}",f"=F{r}*{bfac(sens,sig)}",CF,FGRN,fmt=EUR,align=AR,border=True)
+    C(ws,f"H{r}",f"=IFERROR(G{r}/F{r}-1,0)",CF,fmt=PCT,align=AR,border=True)
+    glist.setdefault(sig,[]).append(r); r+=1
 def band2(txt):
     global r; band(ws,r,"B","H",txt,fill=FBLUE); r+=1
-def result(lib,getf):
+def result(lib,dsef,grows):
     global r
     C(ws,f"B{r}"," ",CFB,FTOT,border=True); C(ws,f"C{r}",lib,CFB,FTOT,align=AL,border=True)
-    for i,vl in enumerate(VC): C(ws,f"{GL(4+i)}{r}",getf(vl),CFB,FTOT,fmt=EUR,align=AR,border=True)
-    C(ws,f"G{r}",f"=F{r}-E{r}",CFB,FTOT,fmt=EUR,align=AR,border=True); C(ws,f"H{r}",f"=IFERROR((F{r}-E{r})/E{r},0)",CFB,FTOT,fmt=PCT,align=AR,border=True)
+    for i,vc in enumerate(VC): C(ws,f"{GL(4+i)}{r}",dsef(vc),CFB,FTOT,fmt=EUR,align=AR,border=True)
+    C(ws,f"G{r}","="+"+".join(f"G{x}" for x in grows) if grows else "=0",CFB,FGRN,fmt=EUR,align=AR,border=True)
+    C(ws,f"H{r}",f"=IFERROR(G{r}/F{r}-1,0)",CFB,FTOT,fmt=PCT,align=AR,border=True)
     rr=r; r+=1; return rr
 band2("PRODUITS")
 for code,lib,sens,sig,*_ in ACCTS:
-    if sens=="Produit": line(code,lib,lambda vl,c=code:f"={sif(code=c,ver=vl)}")
-rowCA=result("CHIFFRE D'AFFAIRES",lambda vl:f"={sif(sens='Produit',ver=vl)}")
+    if sens=="Produit": line(code,lib,"",sens,sig)
+allg=[]
+rowCA=result("CHIFFRE D'AFFAIRES",lambda vc:f"={sif(sens='Produit',ver=vc)}",glist.get("Produits",[])); allg+=glist.get("Produits",[])
 band2("COÛTS DIRECTS")
 for code,lib,sens,sig,*_ in ACCTS:
-    if sig=="Coûts directs": line(code,lib,lambda vl,c=code:f"=-{sif(code=c,ver=vl)}")
-rowMC=result("MARGE DE CONTRIBUTION",lambda vl:f"={sif(sens='Produit',ver=vl)}-{sif(sig='Coûts directs',ver=vl)}")
+    if sig=="Coûts directs": line(code,lib,"-",sens,sig)
+allg+=glist.get("Coûts directs",[])
+rowMC=result("MARGE DE CONTRIBUTION",lambda vc:f"={sif(sens='Produit',ver=vc)}-{sif(sig='Coûts directs',ver=vc)}",list(allg))
 for grp in ["Personnel","Structure","Impôts & taxes"]:
     band2(grp.upper())
     for code,lib,sens,sig,*_ in ACCTS:
-        if sig==grp: line(code,lib,lambda vl,c=code:f"=-{sif(code=c,ver=vl)}")
-rowEB=result("EBITDA",lambda vl:f"={sif(sens='Produit',ver=vl)}-{sif(sens='Charge',ver=vl)}+{sif(sig='Dotations',ver=vl)}")
+        if sig==grp: line(code,lib,"-",sens,sig)
+    allg+=glist.get(grp,[])
+rowEB=result("EBITDA",lambda vc:f"={sif(sens='Produit',ver=vc)}-{sif(sens='Charge',ver=vc)}+{sif(sig='Dotations',ver=vc)}",list(allg))
 band2("DOTATIONS")
 for code,lib,sens,sig,*_ in ACCTS:
-    if sig=="Dotations": line(code,lib,lambda vl,c=code:f"=-{sif(code=c,ver=vl)}")
-rowEBIT=result("EBIT / RÉSULTAT D'EXPLOITATION",lambda vl:f"={sif(sens='Produit',ver=vl)}-{sif(sens='Charge',ver=vl)}")
-# marges %
-C(ws,f"C{r}","Marge EBITDA %",CIT,align=AL);
-for i in range(3): C(ws,f"{GL(4+i)}{r}",f"=IFERROR({GL(4+i)}{rowEB}/{GL(4+i)}{rowCA},0)",CIT,fmt=PCT,align=AR)
+    if sig=="Dotations": line(code,lib,"-",sens,sig)
+allg+=glist.get("Dotations",[])
+rowEBIT=result("EBIT / RÉSULTAT D'EXPLOITATION",lambda vc:f"={sif(sens='Produit',ver=vc)}-{sif(sens='Charge',ver=vc)}",list(allg))
+# marges % (D..G : 3 versions + budget)
+C(ws,f"C{r}","Marge EBITDA %",CIT,align=AL)
+for i in range(4): C(ws,f"{GL(4+i)}{r}",f"=IFERROR({GL(4+i)}{rowEB}/{GL(4+i)}{rowCA},0)",CIT,fmt=PCT,align=AR)
 r+=1
 C(ws,f"C{r}","Marge EBIT %",CIT,align=AL)
-for i in range(3): C(ws,f"{GL(4+i)}{r}",f"=IFERROR({GL(4+i)}{rowEBIT}/{GL(4+i)}{rowCA},0)",CIT,fmt=PCT,align=AR)
+for i in range(4): C(ws,f"{GL(4+i)}{r}",f"=IFERROR({GL(4+i)}{rowEBIT}/{GL(4+i)}{rowCA},0)",CIT,fmt=PCT,align=AR)
 
 try: wb.calculation.fullCalcOnLoad=True
 except Exception: pass
