@@ -185,8 +185,8 @@ wb=openpyxl.Workbook()
 
 # ============================================================ REFS 01_Cadrage
 CAD="'01_Cadrage'!"
-LMKT,LBRAND,LPRIX,LGLC,LGCV,LPASS,LINFL,LSAL,LEFFP,LPROD=(f"{CAD}$H${_r}" for _r in range(16,26))  # leviers ACTIF (10)
-KFRAIS=f"{CAD}$H$29"    # frais de dossier (décision) ; rendement/part org/CPL sont MESURÉS (03_Campagnes)
+LMKT,LBRAND,LPRIX,LGLC,LGCV,LPASS,LINFL,LSAL,LEFFP,LPROD,LSTRUCT=(f"{CAD}$H${_r}" for _r in range(16,27))  # leviers ACTIF (11)
+KFRAIS=f"{CAD}$H$30"    # frais de dossier (décision) ; rendement/part org/CPL sont MESURÉS (03_Campagnes)
 CROISS=f"{CAD}$F$3"; MARGEC=f"{CAD}$H$3"                 # cible top-down : croissance CA & marge EBITDA
 CAPKEY=f"{CAD}$J$15:$J$19"; CAPVAL=f"{CAD}$L$15:$L$19"   # cap stratégique par marque (éclatement)
 CPKEY=f"{CAD}$J$7:$J$11"; CPVAL=f"{CAD}$K$7:$K$11"      # coeff prix par MARQUE (décision)
@@ -289,23 +289,24 @@ levs=[("Variation du budget d'acquisition (→ leads payants)","%",0,0.08,0.15,-
  ("Inflation des charges externes","%",0,0.02,0.015,0.03),
  ("Politique salariale (masse permanente)","%",0,0.025,0.02,0.03),
  ("Variation des effectifs permanents","%",0,0.04,0.03,0.05),
- ("Effort de productivité (achats & structure)","%",0,0.01,0.03,0.0)]
+ ("Effort de productivité (achats & structure)","%",0,0.01,0.03,0.0),
+ ("Variation des coûts de structure (loyers, IT, siège…)","%",0,0.0,-0.03,0.04)]
 r=16
 for lib,u,ba,cad,opt,pru in levs:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True); C(ws,f"C{r}",u,CREG,align=AC,border=True); C(ws,f"D{r}",ba,CIT,fmt=PCT,align=AC,border=True)
     C(ws,f"E{r}",cad,CIN,fmt=PCT,align=AC,border=True); C(ws,f"F{r}",opt,CIN,fmt=PCT,align=AC,border=True); C(ws,f"G{r}",pru,CIN,fmt=PCT,align=AC,border=True)
     C(ws,f"H{r}",f"=INDEX(D{r}:G{r},{MATCHSC})",CFB,FLIGHT,fmt=PCT,align=AC,border=True); r+=1
-C(ws,"B26",'Leviers 1-6 → CA (moteur) · leviers 7-10 → coûts (P&L Budget → EBITDA). Acquisition = achat de leads (payant) · Marque = notoriété (socle organique). « Référence » remet tout à 0 = atterrissage.',CIT,align=AL); ws.merge_cells("B26:H26")
+C(ws,"B27",'Leviers 1-6 → CA (moteur) · leviers 7-11 → coûts (P&L Budget → EBITDA). Acquisition = achat de leads (payant) · Marque = notoriété (socle organique). « Référence » remet tout à 0 = atterrissage.',CIT,align=AL); ws.merge_cells("B27:H27")
 # --- constantes ---
-band(ws,27,"B","H","③ Constante — frais de dossier (décision)")
-for i,h in enumerate(["Paramètre","Unité","Référence","Cadrage","Optimiste","Prudent","ACTIF"]): C(ws,f"{GL(2+i)}28",h,CHDR,FBLUE,align=AC,border=True)
+band(ws,28,"B","H","③ Constante — frais de dossier (décision)")
+for i,h in enumerate(["Paramètre","Unité","Référence","Cadrage","Optimiste","Prudent","ACTIF"]): C(ws,f"{GL(2+i)}29",h,CHDR,FBLUE,align=AC,border=True)
 consts=[("Frais de dossier / nouvel inscrit","€",FRAIS_DEF,EUR)]
-r=29
+r=30
 for lib,u,val,fmt in consts:
     C(ws,f"B{r}",lib,CREG,align=AL,border=True); C(ws,f"C{r}",u,CREG,align=AC,border=True); C(ws,f"D{r}",val,CIT,fmt=fmt,align=AC,border=True)
     C(ws,f"E{r}",val,CIN,fmt=fmt,align=AC,border=True); C(ws,f"F{r}",val,CIN,fmt=fmt,align=AC,border=True); C(ws,f"G{r}",val,CIN,fmt=fmt,align=AC,border=True)
     C(ws,f"H{r}",f"=INDEX(D{r}:G{r},{MATCHSC})",CFB,FLIGHT,fmt=fmt,align=AC,border=True); r+=1
-C(ws,"B31","Rendement, CPL, part organique et rendement de marque ne sont pas saisis : ils sont MESURÉS depuis le CRM (voir 03_Campagnes).",CIT,align=AL); ws.merge_cells("B31:H31")
+C(ws,"B32","Rendement, CPL, part organique et rendement de marque ne sont pas saisis : ils sont MESURÉS depuis le CRM (voir 03_Campagnes).",CIT,align=AL); ws.merge_cells("B32:H32")
 MARQUES=list(BRANDS.keys())
 # --- ① coefficient prix par MARQUE (décision : pouvoir de prix différencié) ---
 band(ws,5,"J","M","Coeff prix par marque (décision)")
@@ -316,7 +317,7 @@ for m in MARQUES:
     C(ws,f"J{r}",m,CL,align=AL,border=True); C(ws,f"K{r}",CPRIX_M[m],CINB,FYEL,fmt=X2,align=AC,border=True); r+=1
 C(ws,"J12","Coeff prix = décision MARQUE. Override prix par CAMPUS possible dans 03_Campagnes (exception locale, colonne « Override prix »).",CIT,align=ALW); ws.merge_cells("J12:M12"); ws.row_dimensions[12].height=26
 # --- ② cap stratégique par marque : PILOTE LE BUDGET MARKETING (enveloppe groupe constante → somme nulle) ---
-JD0=92   # ligne de départ du tableau de justification des caps (bas de feuille) — les caps proposés y sont calculés
+JD0=130   # ligne de départ du tableau de justification des caps (bas de feuille) — les caps proposés y sont calculés
 band(ws,13,"J","P","Cap stratégique — concentre le budget marketing (→ CA construit) · caps proposés depuis l'historique")
 for i,h in enumerate(["Marque","Budget mkt réf","🔵 Cap retenu","Part budget","Cap éff.","Cap mom.","Cap pot."]): C(ws,f"{GL(10+i)}14",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[14].height=26
@@ -390,6 +391,32 @@ for col in ("C","D","E","F","H"): C(ws,f"{col}{r}",f"=SUM({col}{cstart}:{col}{r-
 C(ws,f"G{r}",f"=IFERROR(E{r}/C{r}-1,0)",CFB,FTOT,fmt=PCT,align=AC,border=True)
 ws.conditional_formatting.add(f"E{cstart}:E{r-1}",DataBarRule(start_type="min",end_type="max",color="5B9BD5"))
 ws.conditional_formatting.add(f"G{cstart}:G{r-1}",ColorScaleRule(start_type="min",start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
+# --- ⑥ EBITDA par marque / campus, réparti selon les CLÉS d'allocation (réactif au choix des drivers) ---
+ALA=f"'10_Allocation'!$A$8:$A${8+N-1}"; ALB=f"'10_Allocation'!$B$8:$B${8+N-1}"
+ALF=f"'10_Allocation'!$F$8:$F${8+N-1}"; ALL=f"'10_Allocation'!$L$8:$L${8+N-1}"
+def ebhdr(row,first):
+    C(ws,f"B{row}",first,CHDR,FBLUE,align=AL,border=True)
+    for i,h in enumerate(["CA réf","Coût alloué","EBITDA","Marge %"]): C(ws,f"{GL(3+i)}{row}",h,CHDR,FBLUE,align=AC,border=True)
+    ws.row_dimensions[row].height=22
+def ebtable(first,rowsdata):
+    global r
+    ebhdr(r,first); r+=1; e0=r
+    for lab,crit in rowsdata:
+        C(ws,f"B{r}",lab,CL,align=AL,border=True)
+        C(ws,f"C{r}",f"=SUMIFS({ALF},{crit})",CF,fmt=EUR,align=AR,border=True)
+        C(ws,f"D{r}",f"=SUMIFS({ALL},{crit})",CF,fmt=EUR,align=AR,border=True)
+        C(ws,f"E{r}",f"=C{r}-D{r}",CFB,fmt=EUR,align=AR,border=True)
+        C(ws,f"F{r}",f"=IFERROR(E{r}/C{r},0)",CF,fmt=PCT,align=AC,border=True); r+=1
+    C(ws,f"B{r}","TOTAL GROUPE",CFB,FTOT,align=AL,border=True)
+    for col in ("C","D","E"): C(ws,f"{col}{r}",f"=SUM({col}{e0}:{col}{r-1})",CFB,FTOT,fmt=EUR,align=AR,border=True)
+    C(ws,f"F{r}",f"=IFERROR(E{r}/C{r},0)",CFB,FTOT,fmt=PCT,align=AC,border=True)
+    ws.conditional_formatting.add(f"E{e0}:E{r-1}",DataBarRule(start_type="min",end_type="max",color="70AD47"))
+    ws.conditional_formatting.add(f"F{e0}:F{r-1}",ColorScaleRule(start_type="min",start_color="F8696B",mid_type="percentile",mid_value=50,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
+    r+=1
+r+=2; band(ws,r,"B","H","⑥ EBITDA par marque / campus — réparti selon les CLÉS d'allocation (atterrissage ; changez une clé → l'EBITDA se redéploie)"); r+=1
+ebtable("Par marque",[(m,f'{ALA},"{m}"') for m in MARQUES])
+ebtable("Par campus (marque — ville)",[(f'{c["marque"]} — {c["ville"]}',f'{ALA},"{c["marque"]}",{ALB},"{c["ville"]}"') for c in campus])
+C(ws,f"B{r}","EBITDA = CA − coût pleinement alloué (directs + siège cascadé + structure), selon les 3 clés du bloc « Clés d'allocation ». Clé Groupe→Marque : déplace l'EBITDA entre marques · Marque→Campus : entre campus · Campus→Classe : visible dans 10_Allocation. Total groupe constant (somme nulle).",CIT,align=ALW); ws.merge_cells(f"B{r}:H{r+1}"); ws.row_dimensions[r].height=42; r+=2
 # --- lexique des colonnes / paramètres qui méritent une explication ---
 r+=2; band(ws,r,"B","H","Lexique — que veut dire chaque colonne / paramètre ?"); r+=1
 LEX=[
@@ -424,7 +451,7 @@ for i,h in enumerate(bcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=Tru
 ws.row_dimensions[3].height=30
 for idx,rr in enumerate(rows):
     r=BR0+idx
-    frr=f"{CAD}$D$29"   # frais de dossier de référence (constante cadrage)
+    frr=f"{CAD}$D$30"   # frais de dossier de référence (constante cadrage)
     vals=[rr["marque"],rr["ville"],rr["prog"],rr["type"],rr["niv"],("Alternance" if rr["mod"]=="ALT" else "Initial"),rr["entry"],
           rr["leads"],rr["cand"],rr["admis"],rr["nouv"],rr["rein"],rr["eff"],rr["eff_prev"],rr["classes"],
           rr["rev"],
@@ -743,7 +770,8 @@ def bfac(code,sens,sig):
     if code=="6236": return f"(1+{LBRAND})"                         # marketing de marque : suit le budget de marque
     if sig=="Coûts directs": return f"({CAf}*(1-{LPROD}))"          # autres directs : volume − productivité
     if sig=="Personnel": return f"((1+{LSAL})*(1+{LEFFP}))"         # personnel : salaire × effectifs permanents
-    if sig in ("Structure","Impôts & taxes"): return f"((1+{LINFL})*(1-{LPROD}))"  # structure : inflation − productivité
+    if sig=="Structure": return f"((1+{LINFL})*(1-{LPROD})*(1+{LSTRUCT}))"          # structure : inflation − productivité × levier structure
+    if sig=="Impôts & taxes": return f"((1+{LINFL})*(1-{LPROD}))"                    # impôts & taxes : inflation − productivité
     return f"(1+{LINFL})"                                           # dotations : inflation
 glist={}   # groupe -> liste des lignes budget (col G)
 def line(code,lib,sgn,sens,sig):
