@@ -1,0 +1,540 @@
+<title>Cockpit Budget 2027</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F4F5F8; --surface:#FFFFFF; --surface-2:#FAFAFC;
+  --ink:#151A22; --ink-2:#454E5E; --muted:#79818F; --border:#E5E8EE; --border-2:#EEF0F5;
+  --navy:#1F3A5F; --gold:#9A7016;
+  --pos:#12805C; --pos-bg:#E7F4EE; --neg:#BC3B2E; --neg-bg:#FBECEA; --warn:#B5701E;
+  --c1:#2D6CDF; --c2:#B5701E; --c3:#1F9E8F; --c4:#7A5AA6; --c5:#C64B6E;
+  --grid:#EDEFF3; --chart-surface:#FFFFFF;
+  --shadow:0 1px 2px rgba(20,24,34,.04),0 4px 16px rgba(20,24,34,.05);
+  --radius:14px;
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){
+  --bg:#101114; --surface:#191A1E; --surface-2:#1F2126;
+  --ink:#ECEEF2; --ink-2:#AEB5C1; --muted:#7C8494; --border:#2B2E35; --border-2:#24262C;
+  --navy:#9DB8E8; --gold:#D2A24A;
+  --pos:#3FBE8E; --pos-bg:#16281F; --neg:#E7776A; --neg-bg:#2A1A18; --warn:#D2913C;
+  --c1:#5B8DEF; --c2:#BB7A26; --c3:#2FA294; --c4:#8E79D6; --c5:#E05C68;
+  --grid:#26282E; --chart-surface:#191A1E;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.32);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101114; --surface:#191A1E; --surface-2:#1F2126;
+  --ink:#ECEEF2; --ink-2:#AEB5C1; --muted:#7C8494; --border:#2B2E35; --border-2:#24262C;
+  --navy:#9DB8E8; --gold:#D2A24A;
+  --pos:#3FBE8E; --pos-bg:#16281F; --neg:#E7776A; --neg-bg:#2A1A18; --warn:#D2913C;
+  --c1:#5B8DEF; --c2:#BB7A26; --c3:#2FA294; --c4:#8E79D6; --c5:#E05C68;
+  --grid:#26282E; --chart-surface:#191A1E;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.32);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px 72px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 86%,transparent);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--border);
+}
+.hd{max-width:1180px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;gap:18px}
+.brand{display:flex;flex-direction:column;gap:2px}
+.brand .grp{font-family:"Spectral",Georgia,serif;font-weight:600;font-size:19px;letter-spacing:.01em;line-height:1}
+.brand .sub{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.spacer{flex:1}
+.api-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--border);
+  border-radius:99px;background:var(--surface);font-size:12px;font-weight:500;color:var(--ink-2)}
+.api-badge b{color:var(--ink);font-weight:600}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--pos);box-shadow:0 0 0 0 color-mix(in srgb,var(--pos) 60%,transparent);animation:pulse 2.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--pos) 55%,transparent)}70%{box-shadow:0 0 0 6px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+.tgl{appearance:none;border:1px solid var(--border);background:var(--surface);color:var(--ink-2);
+  width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:15px;display:grid;place-items:center}
+.tgl:hover{color:var(--ink);border-color:var(--muted)}
+
+/* ---------- intro ---------- */
+.intro{padding:38px 0 26px}
+.eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:600;margin:0 0 12px}
+h1{font-family:"Spectral",Georgia,serif;font-weight:600;font-size:clamp(30px,5vw,46px);line-height:1.04;
+  letter-spacing:-.01em;margin:0 0 14px;text-wrap:balance;max-width:20ch}
+.lede{font-size:16.5px;color:var(--ink-2);max-width:64ch;margin:0}
+.lede b{color:var(--ink);font-weight:600}
+
+/* ---------- kpi ---------- */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin:8px 0 30px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.kpis{grid-template-columns:1fr}}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 18px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi .lbl{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.kpi .val{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:27px;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+.kpi .val small{font-size:15px;color:var(--muted);font-weight:500}
+.kpi .delta{margin-top:9px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:5px}
+.kpi .delta.pos{color:var(--pos)} .kpi .delta.neg{color:var(--neg)}
+.kpi .foot{margin-top:3px;font-size:12px;color:var(--muted)}
+.kpi.feature{background:linear-gradient(160deg,var(--navy),color-mix(in srgb,var(--navy) 82%,#000));border-color:transparent}
+.kpi.feature .lbl,.kpi.feature .foot{color:color-mix(in srgb,#fff 74%,transparent)}
+.kpi.feature .val{color:#fff} .kpi.feature .val small{color:color-mix(in srgb,#fff 74%,transparent)}
+
+/* ---------- panels ---------- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px 22px;box-shadow:var(--shadow);margin-bottom:18px}
+.phead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:4px}
+.phead h2{font-family:"Spectral",Georgia,serif;font-weight:600;font-size:19px;margin:0;letter-spacing:.005em}
+.phead .desc{font-size:13px;color:var(--muted);margin:5px 0 0;max-width:56ch}
+.src{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);border:1px solid var(--border);
+  border-radius:7px;padding:3px 8px;white-space:nowrap;background:var(--surface-2)}
+.src b{color:var(--navy);font-weight:600}
+
+/* legend */
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin:16px 0 2px}
+.lg{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2);font-weight:500}
+.sw{width:11px;height:11px;border-radius:3px;flex:none}
+
+svg{display:block;width:100%;height:auto;overflow:visible}
+.axis{fill:var(--muted);font-size:11px;font-family:"IBM Plex Mono",monospace}
+.axis-t{fill:var(--ink-2);font-size:12px;font-weight:500}
+.gridline{stroke:var(--grid);stroke-width:1}
+.datalbl{fill:var(--ink);font-size:12px;font-weight:600;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.datalbl.sm{font-size:11px;fill:var(--ink-2);font-weight:500}
+
+/* funnel */
+.funnel{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.fstage{display:grid;grid-template-columns:130px 1fr;align-items:center;gap:14px}
+.fstage .fn{font-size:13px;font-weight:500;color:var(--ink-2);text-align:right}
+.fbar-wrap{position:relative;height:44px}
+.fbar{height:100%;border-radius:8px;display:flex;align-items:center;padding:0 14px;color:#fff;font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:15px;min-width:64px}
+.fconv{font-size:11.5px;color:var(--muted);margin:2px 0 4px 144px;font-family:"IBM Plex Mono",monospace}
+.fconv::before{content:"↓ ";color:var(--muted)}
+
+/* table */
+.tbl-wrap{overflow-x:auto;margin-top:8px;border-radius:10px;border:1px solid var(--border-2)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:640px}
+th,td{padding:10px 13px;text-align:right;white-space:nowrap}
+th{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600;
+  border-bottom:1px solid var(--border);background:var(--surface-2);position:sticky;top:0}
+th:first-child,td:first-child{text-align:left}
+td{border-bottom:1px solid var(--border-2)}
+tbody tr:hover td{background:var(--surface-2)}
+td.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+tr.total td{font-weight:700;border-top:2px solid var(--border);background:var(--surface-2)}
+.marque-tag{display:inline-flex;align-items:center;gap:8px}
+.marque-tag .sw{width:9px;height:9px;border-radius:2px}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600;font-family:"IBM Plex Mono",monospace}
+.pill.pos{background:var(--pos-bg);color:var(--pos)} .pill.neg{background:var(--neg-bg);color:var(--neg)}
+.bar-cell{position:relative}
+.minibar{height:6px;border-radius:3px;background:var(--c3);display:inline-block;vertical-align:middle}
+
+/* callout */
+.note{display:flex;gap:12px;align-items:flex-start;background:var(--surface-2);border:1px solid var(--border-2);
+  border-left:3px solid var(--gold);border-radius:10px;padding:14px 16px;margin-top:16px;font-size:13.5px;color:var(--ink-2)}
+.note b{color:var(--ink)}
+
+/* tooltip */
+#tip{position:fixed;pointer-events:none;z-index:50;opacity:0;transition:opacity .1s;background:var(--ink);
+  color:var(--bg);padding:8px 11px;border-radius:9px;font-size:12.5px;box-shadow:0 6px 24px rgba(0,0,0,.28);
+  font-family:"IBM Plex Mono",monospace;line-height:1.45;max-width:240px}
+#tip .tt-t{font-weight:600;margin-bottom:2px}
+#tip b{color:#fff}
+:root[data-theme="dark"] #tip,:root:not([data-theme="light"]) #tip{background:#000}
+
+footer{margin-top:40px;padding-top:22px;border-top:1px solid var(--border);color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline}
+footer b{color:var(--ink-2);font-weight:600}
+.sect-eyebrow{font-size:11.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);font-weight:600;margin:34px 0 14px}
+</style>
+
+<header>
+  <div class="hd">
+    <div class="brand">
+      <span class="grp">EDUSERVICES <span style="color:var(--gold)">GROUP</span></span>
+      <span class="sub">Budget &amp; Forecast · Cockpit CFO</span>
+    </div>
+    <div class="spacer"></div>
+    <span class="api-badge"><span class="dot"></span>Tagetik&nbsp;·&nbsp;<b>API REST</b>&nbsp;·&nbsp;2027BUD_V1</span>
+    <button class="tgl" id="tgl" aria-label="Basculer le thème">◐</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="intro">
+    <p class="eyebrow">Exercice 2027 · Budget construit</p>
+    <h1>Le budget se calcule dans Tagetik, se lit ici.</h1>
+    <p class="lede">Chaque chiffre de ce rapport est <b>calculé à la volée par une vue HANA</b> et exposé par l'API Tagetik — funnel d'acquisition, cap stratégique marketing, coût complet par classe, cascade EBITDA. Aucune donnée figée&nbsp;: on rejoue le scénario, la page suit.</p>
+  </section>
+
+  <!-- KPIs -->
+  <div class="kpis">
+    <div class="kpi feature">
+      <div class="lbl">CA construit 2027</div>
+      <div class="val">24,25<small> M€</small></div>
+      <div class="delta pos" style="color:#8fe3c0">▲ +7,6 %<span style="color:color-mix(in srgb,#fff 60%,transparent);font-weight:400"> vs 2026</span></div>
+      <div class="foot">réf. 22,54 M€</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Écart vs cible</div>
+      <div class="val" style="color:var(--pos)">+580<small> k€</small></div>
+      <div class="delta pos">▲ au-dessus de l'objectif</div>
+      <div class="foot">cible 23,67 M€</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">EBITDA <span style="font-size:9px;border:1px solid var(--border);border-radius:4px;padding:1px 4px;color:var(--muted)">RÉF 2026</span></div>
+      <div class="val">3,29<small> M€</small></div>
+      <div class="delta">14,6 % de marge</div>
+      <div class="foot">2027 : cible 15,0 %</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Effectif construit</div>
+      <div class="val">3 175</div>
+      <div class="delta pos">▲ +4,6 %</div>
+      <div class="foot">1 359 nouveaux entrants</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Campus · Marques</div>
+      <div class="val">14 <small>·</small> 5</div>
+      <div class="delta">8 villes</div>
+      <div class="foot">58 classes suivies</div>
+    </div>
+  </div>
+
+  <!-- Trajectoire -->
+  <div class="panel">
+    <div class="phead">
+      <div><h2>Trajectoire du groupe</h2><p class="desc">Chiffre d'affaires et marge EBITDA, de l'historique au budget construit 2027.</p></div>
+      <span class="src">← <b>V_MOTEUR</b> · V_PNL</span>
+    </div>
+    <div class="grid2" style="margin-top:12px;gap:26px">
+      <div>
+        <div class="axis-t" style="margin-bottom:6px">Chiffre d'affaires <span style="color:var(--muted);font-weight:400">(M€)</span></div>
+        <svg id="ca-traj" viewBox="0 0 460 210" role="img" aria-label="Trajectoire du chiffre d'affaires"></svg>
+      </div>
+      <div>
+        <div class="axis-t" style="margin-bottom:6px">Marge EBITDA <span style="color:var(--muted);font-weight:400">(%)</span></div>
+        <svg id="mg-traj" viewBox="0 0 460 210" role="img" aria-label="Trajectoire de la marge EBITDA"></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <!-- Contribution par marque -->
+    <div class="panel" style="margin-bottom:0">
+      <div class="phead">
+        <div><h2>Contribution par marque</h2><p class="desc">CA 2026 et marge en coût complet, par enseigne.</p></div>
+        <span class="src">← <b>V_ALLOCATION</b></span>
+      </div>
+      <svg id="marque" viewBox="0 0 480 260" role="img" aria-label="Contribution par marque"></svg>
+    </div>
+
+    <!-- Rentabilité par ville -->
+    <div class="panel" style="margin-bottom:0">
+      <div class="phead">
+        <div><h2>Le piège du coût complet</h2><p class="desc">Marge par ville : les campus à loyers élevés (indice ville) portent des classes fragiles.</p></div>
+        <span class="src">← <b>V_ALLOCATION</b></span>
+      </div>
+      <svg id="ville" viewBox="0 0 480 300" role="img" aria-label="Marge par ville"></svg>
+    </div>
+  </div>
+
+  <p class="sect-eyebrow">Moteur d'acquisition &amp; pilotage</p>
+
+  <div class="grid2">
+    <!-- Funnel -->
+    <div class="panel" style="margin-bottom:0">
+      <div class="phead">
+        <div><h2>Funnel d'acquisition 2027</h2><p class="desc">Des leads aux inscrits, projeté par le moteur.</p></div>
+        <span class="src">← <b>V_SOCLE_KPI</b></span>
+      </div>
+      <div class="funnel" id="funnel"></div>
+      <div class="note"><span>🎯</span><div>Le moteur relie <b>budget marketing → leads → inscrits → CA</b>. Bouger le <b>cap stratégique</b> d'un campus redéploie l'enveloppe d'acquisition à budget groupe constant.</div></div>
+    </div>
+
+    <!-- Cap stratégique -->
+    <div class="panel" style="margin-bottom:0">
+      <div class="phead">
+        <div><h2>Cap stratégique</h2><p class="desc">Trois lectures du potentiel marketing par campus — le CFO garde la main (cap retenu).</p></div>
+        <span class="src">← <b>V_CAP</b></span>
+      </div>
+      <div class="tbl-wrap" style="border:none;margin-top:2px">
+        <table style="min-width:0">
+          <thead><tr><th>Campus</th><th>CAC marg.</th><th>Éff.</th><th>Mom.</th><th>Pot.</th></tr></thead>
+          <tbody id="cap-body"></tbody>
+        </table>
+      </div>
+      <p class="desc" style="margin-top:10px">Cap &gt; 1 = concentrer le budget · &lt; 1 = alléger. Seuls les caps <b>relatifs</b> comptent (enveloppe constante).</p>
+    </div>
+  </div>
+
+  <p class="sect-eyebrow">Restitution consolidée</p>
+
+  <!-- Cockpit table -->
+  <div class="panel">
+    <div class="phead">
+      <div><h2>Référence → Cible → Construit → Écart</h2><p class="desc">Le budget 2027 par campus : CA de référence, cible du CFO, CA construit par le moteur, et marge en coût complet.</p></div>
+      <span class="src">← <b>V_MOTEUR</b> · V_ALLOCATION · V_CAP</span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Campus</th><th>CA réf. 2026</th><th>🎯 Cible</th><th>🔧 Construit</th><th>Écart</th><th>Effectif</th><th>EBITDA</th><th>Marge</th>
+        </tr></thead>
+        <tbody id="cockpit-body"></tbody>
+      </table>
+    </div>
+    <div class="note"><span>ℹ️</span><div>Deux campus ressortent en <b>marge négative en coût complet</b> (Pigier Bordeaux, Tunon Paris) : loyers/sous-échelle. Leur <b>contribution</b> reste positive — on ne ferme pas, le fixe se réallouerait sur les voisines. C'est le simulateur « coût complet &amp; piège de la fermeture » qui l'objective.</div></div>
+  </div>
+
+  <footer>
+    <span><b>Concept de restitution</b> — front-end HTML alimenté par l'API Tagetik (CCH Tagetik · SAP HANA).</span>
+    <span>Données&nbsp;: modèle EDUSERVICES · scénario <b>2027BUD_V1</b>.</span>
+    <span>Chaque panneau pointe la <b>vue</b> qui le calcule.</span>
+  </footer>
+</div>
+
+<div id="tip"></div>
+
+<script>
+const DATA={
+  palette:['var(--c1)','var(--c2)','var(--c3)','var(--c4)','var(--c5)'],
+  traj:[
+    {y:'2024',ca:20064725,mg:0.132,hist:true},
+    {y:'2025',ca:21268606,mg:0.140,hist:true},
+    {y:'2026',ca:22544725,mg:0.146,hist:true},
+    {y:'2027',ca:24251927,mg:0.150,budget:true}
+  ],
+  marques:[
+    {n:'MBway',ca:9567455,mg:0.174,c:0},
+    {n:'ISCOM',ca:6292550,mg:0.156,c:1},
+    {n:'Ipac Bachelor Factory',ca:2582800,mg:0.184,c:2},
+    {n:'Pigier',ca:2152220,mg:0.052,c:3},
+    {n:'Tunon',ca:1949700,mg:0.032,c:4}
+  ],
+  villes:[
+    {n:'Paris',mg:0.046,ca:7133710,idx:1.62},
+    {n:'Bordeaux',mg:0.122,ca:2675400,idx:1.05},
+    {n:'Rennes',mg:0.163,ca:781650,idx:0.88},
+    {n:'Montpellier',mg:0.163,ca:781650,idx:0.88},
+    {n:'Lyon',mg:0.170,ca:4610685,idx:1.12},
+    {n:'Nantes',mg:0.232,ca:3177800,idx:1.00},
+    {n:'Toulouse',mg:0.242,ca:1627980,idx:0.90},
+    {n:'Lille',mg:0.263,ca:1755850,idx:0.92}
+  ],
+  funnel:[
+    {n:'Leads',v:17815},{n:'Candidatures',v:4032},{n:'Admis',v:2843},{n:'Inscrits',v:1359}
+  ],
+  cap:[
+    {c:'MBway Bordeaux',cac:890,e:1.35,m:1.21,p:1.34,ci:0},
+    {c:'ISCOM Toulouse',cac:919,e:1.31,m:0.79,p:1.39,ci:1},
+    {c:'MBway Nantes',cac:964,e:1.25,m:1.18,p:1.29,ci:0},
+    {c:'ISCOM Lille',cac:979,e:1.23,m:0.78,p:1.31,ci:1},
+    {c:'Ipac Rennes',cac:1041,e:1.16,m:1.39,p:0.98,ci:2},
+    {c:'MBway Lyon',cac:1102,e:1.09,m:1.14,p:1.12,ci:0},
+    {c:'Pigier Bordeaux',cac:1368,e:0.88,m:0.84,p:0.77,ci:3},
+    {c:'MBway Paris',cac:1475,e:0.81,m:1.06,p:0.86,ci:0},
+    {c:'ISCOM Paris',cac:1540,e:0.78,m:0.74,p:0.90,ci:1},
+    {c:'Tunon Paris',cac:2193,e:0.55,m:0.67,p:0.68,ci:4}
+  ],
+  cockpit:[
+    {c:'MBway Paris',ci:0,ref:3138840,cible:3297217,con:3378748,ebit:226197,mg:0.07},
+    {c:'MBway Lyon',ci:0,ref:2496705,cible:2621930,con:2689714,ebit:564161,mg:0.23},
+    {c:'MBway Nantes',ci:0,ref:2158300,cible:2265993,con:2326616,ebit:518318,mg:0.24},
+    {c:'MBway Bordeaux',ci:0,ref:1773610,cible:1861786,con:1912764,ebit:353683,mg:0.20},
+    {c:'ISCOM Paris',ci:1,ref:2908720,cible:3055539,con:3125517,ebit:124394,mg:0.04},
+    {c:'ISCOM Lille',ci:1,ref:1755850,cible:1843236,con:1890586,ebit:462514,mg:0.26},
+    {c:'ISCOM Toulouse',ci:1,ref:1627980,cible:1708880,con:1752827,ebit:393549,mg:0.24},
+    {c:'Ipac Nantes',ci:2,ref:1019500,cible:1071005,con:1089440,ebit:219283,mg:0.22},
+    {c:'Ipac Rennes',ci:2,ref:781650,cible:820980,con:835422,ebit:127778,mg:0.16},
+    {c:'Ipac Montpellier',ci:2,ref:781650,cible:820980,con:835497,ebit:127533,mg:0.16},
+    {c:'Pigier Lyon',ci:3,ref:1250430,cible:1310688,con:1354130,ebit:138274,mg:0.11},
+    {c:'Pigier Bordeaux',ci:3,ref:901790,cible:944710,con:977738,ebit:-26600,mg:-0.03},
+    {c:'Tunon Paris',ci:4,ref:1086150,cible:1141617,con:1159746,ebit:-19716,mg:-0.02},
+    {c:'Tunon Lyon',ci:4,ref:863550,cible:907399,con:923183,ebit:82162,mg:0.10}
+  ]
+};
+
+/* ---------- formatters ---------- */
+const nf=new Intl.NumberFormat('fr-FR');
+const eur=v=>nf.format(Math.round(v))+' €';
+const eurM=v=>(v/1e6).toFixed(2).replace('.',',')+' M€';
+const eurK=v=>nf.format(Math.round(v/1000))+' k€';
+const pct=v=>(v*100).toFixed(1).replace('.',',')+' %';
+const NS='http://www.w3.org/2000/svg';
+function el(tag,at={}){const e=document.createElementNS(NS,tag);for(const k in at)e.setAttribute(k,at[k]);return e;}
+
+/* ---------- tooltip ---------- */
+const tip=document.getElementById('tip');
+function showTip(html,ev){tip.innerHTML=html;tip.style.opacity=1;moveTip(ev);}
+function moveTip(ev){const p=12;let x=ev.clientX+p,y=ev.clientY+p;const r=tip.getBoundingClientRect();
+  if(x+r.width>innerWidth-8)x=ev.clientX-r.width-p;if(y+r.height>innerHeight-8)y=ev.clientY-r.height-p;
+  tip.style.left=x+'px';tip.style.top=y+'px';}
+function hideTip(){tip.style.opacity=0;}
+function bind(node,html){node.style.cursor='pointer';
+  node.addEventListener('mouseenter',e=>showTip(html,e));
+  node.addEventListener('mousemove',moveTip);node.addEventListener('mouseleave',hideTip);}
+
+/* ---------- CA trajectory (bars, single axis €) ---------- */
+function caTraj(){
+  const s=document.getElementById('ca-traj');s.innerHTML='';
+  const W=460,H=210,ml=44,mr=14,mt=14,mb=30;const iw=W-ml-mr,ih=H-mt-mb;
+  const max=26e6;const y=v=>mt+ih-(v/max)*ih;
+  [0,5e6,10e6,15e6,20e6,25e6].forEach(g=>{
+    s.appendChild(el('line',{class:'gridline',x1:ml,x2:W-mr,y1:y(g),y2:y(g)}));
+    const t=el('text',{class:'axis',x:ml-8,y:y(g)+4,'text-anchor':'end'});t.textContent=(g/1e6);s.appendChild(t);
+  });
+  const n=DATA.traj.length,bw=iw/n*0.52;
+  DATA.traj.forEach((d,i)=>{
+    const cx=ml+iw*(i+0.5)/n,bx=cx-bw/2,by=y(d.ca),bh=mt+ih-by;
+    const r=el('rect',{x:bx,y:by,width:bw,height:bh,rx:4,fill:d.budget?'var(--navy)':'var(--c1)',opacity:d.budget?1:0.9});
+    if(d.budget)r.setAttribute('stroke','var(--gold)'),r.setAttribute('stroke-width','1.5');
+    bind(r,`<div class="tt-t">${d.y}${d.budget?' · Budget':''}</div>CA <b>${eur(d.ca)}</b>`);
+    s.appendChild(r);
+    const v=el('text',{class:'datalbl',x:cx,y:by-7,'text-anchor':'middle'});v.textContent=(d.ca/1e6).toFixed(1).replace('.',',');s.appendChild(v);
+    const lb=el('text',{class:'axis-t',x:cx,y:H-9,'text-anchor':'middle'});lb.textContent=d.y;
+    if(d.budget)lb.setAttribute('fill','var(--gold)'),lb.setAttribute('font-weight','700');s.appendChild(lb);
+  });
+}
+
+/* ---------- Margin trajectory (line, single axis %) ---------- */
+function mgTraj(){
+  const s=document.getElementById('mg-traj');s.innerHTML='';
+  const W=460,H=210,ml=40,mr=16,mt=16,mb=30;const iw=W-ml-mr,ih=H-mt-mb;
+  const lo=0.10,hi=0.16;const y=v=>mt+ih-((v-lo)/(hi-lo))*ih;
+  [0.10,0.12,0.14,0.16].forEach(g=>{
+    s.appendChild(el('line',{class:'gridline',x1:ml,x2:W-mr,y1:y(g),y2:y(g)}));
+    const t=el('text',{class:'axis',x:ml-8,y:y(g)+4,'text-anchor':'end'});t.textContent=(g*100).toFixed(0);s.appendChild(t);
+  });
+  const n=DATA.traj.length,X=i=>ml+iw*(i+0.5)/n;
+  let dsolid='',ddash='';
+  DATA.traj.forEach((d,i)=>{const cmd=(i===0?'M':'L')+X(i)+' '+y(d.mg);
+    if(i<3)dsolid+=cmd; if(i>=2)ddash+=(i===2?'M':'L')+X(i)+' '+y(d.mg);});
+  // area under solid
+  const area=el('path',{d:dsolid+`L${X(2)} ${mt+ih} L${X(0)} ${mt+ih} Z`,fill:'var(--c3)',opacity:0.10});s.appendChild(area);
+  s.appendChild(el('path',{d:ddash,fill:'none',stroke:'var(--c3)','stroke-width':2,'stroke-dasharray':'2 5','stroke-linecap':'round',opacity:0.7}));
+  s.appendChild(el('path',{d:dsolid,fill:'none',stroke:'var(--c3)','stroke-width':2.5,'stroke-linecap':'round','stroke-linejoin':'round'}));
+  DATA.traj.forEach((d,i)=>{
+    const c=el('circle',{cx:X(i),cy:y(d.mg),r:i===DATA.traj.length-1?5:4.5,fill:d.budget?'var(--chart-surface)':'var(--c3)',stroke:'var(--c3)','stroke-width':2});
+    bind(c,`<div class="tt-t">${d.y}${d.budget?' · cible':''}</div>Marge EBITDA <b>${pct(d.mg)}</b>`);s.appendChild(c);
+    const v=el('text',{class:'datalbl',x:X(i),y:y(d.mg)-11,'text-anchor':'middle'});v.textContent=pct(d.mg);
+    if(d.budget)v.setAttribute('fill','var(--gold)');s.appendChild(v);
+    const lb=el('text',{class:'axis-t',x:X(i),y:H-9,'text-anchor':'middle'});lb.textContent=d.y;
+    if(d.budget)lb.setAttribute('fill','var(--gold)'),lb.setAttribute('font-weight','700');s.appendChild(lb);
+  });
+}
+
+/* ---------- Marques (horizontal bars) ---------- */
+function marqueChart(){
+  const s=document.getElementById('marque');s.innerHTML='';
+  const W=480,rowH=44,mt=10,ml=150,mr=64;const H=mt+DATA.marques.length*rowH+6;
+  s.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const max=10e6,bw=W-ml-mr,x=v=>(v/max)*bw;
+  DATA.marques.forEach((d,i)=>{
+    const cy=mt+i*rowH+rowH/2;
+    const nm=el('text',{class:'axis-t',x:ml-12,y:cy-3,'text-anchor':'end'});nm.textContent=d.n.length>16?d.n.slice(0,15)+'…':d.n;s.appendChild(nm);
+    const ef=el('text',{class:'axis',x:ml-12,y:cy+12,'text-anchor':'end'});ef.textContent=pct(d.mg)+' marge';s.appendChild(ef);
+    s.appendChild(el('rect',{x:ml,y:cy-11,width:bw,height:22,rx:5,fill:'var(--grid)',opacity:.5}));
+    const r=el('rect',{x:ml,y:cy-11,width:Math.max(x(d.ca),3),height:22,rx:5,fill:DATA.palette[d.c]});
+    bind(r,`<div class="tt-t">${d.n}</div>CA <b>${eur(d.ca)}</b><br>Marge <b>${pct(d.mg)}</b>`);s.appendChild(r);
+    const v=el('text',{class:'datalbl',x:ml+x(d.ca)+8,y:cy+4});v.textContent=(d.ca/1e6).toFixed(2).replace('.',',');s.appendChild(v);
+  });
+}
+
+/* ---------- Villes (horizontal, margin %) ---------- */
+function villeChart(){
+  const s=document.getElementById('ville');s.innerHTML='';
+  const rows=[...DATA.villes].sort((a,b)=>a.mg-b.mg);
+  const W=480,rowH=32,mt=12,ml=96,mr=96;const H=mt+rows.length*rowH+8;
+  s.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const max=0.28,bw=W-ml-mr,x=v=>(v/max)*bw;
+  [0,0.1,0.2].forEach(g=>{s.appendChild(el('line',{class:'gridline',x1:ml+x(g),x2:ml+x(g),y1:mt-2,y2:mt+rows.length*rowH}));
+    const t=el('text',{class:'axis',x:ml+x(g),y:H-2,'text-anchor':'middle'});t.textContent=(g*100).toFixed(0)+'%';s.appendChild(t);});
+  rows.forEach((d,i)=>{
+    const cy=mt+i*rowH+rowH/2;
+    const nm=el('text',{class:'axis-t',x:ml-10,y:cy+4,'text-anchor':'end'});nm.textContent=d.n;s.appendChild(nm);
+    const thin=d.mg<0.10;
+    const r=el('rect',{x:ml,y:cy-8,width:Math.max(x(d.mg),2),height:16,rx:4,fill:thin?'var(--c5)':'var(--c3)',opacity:thin?1:0.88});
+    bind(r,`<div class="tt-t">${d.n}</div>Marge coût complet <b>${pct(d.mg)}</b><br>Indice ville <b>${d.idx.toFixed(2).replace('.',',')}</b> · CA ${eurM(d.ca)}`);s.appendChild(r);
+    const v=el('text',{class:'datalbl',x:ml+x(d.mg)+7,y:cy+4});v.textContent=pct(d.mg);if(thin)v.setAttribute('fill','var(--neg)');s.appendChild(v);
+    const ix=el('text',{class:'datalbl sm',x:W-6,y:cy+4,'text-anchor':'end'});ix.textContent='×'+d.idx.toFixed(2).replace('.',',');s.appendChild(ix);
+  });
+  const cap=el('text',{class:'axis',x:W-6,y:mt-1,'text-anchor':'end'});cap.textContent='indice coût';s.appendChild(cap);
+}
+
+/* ---------- Funnel ---------- */
+function funnelChart(){
+  const box=document.getElementById('funnel');const f=DATA.funnel,max=f[0].v;
+  const cols=['var(--c1)','color-mix(in srgb,var(--c1) 82%,var(--c3))','var(--c3)','var(--navy)'];
+  f.forEach((d,i)=>{
+    const row=document.createElement('div');row.className='fstage';
+    const w=Math.max(d.v/max*100,7);
+    row.innerHTML=`<div class="fn">${d.n}</div><div class="fbar-wrap"><div class="fbar" style="width:${w}%;background:${cols[i]}">${nf.format(d.v)}</div></div>`;
+    box.appendChild(row);
+    if(i<f.length-1){const c=document.createElement('div');c.className='fconv';
+      c.textContent=`${(f[i+1].v/d.v*100).toFixed(0)} % → ${f[i+1].n.toLowerCase()}`;box.appendChild(c);}
+  });
+}
+
+/* ---------- Cap table ---------- */
+function capTable(){
+  const b=document.getElementById('cap-body');
+  DATA.cap.forEach(d=>{
+    const cell=v=>{const on=v>=1;return `<td class="num" style="color:${on?'var(--pos)':'var(--muted)'};font-weight:${on?600:400}">${v.toFixed(2).replace('.',',')}</td>`;};
+    b.insertAdjacentHTML('beforeend',
+      `<tr><td><span class="marque-tag"><span class="sw" style="background:${DATA.palette[d.ci]}"></span>${d.c}</span></td>
+      <td class="num">${nf.format(d.cac)} €</td>${cell(d.e)}${cell(d.m)}${cell(d.p)}</tr>`);
+  });
+}
+
+</script>
+<script>
+// effectif per campus (kept separate for clarity)
+const EFF={'MBway Paris':399,'MBway Lyon':338,'MBway Nantes':307,'MBway Bordeaux':260,'ISCOM Paris':369,'ISCOM Lille':255,'ISCOM Toulouse':241,'Ipac Nantes':151,'Ipac Rennes':122,'Ipac Montpellier':122,'Pigier Lyon':193,'Pigier Bordeaux':151,'Tunon Paris':144,'Tunon Lyon':122};
+function run(){
+  caTraj();mgTraj();marqueChart();villeChart();funnelChart();capTable();
+  // build cockpit cleanly (override the messy effectif)
+  const b=document.getElementById('cockpit-body');b.innerHTML='';
+  let tRef=0,tCib=0,tCon=0,tEb=0;
+  const maxEbit=Math.max(...DATA.cockpit.map(d=>Math.abs(d.ebit)));
+  DATA.cockpit.forEach(d=>{
+    tRef+=d.ref;tCib+=d.cible;tCon+=d.con;tEb+=d.ebit;
+    const ecart=d.con-d.cible,neg=d.ebit<0,bw=Math.abs(d.ebit)/maxEbit*54;
+    b.insertAdjacentHTML('beforeend',
+     `<tr>
+       <td><span class="marque-tag"><span class="sw" style="background:${DATA.palette[d.ci]}"></span>${d.c}</span></td>
+       <td class="num">${eurK(d.ref)}</td>
+       <td class="num" style="color:var(--ink-2)">${eurK(d.cible)}</td>
+       <td class="num" style="font-weight:600">${eurK(d.con)}</td>
+       <td class="num" style="color:var(--pos)">+${eurK(ecart)}</td>
+       <td class="num" style="color:var(--ink-2)">${nf.format(EFF[d.c]||0)}</td>
+       <td class="num bar-cell"><span class="minibar" style="width:${bw}px;background:${neg?'var(--neg)':'var(--c3)'};opacity:.55;margin-right:6px"></span>${neg?'−':''}${eurK(Math.abs(d.ebit))}</td>
+       <td><span class="pill ${neg?'neg':'pos'}">${(d.mg*100).toFixed(0)} %</span></td>
+     </tr>`);
+  });
+  b.insertAdjacentHTML('beforeend',
+    `<tr class="total">
+      <td>TOTAL GROUPE</td><td class="num">${eurM(tRef)}</td><td class="num">${eurM(tCib)}</td>
+      <td class="num">${eurM(tCon)}</td><td class="num" style="color:var(--pos)">+${eurK(tCon-tCib)}</td>
+      <td class="num">3 175</td><td class="num">${eurM(tEb)}</td><td><span class="pill pos">14,6 %</span></td>
+    </tr>`);
+}
+run();
+
+/* theme toggle — SVG marks use CSS var() fills, so they recolor live; no re-render needed */
+const root=document.documentElement,tg=document.getElementById('tgl');
+tg.addEventListener('click',()=>{
+  const cur=root.getAttribute('data-theme');
+  const isDark=cur? cur==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.setAttribute('data-theme',isDark?'light':'dark');
+});
+</script>
