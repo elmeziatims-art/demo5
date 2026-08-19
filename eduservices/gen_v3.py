@@ -535,6 +535,17 @@ for r in rows:
 CA_T=REFCA; EFF_T=REFEFF; CLS_T=sum(d["cls"] for d in capm.values())
 def share(k,drv):
     d=capm[k]; return {"CA":d["ca"]/CA_T,"effectif":d["eff"]/EFF_T,"classes":d["cls"]/CLS_T}[drv]
+# indice de coût par VILLE (immobilier + salaires) : les métropoles chères portent plus de coût FIXE.
+#  On pondère la répartition des charges FIXES de campus (personnel permanent, structure, impôts) SANS
+#  changer le total par compte (renormalisé) → P&L groupe & réconciliation inchangés, seule la répartition
+#  INTER-campus se déplace (Paris porte un loyer parisien) → des marges de classe réalistes, des déficits vrais.
+CITY_COST={"Paris":1.62,"Lyon":1.12,"Nantes":1.00,"Bordeaux":1.05,"Lille":0.92,"Toulouse":0.90,"Rennes":0.88,"Montpellier":0.88}
+def share_w(k,drv,vf,sig):
+    s=share(k,drv)
+    if vf=="F" and sig in ("Personnel","Structure","Impôts & taxes"):
+        den=sum(share(j,drv)*CITY_COST[j[1]] for j in capm)
+        return s*CITY_COST[k[1]]/den if den else s
+    return s
 def ca_ver(n): return REFCA/(GROW_HIST**n)
 MKT_PCT=next(a[6] for a in ACCTS if a[0]=="6231")      # slot acquisition — aligné sur la dépense CRM
 BRAND_PCT=next(a[6] for a in ACCTS if a[0]=="6236")    # slot marque — aligné sur la dépense CRM
@@ -567,7 +578,7 @@ for code,lib,sens,sig,niv,drv,pct,vf in ACCTS:
             if niv=="groupe":
                 compta.append(("GROUPE","GROUPE — Siège","(groupe)","(groupe)",code,lib,poste,sens,sig,vcode,exlab,round(tot)))
             else:
-                for k in capm: compta.append((slug(k[0])+"_"+slug(k[1]),f"{k[0]} {k[1]}",k[0],k[1],code,lib,poste,sens,sig,vcode,exlab,round(tot*share(k,drv))))
+                for k in capm: compta.append((slug(k[0])+"_"+slug(k[1]),f"{k[0]} {k[1]}",k[0],k[1],code,lib,poste,sens,sig,vcode,exlab,round(tot*share_w(k,drv,vf,sig))))
 # vérification EBITDA par version
 for vcode,exlab,n,vt,vy in VERS:
     ca=sum(m for row in compta for m in [row[11]] if row[7]=="Produit" and row[9]==vcode)
@@ -885,113 +896,89 @@ for lib,sA,fA,sB,fB,fmt in recs:
     C(ws,f"H{r}",f'=IF(ABS(G{r})<=MAX(1,0.001*D{r}),"✓ aligné","⚠ écart")',CFB,FGRN,align=AC,border=True); r+=1
 C(ws,f"B{r+1}","Toutes les grandeurs se recoupent (écart nul aux arrondis près) : le CRM, la compta et la base racontent le même chiffre.",CIT,align=AL); ws.merge_cells(f"B{r+1}:H{r+1}")
 
-# ============================================================ 12_Simulateur (PLANIFICATEUR DE SECTIONS — demande × capacité, décision sur les ENTRÉES, ripple du fixe)
+# ============================================================ 12_Simulateur (COÛT COMPLET PAR CLASSE & PIÈGE DE LA FERMETURE — le fixe ne disparaît pas, il se réalloue)
 ws=wb.create_sheet("12_Simulateur"); ws.sheet_view.showGridLines=False
 ALS="'10_Allocation'!"; ATOT=AA0+N
-V26S="2026ATT_VDEF"
-# La décision de recrutement porte sur la 1ʳᵉ année (entrée). B2/B3 = conséquence de cohorte (suivent l'intake passé).
-# Demande PROJETÉE = appétit du marché pour la prochaine rentrée (métadonnée simulateur — ne touche pas le socle/budget).
-DEM_BRAND={'MBway':1.18,'ISCOM':1.06,'Ipac Bachelor Factory':0.97,'Pigier':0.82,'Tunon':0.78}
-DEM_CITY={'Paris':0.30,'Lyon':0.05,'Nantes':0.0,'Bordeaux':-0.20,'Lille':0.02,'Toulouse':-0.10,'Rennes':-0.16,'Montpellier':-0.12}
-def _press(m,v): return round(max(0.55,min(1.70,DEM_BRAND[m]+DEM_CITY.get(v,0))),3)
-ent_idx=[ci for ci,rr in enumerate(rows) if rr["entry"]==1]
-NE=len(ent_idx)
-FIXE_C_PCT=round(sum(a[6] for a in ACCTS if a[4]=="campus" and a[3] in ("Personnel","Structure","Impôts & taxes") and a[0]!="6411"),3)  # loyer, permanents admin, charges… (hors enseignement & hors D&A)
-scols=["Marque","Ville","Programme","Niveau","Cap/sect.","Effectif actuel","Sect. act.","Demande projetée",
- "🎯 Sect. reco.","🔵 Sect. planif.","Capacité","Effectif projeté","Remplissage","CA projeté","Enseignement","Variable+Mkt",
- "Contribution","Contrib. à structure act.","Δ Contribution","Conseil"]
-for i,w in enumerate([13,10,15,7,7,9,7,10,9,10,9,10,10,12,11,11,12,13,12,44]): ws.column_dimensions[GL(1+i)].width=w
+scols=["Marque","Ville","Programme","Niveau","Effectif","Sect.","CA","Variable","Contribution",
+ "Structure allouée","Coût complet","Marge complète","🔵 Décision","Structure APRÈS","Marge complète APRÈS","Impact EBITDA","Lecture"]
+for i,w in enumerate([13,10,16,7,8,6,11,11,12,12,11,12,11,12,15,12,42]): ws.column_dimensions[GL(1+i)].width=w
 NC=len(scols)
-ws.merge_cells(f"A1:{GL(NC)}1"); C(ws,"A1","PLANIFICATEUR DE SECTIONS — dimensionner l'offre (nombre de sections) sur la DEMANDE projetée · décision sur les ENTRÉES · ouvrir ⇆ fusionner dans le MÊME tableau",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
-ws.merge_cells(f"A2:{GL(NC)}2"); C(ws,"A2","On raisonne comme un directeur de campus : une SECTION coûte un enseignant (fixe/section, qu'elle soit pleine ou non). On ouvre là où la DEMANDE dépasse la capacité, on fusionne là où les sections sont sous-remplies. Effectif projeté = MIN(demande, sections×capacité). Contribution = CA − enseignement − variable. Décision sur la 1ʳᵉ année ; B2/B3 suivent la cohorte.",CIT,align=ALW); ws.row_dimensions[2].height=44
-# --- paramètres de coût (mesurés depuis la compta & le socle — pas de valeur en dur) ---
-TEACHf=f'=(SUMIFS({KMT},{KACC},"621",{KVER},"{V26S}")+SUMIFS({KMT},{KACC},"6411",{KVER},"{V26S}"))/SUM({brng("O")})'
-VARf  =f'=(SUMIFS({KMT},{KACC},"604",{KVER},"{V26S}")+SUMIFS({KMT},{KACC},"6063",{KVER},"{V26S}"))/SUM({brng("M")})'
-MKTf  =f'=SUMIFS({KMT},{KACC},"6231",{KVER},"{V26S}")/SUM({brng("K")})'
-C(ws,"A3","🟢 Enseignant / section :",CB,align=AR); ws.merge_cells("A3:B3"); C(ws,"C3",TEACHf,CF,FGRN,fmt=EUR,align=AR,border=True)
-C(ws,"D3","Variable / étudiant :",CB,align=AR); C(ws,"E3",VARf,CF,FGRN,fmt=EUR,align=AR,border=True)
-C(ws,"F3","Mkt / entrant :",CB,align=AR); C(ws,"G3",MKTf,CF,FGRN,fmt=EUR,align=AR,border=True)
-C(ws,"H3","Fixe campus (loyer, permanents…) :",CB,align=AR); ws.merge_cells("H3:I3"); C(ws,"J3",FIXE_C_PCT,CL,FGRN,fmt=PCT,align=AC,border=True)
-C(ws,"K3","du CA (se réalloue si l'effectif bouge → colonne ripple ci-dessous)",CIT,align=AL); ws.merge_cells(f"K3:{GL(NC)}3")
-TEACH="$C$3"; VARU="$E$3"; MKTU="$G$3"
+ws.merge_cells(f"A1:{GL(NC)}1"); C(ws,"A1","COÛT COMPLET PAR CLASSE & PIÈGE DE LA FERMETURE — la structure (loyer, permanents, siège) est allouée jusqu'à la classe par une CLÉ · fermer une classe ne fait pas disparaître le fixe : il se RÉALLOUE",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
+ws.merge_cells(f"A2:{GL(NC)}2"); C(ws,"A2","Un campus à loyer cher (Paris) ou sous-dimensionné voit des classes en DÉFICIT « coût complet » — alors que leur CONTRIBUTION (CA − variable) est positive. Tenté de fermer ? Le loyer reste et se réalloue sur les classes voisines (même CLÉ) → une classe saine bascule à son tour, et l'EBITDA baisse de la contribution perdue. La CLÉ d'allocation (cockpit 01b ③) décide qui paraît déficitaire.",CIT,align=ALW); ws.row_dimensions[2].height=48
+C(ws,"A3","Clé d'allocation structure → classe (③, cockpit 01b) :",CB,align=AR); ws.merge_cells("A3:E3")
+C(ws,"F3",f"={ALLOC_N3}",CF,FGRN,align=AC,border=True); ws.merge_cells("F3:G3")
+C(ws,"H3","Changez-la sur 01b → la colonne « Marge complète » et les déficits se redéploient (total groupe constant).",CIT,align=AL); ws.merge_cells(f"H3:{GL(NC)}3")
 for i,h in enumerate(scols): C(ws,f"{GL(1+i)}5",h,CHDR,FBLUE,align=AC,border=True)
-ws.row_dimensions[5].height=40
-S0=6; SN=S0+NE-1
-DA=f"$A${S0}:$A${SN}"; DB=f"$B${S0}:$B${SN}"; DF=f"$F${S0}:$F${SN}"; DL=f"$L${S0}:$L${SN}"; DK=f"$K${S0}:$K${SN}"; DH=f"$H${S0}:$H${SN}"; DS=f"$S${S0}:$S${SN}"
-for j,ci in enumerate(ent_idx):
-    r=S0+j; b=BR0+ci; rr=rows[ci]; cap=CAPT[rr["type"]]; dem=round(rr["eff"]*_press(rr["marque"],rr["ville"]))
-    RV=f"{BASE}P{b}"
-    C(ws,f"A{r}",f"={BASE}A{b}",CL,align=AL,border=True); C(ws,f"B{r}",f"={BASE}B{b}",CL,align=AC,border=True); C(ws,f"C{r}",f"={BASE}C{b}",CL,align=AL,border=True)
-    C(ws,f"D{r}",f"={BASE}E{b}",CL,align=AC,border=True); C(ws,f"E{r}",cap,CF,fmt=NB,align=AC,border=True)
-    C(ws,f"F{r}",f"={BASE}M{b}",CF,fmt=NB,align=AR,border=True)      # effectif actuel (socle)
-    C(ws,f"G{r}",f"={BASE}O{b}",CF,fmt=NB,align=AR,border=True)      # sections actuelles (socle)
-    C(ws,f"H{r}",dem,CINB,FYEL,fmt=NB,align=AC,border=True)         # 🔵 demande projetée (métadonnée, ajustable)
-    C(ws,f"I{r}",f"=MAX(1,CEILING(H{r}/E{r},1))",CFB,fmt=NB,align=AC,border=True)   # 🎯 sections recommandées (capacité ≥ demande)
-    C(ws,f"J{r}",rr["classes"],CINB,FYEL,fmt=NB,align=AC,border=True)               # 🔵 sections planifiées (défaut = actuel)
-    C(ws,f"K{r}",f"=J{r}*E{r}",CF,fmt=NB,align=AR,border=True)      # capacité planifiée
-    C(ws,f"L{r}",f"=MIN(H{r},K{r})",CFB,fmt=NB,align=AR,border=True)  # effectif projeté = min(demande, capacité)
-    C(ws,f"M{r}",f"=IFERROR(L{r}/K{r},0)",CF,fmt=PCT,align=AC,border=True)
-    C(ws,f"N{r}",f"=L{r}*({RV}+{KFRAIS})",CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"O{r}",f"=J{r}*{TEACH}",CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"P{r}",f"=L{r}*({VARU}+{MKTU})",CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"Q{r}",f"=N{r}-O{r}-P{r}",CFB,fmt=EUR,align=AR,border=True)
-    # contribution à structure ACTUELLE (mêmes sections qu'aujourd'hui, MÊME demande projetée) → isole l'effet de la DÉCISION
-    C(ws,f"R{r}",f"=MIN(H{r},G{r}*E{r})*({RV}+{KFRAIS})-G{r}*{TEACH}-MIN(H{r},G{r}*E{r})*({VARU}+{MKTU})",CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"S{r}",f"=Q{r}-R{r}",CFB,fmt=EUR,align=AR,border=True)
-    C(ws,f"T{r}",f'=IF(I{r}>G{r},"🟢 OUVRIR +"&(I{r}-G{r})&" — demande "&H{r}&" > capacité "&(G{r}*E{r})&" (sections pleines, on refuse des étudiants)",IF(I{r}<G{r},"🟠 FUSIONNER −"&(G{r}-I{r})&" — "&(G{r}*E{r})&" places pour "&H{r}&" demandés (sous-remplissage)","✔ Maintenir — offre alignée sur la demande"))',CF,align=AL,border=True)
-r=S0+NE
+ws.row_dimensions[5].height=34
+dvs=DataValidation(type="list",formula1='"Garder,Fermer"',allow_blank=False); ws.add_data_validation(dvs)
+S0=6; SN=S0+N-1
+AR_=f"$A${S0}:$A${SN}"; BR_=f"$B${S0}:$B${SN}"; MR_=f"$M${S0}:$M${SN}"
+RR_=f"$R${S0}:$R${SN}"; SR_=f"$S${S0}:$S${SN}"; TR_=f"$T${S0}:$T${SN}"   # helpers (masqués) : K campus · siège · driver
+for idx in range(N):
+    r=S0+idx; a=AA0+idx; rr=rows[idx]; is_entry=rr["entry"]==1
+    for col in ("A","B","C","D"): C(ws,f"{col}{r}",f"={ALS}{col}{a}",CL,align=(AL if col in("A","C") else AC),border=True)
+    C(ws,f"E{r}",f"={ALS}G{a}",CF,fmt=NB,align=AR,border=True)     # effectif
+    C(ws,f"F{r}",f"={ALS}H{a}",CF,fmt=NB,align=AR,border=True)     # sections
+    C(ws,f"G{r}",f"={ALS}F{a}",CF,fmt=EUR,align=AR,border=True)    # CA
+    C(ws,f"H{r}",f"={ALS}I{a}",CF,fmt=EUR,align=AR,border=True)    # variable (directs évitables)
+    C(ws,f"I{r}",f"=G{r}-H{r}",CFB,fmt=EUR,align=AR,border=True)   # CONTRIBUTION = CA − variable
+    C(ws,f"J{r}",f"=R{r}+S{r}",CF,fmt=EUR,align=AR,border=True)    # structure allouée = campus + siège (par la CLÉ)
+    C(ws,f"K{r}",f"=H{r}+J{r}",CF,fmt=EUR,align=AR,border=True)    # coût complet
+    C(ws,f"L{r}",f"=G{r}-K{r}",CFB,fmt=EUR,align=AR,border=True)   # marge complète (peut être <0 = déficit apparent)
+    if is_entry:
+        C(ws,f"M{r}","Garder",CINB,FYEL,align=AC,border=True); dvs.add(ws[f"M{r}"])
+    else:
+        C(ws,f"M{r}","cohorte",CF,FLIGHT,align=AC,border=True)     # B2/B3 : conséquence, non pilotable
+    # cascade : structure CAMPUS des fermées (R) → réallouée sur les GARDÉES du MÊME campus (clé T) ; siège (S) → sur le groupe
+    poolC=f'SUMIFS({RR_},{AR_},A{r},{BR_},B{r},{MR_},"Fermer")'
+    survC=f'SUMIFS({TR_},{AR_},A{r},{BR_},B{r},{MR_},"<>Fermer")'
+    poolS=f'SUMIFS({SR_},{MR_},"Fermer")'
+    survS=f'SUMIFS({TR_},{MR_},"<>Fermer")'
+    Kaf=f'(R{r}+IFERROR({poolC}*T{r}/{survC},0))'
+    Jaf=f'(S{r}+IFERROR({poolS}*T{r}/{survS},0))'
+    C(ws,f"N{r}",f'=IF(M{r}="Fermer","—",{Kaf}+{Jaf})',CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"O{r}",f'=IF(M{r}="Fermer","—",G{r}-H{r}-N{r})',CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"P{r}",f'=IF(M{r}="Fermer",-I{r},0)',CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"Q{r}",f'=IF(M{r}="Fermer","✖ Fermer = −"&TEXT(I{r},"# ##0")&" € d\'EBITDA (le fixe reste)",IF(AND(L{r}>=0,O{r}<0),"⚠ BASCULE : saine → déficit à cause d\'une fermeture voisine",IF(L{r}<0,IF(I{r}>0,"Déficit COMPLET mais contribution POSITIVE → NE PAS fermer (artefact d\'allocation)","Contribution négative — vrai point dur"),"Rentable en coût complet")))',CF,align=AL,border=True)
+    # helpers masqués
+    C(ws,f"R{r}",f"={ALS}K{a}",CF,fmt=EUR,align=AR)   # structure campus (réallouable dans le campus)
+    C(ws,f"S{r}",f"={ALS}J{a}",CF,fmt=EUR,align=AR)   # siège (réallouable sur le groupe)
+    C(ws,f"T{r}",f'=IF({ALLOC_N3}="Effectif",E{r},IF({ALLOC_N3}="Nombre de classes",F{r},G{r}))',CF,align=AR)  # driver = clé ③
+for col in ("R","S","T"): ws.column_dimensions[col].hidden=True
+r=S0+N
 C(ws,f"A{r}","TOTAL",CFB,FTOT,align=AL,border=True)
-for col in ("B","C","D","E"): C(ws,f"{col}{r}"," ",fill=FTOT,border=True)
-for col in ("F","G","H","I","J","K","L","N","O","P","Q","R","S"):
-    C(ws,f"{col}{r}",f"=SUM({col}{S0}:{col}{SN})",CFB,FTOT,fmt=(NB if col in("F","G","H","I","J","K","L") else EUR),align=AR,border=True)
-ws.freeze_panes="F6"
-ws.conditional_formatting.add(f"M{S0}:M{SN}",ColorScaleRule(start_type="num",start_value=0.5,start_color="F8696B",mid_type="num",mid_value=0.85,mid_color="FFEB84",end_type="num",end_value=1.0,end_color="63BE7B"))
-ws.conditional_formatting.add(f"S{S0}:S{SN}",ColorScaleRule(start_type="min",start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
-# --- synthèse : gain des décisions (Δ EBITDA) ---
-gy=r+2; band(ws,gy,"A","G","Impact des décisions de sections — Δ EBITDA (à demande projetée donnée)")
+for col in ("B","C","D"): C(ws,f"{col}{r}"," ",fill=FTOT,border=True)
+for col in ("E","F","G","H","I","J","K","L","P"):
+    C(ws,f"{col}{r}",f"=SUM({col}{S0}:{col}{SN})",CFB,FTOT,fmt=(NB if col in("E","F") else EUR),align=AR,border=True)
+ws.freeze_panes="E6"
+ws.conditional_formatting.add(f"L{S0}:L{SN}",ColorScaleRule(start_type="num",start_value=0,start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
+ws.conditional_formatting.add(f"O{S0}:O{SN}",ColorScaleRule(start_type="num",start_value=0,start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
+# --- synthèse : Δ EBITDA + bascules provoquées ---
+gy=r+2; band(ws,gy,"A","H","Impact des fermetures — Δ EBITDA & effet domino")
 EB_ref=f"({ALS}F{ATOT}-{ALS}L{ATOT})"
-C(ws,f"A{gy+1}","EBITDA de référence (atterrissage) :",CB,align=AR); ws.merge_cells(f"A{gy+1}:C{gy+1}"); C(ws,f"D{gy+1}",f"={EB_ref}",CFB,fmt=EUR,align=AR,border=True)
-C(ws,f"A{gy+2}","Δ EBITDA — décisions de sections :",CB,align=AR); ws.merge_cells(f"A{gy+2}:C{gy+2}"); C(ws,f"D{gy+2}",f"=S{r}",CFB,fmt=EUR,align=AR,border=True)
-C(ws,f"A{gy+3}","EBITDA après décisions :",CB,align=AR); ws.merge_cells(f"A{gy+3}:C{gy+3}"); C(ws,f"D{gy+3}",f"={EB_ref}+S{r}",CFB,FGRN,fmt=EUR,align=AR,border=True)
-C(ws,f"E{gy+1}","Sections à OUVRIR :",CB,align=AR); C(ws,f"F{gy+1}",f'=SUMPRODUCT(--(I{S0}:I{SN}>G{S0}:G{SN}),(I{S0}:I{SN}-G{S0}:G{SN}))',CFB,FYEL,fmt=NB,align=AC,border=True)
-C(ws,f"E{gy+2}","Sections à FUSIONNER :",CB,align=AR); C(ws,f"F{gy+2}",f'=SUMPRODUCT(--(I{S0}:I{SN}<G{S0}:G{SN}),(G{S0}:G{SN}-I{S0}:I{SN}))',CFB,FYEL,fmt=NB,align=AC,border=True)
-C(ws,f"E{gy+3}","Demande non couverte (places manquantes) :",CB,align=AR); C(ws,f"F{gy+3}",f'=SUMPRODUCT(--({DH}>{DK}),({DH}-{DK}))',CFB,fmt=NB,align=AC,border=True)
-C(ws,f"A{gy+5}","Adopter une recommandation = recopier la 🎯 colonne reco. dans la 🔵 colonne planif. À défaut (planif. = actuel), Δ = 0. Le loyer et les permanents (fixe campus) ne disparaissent pas : à demande donnée, FUSIONNER économise un enseignant sans perdre d'étudiant (ils tiennent dans moins de sections) ; OUVRIR capte de la demande refusée. Δ EBITDA = somme des Δ contribution.",CIT,align=ALW); ws.merge_cells(f"A{gy+5}:{GL(NC)}{gy+6}"); ws.row_dimensions[gy+5].height=42
-# --- capacité & ripple par CAMPUS (le fixe se réalloue sur l'effectif total du campus) ---
-cy=gy+8; band(ws,cy,"A","J","Capacité par campus & réallocation du coût fixe (ripple) — l'ouverture couvre-t-elle la demande ?")
-chd=["Marque","Ville","Demande (entrées)","Capacité planifiée","Effectif projeté","Couverture","Fixe campus/étu AUJOURD'HUI","Fixe campus/étu APRÈS plan","Δ fixe/étu","Lecture"]
-for i,h in enumerate(chd): C(ws,f"{GL(1+i)}{cy+1}",h,CHDR,FBLUE,align=AC,border=True)
-ws.row_dimensions[cy+1].height=40
-BUr2=brng('U'); BMr2=brng('M'); BAr2=brng('A'); BBr2=brng('B')
-c0=cy+2
-for i,cc in enumerate(campus):
-    rr2=c0+i; m=cc["marque"]; v=cc["ville"]
-    campall=f'SUMIFS({BMr2},{BAr2},A{rr2},{BBr2},B{rr2})'          # effectif total campus (tous niveaux, socle)
-    pool=f'{FIXE_C_PCT}*SUMIFS({BUr2},{BAr2},A{rr2},{BBr2},B{rr2})' # pool fixe campus = %×CA campus
-    e0=f'SUMIFS({DF},{DA},A{rr2},{DB},B{rr2})'                     # entrées effectif actuel
-    ep=f'SUMIFS({DL},{DA},A{rr2},{DB},B{rr2})'                     # entrées effectif projeté
-    C(ws,f"A{rr2}",m,CL,align=AL,border=True); C(ws,f"B{rr2}",v,CL,align=AC,border=True)
-    C(ws,f"C{rr2}",f'=SUMIFS({DH},{DA},A{rr2},{DB},B{rr2})',CF,fmt=NB,align=AR,border=True)
-    C(ws,f"D{rr2}",f'=SUMIFS({DK},{DA},A{rr2},{DB},B{rr2})',CF,fmt=NB,align=AR,border=True)
-    C(ws,f"E{rr2}",f'={ep}',CF,fmt=NB,align=AR,border=True)
-    C(ws,f"F{rr2}",f'=IF(D{rr2}>=C{rr2},"✓ couverte","⚠ manque "&(C{rr2}-D{rr2}))',CFB,align=AC,border=True)
-    C(ws,f"G{rr2}",f'=IFERROR({pool}/{campall},0)',CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"H{rr2}",f'=IFERROR({pool}/({campall}-{e0}+{ep}),0)',CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"I{rr2}",f'=H{rr2}-G{rr2}',CFB,fmt=EUR,align=AR,border=True)
-    C(ws,f"J{rr2}",f'=IF(I{rr2}<-1,"↓ plus d\'étudiants → fixe/étu baisse (dilution)",IF(I{rr2}>1,"↑ moins d\'étudiants → fixe/étu monte (ripple)","="))',CF,align=AL,border=True)
-cT=c0+CG
-C(ws,f"A{cT}","TOTAL",CFB,FTOT,align=AL,border=True); C(ws,f"B{cT}"," ",fill=FTOT,border=True)
-for col in ("C","D","E"): C(ws,f"{col}{cT}",f"=SUM({col}{c0}:{col}{cT-1})",CFB,FTOT,fmt=NB,align=AR,border=True)
-ws.conditional_formatting.add(f"I{c0}:I{cT-1}",ColorScaleRule(start_type="min",start_color="63BE7B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="F8696B"))
-# --- effet cohorte (B2/B3 = conséquence) ---
-ky=cT+2; band(ws,ky,"A","J","Effet cohorte — pourquoi la décision porte sur l'ENTRÉE (B1/M1), pas sur B2/B3")
-CHAIN=round(1+0.97+0.97*0.98,2)   # un entrant Bachelor ≈ 2,9 années-étudiant sur le cycle (rétention ~97-98 %)
-C(ws,f"A{ky+1}",f"Fermer ou ouvrir une section d'ENTRÉE ne se voit pas qu'en année 1 : chaque entrant se propage en B2 puis B3 (rétention ~97-98 %). Un entrant Bachelor pèse ≈ {CHAIN} années-étudiant sur le cycle. B2/B3 ne sont donc pas des décisions indépendantes — ce sont les conséquences des intakes passés. On pilote le robinet (l'entrée) ; le reste suit.",CIT,align=ALW); ws.merge_cells(f"A{ky+1}:{GL(NC)}{ky+2}"); ws.row_dimensions[ky+1].height=40
-C(ws,f"A{ky+3}","Entrants nets gagnés/perdus (plan − actuel) :",CB,align=AR); ws.merge_cells(f"A{ky+3}:D{ky+3}")
-C(ws,f"E{ky+3}",f"=L{r}-F{r}",CFB,FYEL,fmt=NB,align=AC,border=True)
-C(ws,f"F{ky+3}","× années-étudiant du cycle ≈",CB,align=AR); ws.merge_cells(f"F{ky+3}:H{ky+3}")
-C(ws,f"I{ky+3}",CHAIN,CL,FGRN,fmt=X2,align=AC,border=True)
-C(ws,f"J{ky+3}",f"=(L{r}-F{r})*{CHAIN}",CFB,fmt=NB,align=AC,border=True)
+C(ws,f"A{gy+1}","EBITDA de référence :",CB,align=AR); ws.merge_cells(f"A{gy+1}:C{gy+1}"); C(ws,f"D{gy+1}",f"={EB_ref}",CFB,fmt=EUR,align=AR,border=True)
+C(ws,f"A{gy+2}","Δ EBITDA (contributions perdues) :",CB,align=AR); ws.merge_cells(f"A{gy+2}:C{gy+2}"); C(ws,f"D{gy+2}",f"=P{r}",CFB,fmt=EUR,align=AR,border=True)
+C(ws,f"A{gy+3}","EBITDA après fermetures :",CB,align=AR); ws.merge_cells(f"A{gy+3}:C{gy+3}"); C(ws,f"D{gy+3}",f"={EB_ref}+P{r}",CFB,FGRN,fmt=EUR,align=AR,border=True)
+C(ws,f"E{gy+1}","Classes fermées :",CB,align=AR); C(ws,f"F{gy+1}",f'=COUNTIF({MR_},"Fermer")',CFB,FYEL,fmt=NB,align=AC,border=True)
+C(ws,f"E{gy+2}","Déficits « coût complet » AVANT :",CB,align=AR); C(ws,f"F{gy+2}",f'=COUNTIF(L{S0}:L{SN},"<0")',CFB,fmt=NB,align=AC,border=True)
+C(ws,f"E{gy+3}","Classes basculées PAR les fermetures (domino) :",CB,align=AR); C(ws,f"F{gy+3}",f'=SUMPRODUCT(--(L{S0}:L{SN}>=0),--(O{S0}:O{SN}<0))',CFB,FYEL,fmt=NB,align=AC,border=True)
+C(ws,f"A{gy+5}","La règle : on ferme sur la CONTRIBUTION (CA − variable), jamais sur le coût complet. Une classe à contribution positive rapporte à l'EBITDA même si son coût COMPLET est négatif — car le fixe (loyer, permanents, siège) reste de toute façon. Fermer la détruit deux fois : on perd sa contribution ET son loyer retombe sur les voisines (colonnes APRÈS), qui basculent à leur tour. Le vrai levier sur le fixe est ailleurs (renégocier un bail, mutualiser un campus), pas la fermeture d'une classe.",CIT,align=ALW); ws.merge_cells(f"A{gy+5}:{GL(NC)}{gy+6}"); ws.row_dimensions[gy+5].height=52
+# --- coût fixe par ville (d'où viennent les déficits) ---
+vy=gy+8; band(ws,vy,"A","H","Pourquoi ces déficits ? Le coût de STRUCTURE par classe n'est pas le même partout")
+for i,h in enumerate(["Ville","Indice coût (immo+salaires)","Structure / classe (moyenne)","CA / classe (moyenne)","Lecture"]): C(ws,f"{GL(1+i)}{vy+1}",h,CHDR,FBLUE,align=AC,border=True)
+ws.row_dimensions[vy+1].height=30
+KAL=f"{ALS}$K${AA0}:$K${AA0+N-1}"; JAL=f"{ALS}$J${AA0}:$J${AA0+N-1}"; HAL=f"{ALS}$H${AA0}:$H${AA0+N-1}"; FAL=f"{ALS}$F${AA0}:$F${AA0+N-1}"; BAL=f"{ALS}$B${AA0}:$B${AA0+N-1}"
+villes_u=sorted({rr["ville"] for rr in rows},key=lambda v:-CITY_COST[v])
+vr=vy+2
+for v in villes_u:
+    C(ws,f"A{vr}",v,CL,align=AL,border=True); C(ws,f"B{vr}",CITY_COST[v],CL,FGRN,fmt=X2,align=AC,border=True)
+    C(ws,f"C{vr}",f'=IFERROR((SUMIFS({KAL},{BAL},A{vr})+SUMIFS({JAL},{BAL},A{vr}))/SUMIFS({HAL},{BAL},A{vr}),0)',CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"D{vr}",f'=IFERROR(SUMIFS({FAL},{BAL},A{vr})/SUMIFS({HAL},{BAL},A{vr}),0)',CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"E{vr}",f'=IF(B{vr}>1.2,"ville chère — loyer/salaires lourds → classes fragiles",IF(B{vr}<0.95,"ville éco — structure légère","dans la moyenne"))',CF,align=AL,border=True); vr+=1
+C(ws,f"A{vr+1}","Indice > 1 = ville chère (Paris ≈ loyer + salaires 1,6× la moyenne). Le total groupe de chaque charge est INCHANGÉ (P&L & réconciliation identiques) — c'est la RÉPARTITION entre campus qui devient réaliste : Paris porte son loyer parisien, d'où des classes déficitaires en coût complet là où la contribution reste bonne.",CIT,align=ALW); ws.merge_cells(f"A{vr+1}:{GL(NC)}{vr+2}"); ws.row_dimensions[vr+1].height=40
+# --- rappel cohorte ---
+ky=vr+4; band(ws,ky,"A","H","Rappel — on ferme le ROBINET (l'entrée), la cohorte suit")
+C(ws,f"A{ky+1}","La décision de fermeture porte sur la 1ʳᵉ année (entrée) ; B2/B3 sont des cohortes déjà engagées (« conséquence », non pilotables ici). Fermer une entrée assèche le campus sur 3 ans — raison de plus pour décider sur la contribution, pas sur un coût complet trompeur.",CIT,align=ALW); ws.merge_cells(f"A{ky+1}:{GL(NC)}{ky+2}"); ws.row_dimensions[ky+1].height=34
 
 # ============================================================ 01b_Pilotage (marque×ville) — en fin car dépend de tous les onglets
 ws=wb.create_sheet("01b_Pilotage",index=2); ws.sheet_view.showGridLines=False
