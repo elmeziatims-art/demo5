@@ -1,5 +1,6 @@
 -- =============================================================================
--- VUE ALLOCATION — coût complet par CLASSE  (corps SELECT ; SAP HANA)
+-- VUE ALLOCATION — coût complet par CLASSE  (corps CREATE OR REPLACE VIEW V_ALLOCATION AS
+SELECT ; SAP HANA)
 -- Sources : AW_002_000002_000001 (socle, drivers) + AW_002_000004_000001 (compta, charges)
 -- Reproduit l'onglet 10_Allocation, calculé à la volée, pour chaque EXERCICE :
 --   - enseignement (621 vac -> variable ; 6411 perm -> structure) réparti par HEURES

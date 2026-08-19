@@ -1,5 +1,6 @@
 -- =============================================================================
--- VUE P&L / EBITDA — EDUSERVICES  (corps SELECT ; SAP HANA)
+-- VUE P&L / EBITDA — EDUSERVICES  (corps CREATE OR REPLACE VIEW V_PNL AS
+SELECT ; SAP HANA)
 -- Source : AW_002_000004_000001 (compta)
 -- Le sens (Produit/Charge) et le SIG sont des attributs du COMPTE → mappés en CASE.
 -- Grain : ENTITY x EXERCICE (x SCENARIO x PERIOD).  Montants positifs en entrée.

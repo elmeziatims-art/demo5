@@ -1,5 +1,6 @@
 -- =============================================================================
--- VUE CADRAGE — LEVIERS DE GROUPE (pivot)  (corps SELECT ; SAP HANA)
+-- VUE CADRAGE — LEVIERS DE GROUPE (pivot)  (corps CREATE OR REPLACE VIEW V_CADRAGE_LEVIERS AS
+SELECT ; SAP HANA)
 -- Source : AW_002_000001_000001 (cadrage)
 -- Les leviers sont stockés en LONG (1 ligne = 1 PARAMETRE x VERSION) → on pivote
 -- en 1 ligne par VERSION (V01/V02/V03…), colonnes = leviers. ENTITY = 'GRP'.
