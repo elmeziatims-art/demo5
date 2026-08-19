@@ -1,5 +1,6 @@
 -- =============================================================================
--- VUE CAMPAGNES — moteur d'acquisition par campus  (corps SELECT ; SAP HANA)
+-- VUE CAMPAGNES — moteur d'acquisition par campus  (corps CREATE OR REPLACE VIEW V_CAMPAGNES AS
+SELECT ; SAP HANA)
 -- Source : AW_002_000002_000001 (socle enrichi marketing)
 -- Reproduit l'onglet 03_Campagnes : CPL, rendement (mesuré), part organique,
 -- conversion lead->inscrit, et CAC MARGINAL (= coût du prochain inscrit).
