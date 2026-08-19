@@ -885,63 +885,67 @@ for lib,sA,fA,sB,fB,fmt in recs:
     C(ws,f"H{r}",f'=IF(ABS(G{r})<=MAX(1,0.001*D{r}),"✓ aligné","⚠ écart")',CFB,FGRN,align=AC,border=True); r+=1
 C(ws,f"B{r+1}","Toutes les grandeurs se recoupent (écart nul aux arrondis près) : le CRM, la compta et la base racontent le même chiffre.",CIT,align=AL); ws.merge_cells(f"B{r+1}:H{r+1}")
 
-# ============================================================ 12_Simulateur (ouverture / fermeture de classe — analyse de CONTRIBUTION)
+# ============================================================ 12_Simulateur (ouverture / fermeture — CONTRIBUTION + réallocation des coûts fixes)
 ws=wb.create_sheet("12_Simulateur"); ws.sheet_view.showGridLines=False
-ALS="'10_Allocation'!"; ATOT=AA0+N   # ligne total de l'allocation
-scols=["Marque","Ville","Programme","Niveau","Mod.","Effectif","Classes","Rempl.","CA","Directs (évit.)","Structure (évit.)","Siège (non évit.)","Contribution","Coût chargé/étu","Marge appar./étu","🔵 Décision","Impact EBITDA","Conseil"]
-for i,w in enumerate([13,10,17,7,6,8,7,7,11,12,12,13,12,12,13,10,12,36]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells(f"A1:{GL(len(scols))}1"); C(ws,"A1","SIMULATEUR OUVERTURE / FERMETURE DE CLASSE — décision à la CONTRIBUTION (le coût pleinement chargé trompe)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
-ws.merge_cells(f"A2:{GL(len(scols))}2"); C(ws,"A2","Règle : on garde une classe tant que sa CONTRIBUTION (CA − coûts ÉVITABLES : directs + structure) est positive — même si son coût PLEINEMENT CHARGÉ (avec le siège) la fait paraître déficitaire, car le siège ne disparaît pas si on ferme. Fermer une contribution POSITIVE détruit de l'EBITDA.",CIT,align=ALW); ws.row_dimensions[2].height=34
+ALS="'10_Allocation'!"; ATOT=AA0+N
+scols=["Marque","Ville","Programme","Niveau","Mod.","Effectif","CA","Variable (évit.)","Contribution","Fixe campus","Siège (groupe)","Coût compl./étu AVANT","🔵 Décision","Coût compl./étu APRÈS","Impact EBITDA","Conseil"]
+for i,w in enumerate([13,10,16,7,6,8,11,12,12,12,12,15,11,15,12,40]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells(f"A1:{GL(len(scols))}1"); C(ws,"A1","SIMULATEUR OUVERTURE / FERMETURE — décision à la CONTRIBUTION · les coûts FIXES (loyer, siège) ne disparaissent pas : ils se RÉALLOUENT",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
+ws.merge_cells(f"A2:{GL(len(scols))}2"); C(ws,"A2","3 natures : VARIABLE (directs, disparaît si on ferme) · FIXE CAMPUS (loyer, personnel permanent — RESTE) · FIXE GROUPE (siège — RESTE). Contribution = CA − Variable. Fermer une classe étale le fixe sur MOINS d'étudiants → le coût/étu des AUTRES monte (colonne APRÈS). On ferme seulement si la contribution est négative.",CIT,align=ALW); ws.row_dimensions[2].height=44
 for i,h in enumerate(scols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
-ws.row_dimensions[3].height=30
+ws.row_dimensions[3].height=34
 dvs=DataValidation(type="list",formula1='"Garder,Fermer"',allow_blank=False); ws.add_data_validation(dvs)
-S0=4
+S0=4; SN=S0+N-1
+FRG=f"$F${S0}:$F${SN}"; ARG=f"$A${S0}:$A${SN}"; BRG=f"$B${S0}:$B${SN}"; JRG=f"$J${S0}:$J${SN}"; KRG=f"$K${S0}:$K${SN}"; MRG=f"$M${S0}:$M${SN}"
 for idx in range(N):
-    r=S0+idx; a=AA0+idx; cap=CAPT[rows[idx]["type"]]
+    r=S0+idx; a=AA0+idx
     for col in ("A","B","C","D","E"): C(ws,f"{col}{r}",f"={ALS}{col}{a}",CL,align=(AL if col in("A","C") else AC),border=True)
     C(ws,f"F{r}",f"={ALS}G{a}",CF,fmt=NB,align=AR,border=True)      # effectif
-    C(ws,f"G{r}",f"={ALS}H{a}",CF,fmt=NB,align=AR,border=True)      # classes
-    C(ws,f"H{r}",f"=IFERROR(F{r}/(G{r}*{cap}),0)",CF,fmt=PCT,align=AC,border=True)  # remplissage
-    C(ws,f"I{r}",f"={ALS}F{a}",CF,fmt=EUR,align=AR,border=True)     # CA
-    C(ws,f"J{r}",f"={ALS}I{a}",CF,fmt=EUR,align=AR,border=True)     # directs (évitables)
-    C(ws,f"K{r}",f"={ALS}K{a}",CF,fmt=EUR,align=AR,border=True)     # structure (évitable)
-    C(ws,f"L{r}",f"={ALS}J{a}",CF,fmt=EUR,align=AR,border=True)     # siège (non évitable)
-    C(ws,f"M{r}",f"=I{r}-J{r}-K{r}",CFB,fmt=EUR,align=AR,border=True)  # CONTRIBUTION
-    C(ws,f"N{r}",f"={ALS}M{a}",CF,fmt=EUR,align=AR,border=True)     # coût chargé/étu
-    C(ws,f"O{r}",f"={ALS}O{a}",CF,fmt=EUR,align=AR,border=True)     # marge apparente/étu
-    C(ws,f"P{r}","Garder",CINB,FYEL,align=AC,border=True); dvs.add(ws[f"P{r}"])
-    C(ws,f"Q{r}",f'=IF(P{r}="Fermer",-M{r},0)',CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"R{r}",f'=IF(M{r}<0,"✓ Fermer — contribution négative",IF(O{r}<0,"⚠ Garder — paraît déficitaire mais CONTRIBUE au siège","Garder — rentable"))',CF,align=AL,border=True)
-SN=S0+N-1; r=S0+N
+    C(ws,f"G{r}",f"={ALS}F{a}",CF,fmt=EUR,align=AR,border=True)     # CA
+    C(ws,f"H{r}",f"={ALS}I{a}",CF,fmt=EUR,align=AR,border=True)     # VARIABLE (directs, évitables)
+    C(ws,f"I{r}",f"=G{r}-H{r}",CFB,fmt=EUR,align=AR,border=True)    # CONTRIBUTION = CA − variable
+    C(ws,f"J{r}",f"={ALS}K{a}",CF,fmt=EUR,align=AR,border=True)     # fixe campus (reste)
+    C(ws,f"K{r}",f"={ALS}J{a}",CF,fmt=EUR,align=AR,border=True)     # siège / fixe groupe (reste)
+    C(ws,f"L{r}",f"={ALS}M{a}",CF,fmt=EUR,align=AR,border=True)     # coût complet/étu AVANT
+    C(ws,f"M{r}","Garder",CINB,FYEL,align=AC,border=True); dvs.add(ws[f"M{r}"])
+    campp=f"SUMIFS({JRG},{ARG},A{r},{BRG},B{r})"; basec=f"SUMIFS({FRG},{ARG},A{r},{BRG},B{r})"; remc=f'SUMIFS({FRG},{ARG},A{r},{BRG},B{r},{MRG},"Garder")'
+    remt=f'SUMIFS({FRG},{MRG},"Garder")'
+    # APRÈS = coût/étu AVANT + surcoût de réallocation du FIXE (campus & siège) sur les étudiants restants (= AVANT si rien n'est fermé)
+    C(ws,f"N{r}",f'=IF(M{r}="Fermer","—",L{r}+IFERROR({campp}*(1/{remc}-1/{basec}),0)+IFERROR(SUM({KRG})*(1/{remt}-1/SUM({FRG})),0))',CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"O{r}",f'=IF(M{r}="Fermer",-I{r},0)',CF,fmt=EUR,align=AR,border=True)   # impact EBITDA = −contribution
+    C(ws,f"P{r}",f'=IF(I{r}<0,"✓ Fermer — ne couvre pas ses coûts variables",IF(L{r}>G{r}/F{r},"⚠ Garder — déficit apparent mais couvre le fixe : fermer = −EBITDA ET alourdit les autres","Garder — rentable"))',CF,align=AL,border=True)
+r=S0+N
 C(ws,f"A{r}","TOTAL",CFB,FTOT,align=AL,border=True)
-for col in ("B","C","D","E","H"): C(ws,f"{col}{r}"," ",fill=FTOT,border=True)
-for col in ("F","I","J","K","L","M","Q"): C(ws,f"{col}{r}",f"=SUM({col}{S0}:{col}{SN})",CFB,FTOT,fmt=(NB if col=="F" else EUR),align=AR,border=True)
+for col in ("B","C","D","E"): C(ws,f"{col}{r}"," ",fill=FTOT,border=True)
+for col in ("F","G","H","I","J","K","O"): C(ws,f"{col}{r}",f"=SUM({col}{S0}:{col}{SN})",CFB,FTOT,fmt=(NB if col=="F" else EUR),align=AR,border=True)
 ws.freeze_panes="F4"
-ws.conditional_formatting.add(f"M{S0}:M{SN}",ColorScaleRule(start_type="num",start_value=-1,start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
-# --- synthèse EBITDA de la simulation ---
-EB_base=f"({ALS}F{ATOT}-{ALS}L{ATOT})"
-gy=r+2; band(ws,gy,"A","F","Impact EBITDA de la simulation (fermetures)")
-C(ws,f"A{gy+1}","EBITDA de référence (atterrissage) :",CB,align=AR); ws.merge_cells(f"A{gy+1}:C{gy+1}"); C(ws,f"D{gy+1}",f"={EB_base}",CFB,fmt=EUR,align=AR,border=True)
-C(ws,f"A{gy+2}","Δ EBITDA (décisions) :",CB,align=AR); ws.merge_cells(f"A{gy+2}:C{gy+2}"); C(ws,f"D{gy+2}",f"=Q{r}",CFB,fmt=EUR,align=AR,border=True)
-C(ws,f"A{gy+3}","EBITDA simulé :",CB,align=AR); ws.merge_cells(f"A{gy+3}:C{gy+3}"); C(ws,f"D{gy+3}",f"={EB_base}+Q{r}",CFB,FGRN,fmt=EUR,align=AR,border=True)
-C(ws,f"E{gy+1}","Classes fermées :",CB,align=AR); C(ws,f"F{gy+1}",f'=COUNTIF(P{S0}:P{SN},"Fermer")',CFB,FYEL,fmt=NB,align=AC,border=True)
-C(ws,f"E{gy+2}","Effectif perdu :",CB,align=AR); C(ws,f"F{gy+2}",f'=SUMIFS(F{S0}:F{SN},P{S0}:P{SN},"Fermer")',CFB,fmt=NB,align=AC,border=True)
-C(ws,f"E{gy+3}","CA perdu :",CB,align=AR); C(ws,f"F{gy+3}",f'=SUMIFS(I{S0}:I{SN},P{S0}:P{SN},"Fermer")',CFB,fmt=EUR,align=AC,border=True)
-# --- OUVERTURE : tester une nouvelle classe (entrants → coût de recrutement inclus) ---
-oy=gy+5; band(ws,oy,"A","H","OUVERTURE — tester une nouvelle classe (nouveaux entrants : le coût de recrutement est inclus)")
-STRUCLASSE=f"({ALS}K{ATOT}/{ALS}H{ATOT})"   # structure moyenne par classe
-for i,h in enumerate(["Libellé","🔵 Effectif visé","🔵 Prix/étu","CA","Directs (dont mkt)","Structure","Contribution","Verdict"]): C(ws,f"{GL(1+i)}{oy+1}",h,CHDR,FBLUE,align=AC,border=True)
+ws.conditional_formatting.add(f"I{S0}:I{SN}",ColorScaleRule(start_type="num",start_value=0,start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
+# --- synthèse : EBITDA + réallocation du fixe (ripple) ---
+EB_base=f"({ALS}F{ATOT}-{ALS}L{ATOT})"; FIXE=f"(J{r}+K{r})"
+gy=r+2; band(ws,gy,"A","G","Impact de la simulation — EBITDA & réallocation du coût fixe")
+C(ws,f"A{gy+1}","EBITDA de référence :",CB,align=AR); ws.merge_cells(f"A{gy+1}:C{gy+1}"); C(ws,f"D{gy+1}",f"={EB_base}",CFB,fmt=EUR,align=AR,border=True)
+C(ws,f"A{gy+2}","Δ EBITDA (décisions) :",CB,align=AR); ws.merge_cells(f"A{gy+2}:C{gy+2}"); C(ws,f"D{gy+2}",f"=O{r}",CFB,fmt=EUR,align=AR,border=True)
+C(ws,f"A{gy+3}","EBITDA simulé :",CB,align=AR); ws.merge_cells(f"A{gy+3}:C{gy+3}"); C(ws,f"D{gy+3}",f"={EB_base}+O{r}",CFB,FGRN,fmt=EUR,align=AR,border=True)
+C(ws,f"E{gy+1}","Classes fermées :",CB,align=AR); C(ws,f"F{gy+1}",f'=COUNTIF(M{S0}:M{SN},"Fermer")',CFB,FYEL,fmt=NB,align=AC,border=True)
+C(ws,f"E{gy+2}","Coût fixe / étu AVANT :",CB,align=AR); C(ws,f"F{gy+2}",f'=IFERROR({FIXE}/F{r},0)',CFB,fmt=EUR,align=AR,border=True)
+C(ws,f"E{gy+3}","Coût fixe / étu APRÈS :",CB,align=AR); C(ws,f"F{gy+3}",f'=IFERROR({FIXE}/SUMIFS(F{S0}:F{SN},M{S0}:M{SN},"Garder"),0)',CFB,FYEL,fmt=EUR,align=AR,border=True)
+C(ws,f"A{gy+5}","Deux effets d'une fermeture : (1) l'EBITDA baisse de la CONTRIBUTION perdue (le fixe reste) ; (2) ce même fixe se réalloue sur moins d'étudiants → « coût fixe/étu APRÈS » monte, et le coût complet/étu de TOUTES les classes gardées augmente (colonne APRÈS). D'où : ne fermer que si la contribution est négative.",CIT,align=ALW); ws.merge_cells(f"A{gy+5}:{GL(len(scols))}{gy+6}"); ws.row_dimensions[gy+5].height=42
+# --- OUVERTURE : tester une nouvelle classe d'entrants ---
+oy=gy+8; band(ws,oy,"A","H","OUVERTURE — tester une nouvelle classe d'entrants (recrutement inclus ; + absorbe du fixe → baisse le coût/étu des autres)")
+STRUCLASSE=f"({ALS}K{ATOT}/{ALS}H{ATOT})"
+for i,h in enumerate(["Libellé","🔵 Effectif visé","🔵 Prix/étu","🔵 Nouvelle salle ?","CA","Variable (dont mkt)","Contribution","Verdict"]): C(ws,f"{GL(1+i)}{oy+1}",h,CHDR,FBLUE,align=AC,border=True)
+dvo=DataValidation(type="list",formula1='"Non,Oui"',allow_blank=False); ws.add_data_validation(dvo)
 for j in range(3):
     r=oy+2+j
     C(ws,f"A{r}",("ex. MBway Lyon B1" if j==0 else "…"),CINB,FYEL,align=AL,border=True)
     C(ws,f"B{r}",(30 if j==0 else 0),CINB,FYEL,fmt=NB,align=AC,border=True)
     C(ws,f"C{r}",(8000 if j==0 else 0),CINB,FYEL,fmt=EUR,align=AR,border=True)
-    C(ws,f"D{r}",f"=B{r}*C{r}",CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"E{r}",f"=D{r}*{round(DIR_PCT,4)}",CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"F{r}",f"=CEILING(B{r}/32,1)*{STRUCLASSE}",CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"G{r}",f"=D{r}-E{r}-F{r}",CFB,fmt=EUR,align=AR,border=True)
-    C(ws,f"H{r}",f'=IF(B{r}=0,"—",IF(G{r}>0,"✓ rentable dès la 1ʳᵉ année","✗ déficitaire — ne pas ouvrir"))',CF,align=AL,border=True)
-C(ws,f"A{oy+6}","Ouvrir = créer une classe d'entrants : elle porte le coût de recrutement (marketing) ET une structure de salle. Rentable si sa contribution est positive dès la 1ʳᵉ année. Fusion : deux classes sous-remplies réunies = on économise une structure de salle en gardant les étudiants (améliore le remplissage et la contribution).",CIT,align=ALW); ws.merge_cells(f"A{oy+6}:H{oy+7}"); ws.row_dimensions[oy+6].height=42
+    C(ws,f"D{r}",("Non"),CINB,FYEL,align=AC,border=True); dvo.add(ws[f"D{r}"])
+    C(ws,f"E{r}",f"=B{r}*C{r}",CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"F{r}",f"=E{r}*{round(DIR_PCT,4)}",CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"G{r}",f'=E{r}-F{r}-IF(D{r}="Oui",CEILING(B{r}/32,1)*{STRUCLASSE},0)',CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"H{r}",f'=IF(B{r}=0,"—",IF(G{r}>0,"✓ rentable (et absorbe du fixe)","✗ déficitaire — ne pas ouvrir"))',CF,align=AL,border=True)
+C(ws,f"A{oy+6}","Ouvrir dans une salle EXISTANTE (capacité dispo) : pas de fixe en plus → la contribution est un gain net d'EBITDA, ET les étudiants en plus font baisser le coût fixe/étu de tout le campus. « Nouvelle salle ? » = Oui ajoute une structure de salle. Fusion = même logique inverse : réunir deux classes sous-remplies libère une salle.",CIT,align=ALW); ws.merge_cells(f"A{oy+6}:H{oy+7}"); ws.row_dimensions[oy+6].height=42
 
 # ============================================================ 01b_Pilotage (marque×ville) — en fin car dépend de tous les onglets
 ws=wb.create_sheet("01b_Pilotage",index=2); ws.sheet_view.showGridLines=False
