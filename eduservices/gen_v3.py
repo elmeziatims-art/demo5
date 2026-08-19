@@ -342,15 +342,14 @@ C(ws,f"J{r+1}","Indice = prix moyen ville ÷ national, calculé sur le réalisé
 ws=wb.create_sheet("02_Socle"); ws.sheet_view.showGridLines=False
 bcols=["Marque","Ville","Programme","Cycle","Niveau","Modalité","Entrée",
  "Leads","Cand.","Admis","Nouveaux","Réinscrits","Effectif","Eff. niv. inf.","Classes",
- "Revenu/étudiant","Taux passage","Taux lead→cand","Taux cand→admis","Yield admis→inscrit","CA","Exercice"]
-for i,w in enumerate([15,10,20,6,6,9,7,9,9,9,9,9,9,11,8,12,10,11,11,12,12,9]): ws.column_dimensions[GL(1+i)].width=w
+ "Revenu/étudiant","Taux passage","Taux lead→cand","Taux cand→admis","Yield admis→inscrit","CA","Frais/inscrit","Exercice"]
+for i,w in enumerate([15,10,20,6,6,9,7,9,9,9,9,9,9,11,8,12,10,11,11,12,12,10,9]): ws.column_dimensions[GL(1+i)].width=w
 ws.merge_cells(f"A1:{GL(len(bcols))}1"); C(ws,"A1","SOCLE — UN seul tableau à la maille fine (cellule) · historique en lignes (Exercice 2024·2025·2026) · l'atterrissage 2026 alimente le moteur",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
 ws.merge_cells(f"A2:{GL(len(bcols))}2"); C(ws,"A2","Une ligne = marque × ville × programme × niveau × modalité × EXERCICE. Leads = observés · Taux = formules (aval÷amont) · CA = effectif×revenu + nouveaux×frais. Historique opérationnel rétropolé (cohérent compta). Le marketing (dépense/leads org-payant) est campus → onglet 03_Campagnes.",CIT,align=ALW); ws.row_dimensions[2].height=28
 for i,h in enumerate(bcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[3].height=30
-frr=f"{CAD}$D$30"    # frais de dossier de référence (constante cadrage)
 GSOC=1.06            # rétropolation de l'historique opérationnel (croissance ~ compta)
-fmts=[None,None,None,None,None,None,NB,NB,NB,NB,NB,NB,NB,NB,NB,EUR,PCT,PCT,PCT,PCT,EUR,None]
+fmts=[None,None,None,None,None,None,NB,NB,NB,NB,NB,NB,NB,NB,NB,EUR,PCT,PCT,PCT,PCT,EUR,EUR,None]
 srow=BR0
 for yr,n in [(2026,0),(2025,1),(2024,2)]:   # atterrissage 2026 en tête (rows 4-61 = brng, moteur inchangé), puis historique
     fac=GSOC**n
@@ -361,7 +360,7 @@ for yr,n in [(2026,0),(2025,1),(2024,2)]:   # atterrissage 2026 en tête (rows 4
               sc(rr["leads"]),sc(rr["cand"]),sc(rr["admis"]),sc(rr["nouv"]),sc(rr["rein"]),sc(rr["eff"]),sc(rr["eff_prev"]),clh,
               rr["rev"],
               f"=IFERROR(M{r}/N{r},0)",f"=IFERROR(I{r}/H{r},0)",f"=IFERROR(J{r}/I{r},0)",f"=IFERROR(K{r}/J{r},0)",
-              f"=M{r}*P{r}+K{r}*{frr}", yr]
+              f"=M{r}*P{r}+K{r}*V{r}", FRAIS_DEF, yr]   # CA = effectif×revenu + nouveaux×frais(colonne V, socle autonome)
         for i,(v,f) in enumerate(zip(vals,fmts)):
             al=AL if i<6 else AC
             C(ws,f"{GL(1+i)}{r}",v,(CF if 16<=i<=20 else CL),fmt=f,align=al,border=True)
