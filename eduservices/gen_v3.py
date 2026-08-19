@@ -1006,7 +1006,7 @@ BUr=brng('U'); BAr=brng('A'); BBr=brng('B'); xG=xrng('Y'); xA=xrng('A'); xB=xrng
 MOA_=f"'04_Moteur'!$A${MR0}:$A${MRN}"; MOB_=f"'04_Moteur'!$B${MR0}:$B${MRN}"
 MOAA_=f"'04_Moteur'!$AA${MR0}:$AA${MRN}"; MOAJ_=f"'04_Moteur'!$AJ${MR0}:$AJ${MRN}"; MOY_=f"'04_Moteur'!$Y${MR0}:$Y${MRN}"
 ALA=f"'10_Allocation'!$A$8:$A${8+N-1}"; ALB=f"'10_Allocation'!$B$8:$B${8+N-1}"; ALF=f"'10_Allocation'!$F$8:$F${8+N-1}"; ALL=f"'10_Allocation'!$L$8:$L${8+N-1}"
-for i,w in enumerate([14,10,13,13,13,13,9,9,9,12]): ws.column_dimensions[GL(1+i)].width=w
+for i,w in enumerate([14,10,13,13,13,13,9,9,9,12,13,14,11]): ws.column_dimensions[GL(1+i)].width=w
 ws.merge_cells("A1:J1"); C(ws,"A1","PILOTAGE MARQUE × VILLE — KPI groupe · clés d'allocation · cap stratégique · synthèse CA & EBITDA",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
 # ---- BANDEAU KPI groupe (CA & EBITDA du budget construit — réagit aux caps & leviers) ----
 _MCA=f"'04_Moteur'!$AA${MTOT}"; _MEFF=f"'04_Moteur'!$Y${MTOT}"
@@ -1031,10 +1031,11 @@ for rr,lab,dft in [(7,"① Groupe → Marque","Chiffre d'affaires"),(8,"② Marq
     C(ws,f"D{rr}",dft,CINB,FYEL,align=AC,border=True); ws.merge_cells(f"D{rr}:E{rr}"); dva.add(ws[f"D{rr}"])
 C(ws,"A11","La CLÉ (méthode) est figée par le CFO, uniforme sur tout le groupe (comparabilité). Changez une clé → l'EBITDA se redéploie entre marques/campus dans la synthèse ②, à total groupe constant. Le contrôleur ne choisit pas la clé, il conteste l'assiette (10_Allocation).",CIT,align=ALW); ws.merge_cells("A11:J12"); ws.row_dimensions[11].height=40
 # ---- ① Cap stratégique par campus : saisie + justification ----
-band(ws,13,"A","J","① Cap stratégique par campus (marque×ville) — 🔵 saisie du cap retenu · 🟢 caps proposés (mesurés)")
-for i,h in enumerate(["Marque","Ville","clé","CAC marginal","Croiss. leads","Intensité mkt","Cap éff.","Cap mom.","Cap pot.","🔵 Cap retenu"]): C(ws,f"{GL(1+i)}14",h,CHDR,FBLUE,align=AC,border=True)
+band(ws,13,"A","M","① Cap stratégique par campus (marque×ville) — 🔵 saisie du cap retenu · 🟢 caps proposés (mesurés) · rejeu du budget d'acquisition")
+for i,h in enumerate(["Marque","Ville","clé","CAC marginal","Croiss. leads","Intensité mkt","Cap éff.","Cap mom.","Cap pot.","🔵 Cap retenu","Budget acq. réf","Budget acq. rejoué","Δ budget"]): C(ws,f"{GL(1+i)}14",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[14].height=30
 CACr=f"$D${PP0}:$D${PPN}"; CRWr=f"$E${PP0}:$E${PPN}"; INTr=f"$F${PP0}:$F${PPN}"
+BUDr=f"$K${PP0}:$K${PPN}"; CAPr=f"$J${PP0}:$J${PPN}"   # budget acq réf & cap retenu (rejeu somme nulle)
 for i,c in enumerate(campus):
     r=PP0+i; m=c["marque"]; v=c["ville"]
     C(ws,f"A{r}",m,CL,align=AL,border=True); C(ws,f"B{r}",v,CL,align=AC,border=True); C(ws,f"C{r}",f'=A{r}&"|"&B{r}',CF,align=AC,border=True)
@@ -1045,9 +1046,14 @@ for i,c in enumerate(campus):
     C(ws,f"H{r}",f"=IFERROR(E{r}/(SUM({CRWr})/COUNT({CRWr})),0)",CF,FGRN,fmt=X2,align=AC,border=True)                  # cap mom proposé
     C(ws,f"I{r}",f"=IFERROR((1/F{r})/(SUMPRODUCT(1/{INTr})/COUNT({INTr})),0)",CF,FGRN,fmt=X2,align=AC,border=True)     # cap pot proposé
     C(ws,f"J{r}",1.0,CINB,FYEL,fmt=X2,align=AC,border=True)    # 🔵 cap retenu (saisie campus)
+    C(ws,f"K{r}",f"=IFERROR(INDEX({CmG},MATCH(C{r},{CmC},0)),0)",CF,fmt=EUR,align=AR,border=True)                    # budget acq. réf (dépense 6231 campus)
+    C(ws,f"L{r}",f"=IFERROR(K{r}*J{r}*SUM({BUDr})/SUMPRODUCT({BUDr},{CAPr}),0)",CFB,fmt=EUR,align=AR,border=True)     # budget acq. REJOUÉ (somme nulle)
+    C(ws,f"M{r}",f"=L{r}-K{r}",CF,fmt=EUR,align=AR,border=True)                                                      # Δ budget vs réf
 ws.conditional_formatting.add(f"G{PP0}:I{PPN}",ColorScaleRule(start_type="num",start_value=0.7,start_color="F8696B",mid_type="num",mid_value=1,mid_color="FFEB84",end_type="num",end_value=1.3,end_color="63BE7B"))
+ws.conditional_formatting.add(f"M{PP0}:M{PPN}",ColorScaleRule(start_type="num",start_value=0,start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
+C(ws,f"J{PPN+1}","Total →",CB,align=AR,border=True); C(ws,f"K{PPN+1}",f"=SUM({BUDr})",CFB,FTOT,fmt=EUR,align=AR,border=True); C(ws,f"L{PPN+1}",f"=SUM(L{PP0}:L{PPN})",CFB,FTOT,fmt=EUR,align=AR,border=True); C(ws,f"M{PPN+1}",f"=SUM(M{PP0}:M{PPN})",CFB,FTOT,fmt=EUR,align=AR,border=True)
 lg=PPN+2
-C(ws,f"A{lg}","🟢 Caps proposés = mesurés (vert) : Cap éff. ∝ 1/CAC · Cap mom. ∝ croissance leads · Cap pot. ∝ 1/intensité, normalisés à moyenne 1 (seul le relatif compte). 🔵 Cap retenu = choix CFO qui pilote le budget d'acquisition (enveloppe groupe constante). Sources : CAC & budget = 03_Campagnes, croissance = 02_Socle (historique), CA = 02_Socle.",CIT,align=ALW); ws.merge_cells(f"A{lg}:J{lg+1}"); ws.row_dimensions[lg].height=44
+C(ws,f"A{lg}","🟢 Caps proposés = mesurés : Cap éff. ∝ 1/CAC · Cap mom. ∝ croissance leads · Cap pot. ∝ 1/intensité, normalisés à moyenne 1. 🔵 Cap retenu = choix CFO. Budget acq. REJOUÉ = budget réf × cap × [Σréf ÷ Σ(réf×cap)] : monter un cap concentre le budget d'acquisition sur ce campus en le retirant aux autres — enveloppe groupe CONSTANTE (Σ rejoué = Σ réf, Δ total = 0). Cap = 1 partout → aucune redistribution.",CIT,align=ALW); ws.merge_cells(f"A{lg}:M{lg+1}"); ws.row_dimensions[lg].height=44
 # ---- ② Synthèse par campus : CA & EBITDA ----
 b2=lg+3
 band(ws,b2,"A","I","② Synthèse par campus — CA (réf · cible · construit) & EBITDA (réparti selon les clés d'allocation)")
