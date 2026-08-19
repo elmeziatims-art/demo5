@@ -801,10 +801,15 @@ C(ws,"B23","Les tuiles et les ponts se recalculent en direct quand on bouge un l
 
 # ============================================================ 10_Allocation (cascade 3 niveaux → classe, clé/niveau, coût/étudiant)
 ws=wb.create_sheet("10_Allocation"); ws.sheet_view.showGridLines=False
-acols=["Marque","Ville","Programme","Année","Mod.","CA","Effectif","Classes","Coûts directs","Siège alloué","Structure allouée","Coût total","Coût / étudiant","Coût / classe","Marge / étu.","🟢 Contestation Δ (niv.3)"]
-for i,w in enumerate([13,10,17,6,5,12,8,7,12,12,13,13,12,12,12,14]): ws.column_dimensions[GL(1+i)].width=w
+acols=["Marque","Ville","Programme","Année","Mod.","CA","Effectif","Classes","Coûts directs","Siège alloué","Structure allouée","Coût total","Coût / étudiant","Coût / classe","Marge / étu.","🟢 Contestation Δ (niv.3)","Heures/an (sect.)"]
+for i,w in enumerate([13,10,17,6,5,12,8,7,12,12,13,13,12,12,12,14,11]): ws.column_dimensions[GL(1+i)].width=w
 ws.merge_cells(f"A1:{GL(len(acols))}1"); C(ws,"A1","ALLOCATION EN CASCADE (3 niveaux) — MÉTHODE (clé) figée par le CFO · MATIÈRE (assiette) contestable par le contrôleur · jusqu'à la classe",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
 A26V="2026ATT_VDEF"; DIR_PCT=round(sum(a[6] for a in ACCTS if a[3]=="Coûts directs"),4)
+# --- volume horaire d'enseignement par (cycle × modalité) : l'INITIAL a plus d'heures de cours que l'ALTERNANCE
+#     (l'alternant passe une partie du temps en entreprise). Le coût d'enseignement (vacataires + permanents) est
+#     un coût de SECTION piloté par les HEURES → réparti par heures = sections × volume horaire, pas par CA. ---
+VHOR={("BAC","INIT"):600,("BAC","ALT"):480,("MAST","INIT"):520,("MAST","ALT"):420,("BTS","INIT"):1000,("BTS","ALT"):700}
+VAC_PCT=next(a[6] for a in ACCTS if a[0]=="621")     # vacataires (enseignement VARIABLE, évitable/section)
 KMARQUE=f"'06_Compta'!$C${KP0}:$C${KPN}"; KVILLE=f"'06_Compta'!$D${KP0}:$D${KPN}"; KENT=f"'06_Compta'!$A${KP0}:$A${KPN}"
 BU=brng('U'); BM=brng('M'); BO=brng('O'); BA=brng('A'); BB=brng('B'); BK=brng('K')  # BK = nouveaux entrants
 def dvf(sel,crit=None):
@@ -837,9 +842,15 @@ for idx in range(N):
     lsh=f'IFERROR((({celldrv})+P{r})/({dvf(D3S,cC)}+SUMIFS({PALL},{AALLOC},A{r},{BALLOC},B{r})),0)'
     campind=f'(SUMIFS({KMT},{kC},{KSENS},"Charge")-SUMIFS({KMT},{kC},{KSIG},"Dotations")-SUMIFS({BU},{cC})*{DIR_PCT})'
     mktc=f'{MKT_PCT}*SUMIFS({BU},{cC})*IFERROR({BASE}K{b}/SUMIFS({BK},{cC}),0)'   # marketing alloué aux NOUVEAUX entrants (1ʳᵉ année)
-    C(ws,f"I{r}",f"=F{r}*{round(DIR_PCT-MKT_PCT,4)}+{mktc}",CF,fmt=EUR,align=AR,border=True)   # directs = autres directs (CA) + marketing (par entrants)
+    permc=f'SUMIFS({KMT},{kC},{KACC},"6411")'                                     # permanents campus (enseignement FIXE)
+    vhr=VHOR[(rows[idx]["type"],rows[idx]["mod"])]
+    C(ws,f"Q{r}",f"=H{r}*{vhr}",CF,fmt=NB,align=AR,border=True)                   # heures d'enseignement = sections × volume horaire (INIT>ALT)
+    hsh=f'IFERROR(Q{r}/SUMIFS($Q${AA0}:$Q${AAN},{AALLOC},A{r},{BALLOC},B{r}),0)'  # part d'HEURES dans le campus → répartit l'enseignement
+    # enseignement (vacataires + permanents) réparti par HEURES ; le reste (ST, fournitures, mkt / loyer, admin…) inchangé.
+    #  réallocation à somme nulle DANS le campus → total campus & groupe identiques (EBITDA & réconciliation intacts)
+    C(ws,f"I{r}",f"=F{r}*{round(DIR_PCT-MKT_PCT-VAC_PCT,4)}+{mktc}+SUMIFS({BU},{cC})*{VAC_PCT}*({hsh})",CF,fmt=EUR,align=AR,border=True)  # directs = ST+fournitures (CA) + mkt (entrants) + vacataires (HEURES)
     C(ws,f"J{r}",f"=$I$3*({msh})*({csh})*({lsh})",CF,fmt=EUR,align=AR,border=True)          # siège cascadé 3 niveaux
-    C(ws,f"K{r}",f"={campind}*({lsh})",CF,fmt=EUR,align=AR,border=True)                     # structure campus allouée (niveau 3)
+    C(ws,f"K{r}",f"=({campind}-{permc})*({lsh})+{permc}*({hsh})",CF,fmt=EUR,align=AR,border=True)  # structure = campus hors enseignement (clé) + permanents (HEURES)
     C(ws,f"L{r}",f"=I{r}+J{r}+K{r}",CFB,fmt=EUR,align=AR,border=True)
     C(ws,f"M{r}",f"=IFERROR(L{r}/G{r},0)",CFB,fmt=EUR,align=AR,border=True)                 # coût / étudiant
     C(ws,f"N{r}",f"=IFERROR(L{r}/H{r},0)",CF,fmt=EUR,align=AR,border=True)                  # coût / classe
@@ -848,7 +859,7 @@ for idx in range(N):
 r=AA0+N
 C(ws,f"A{r}","TOTAL",CFB,FTOT,align=AL,border=True)
 for col in ["B","C","D","E"]: C(ws,f"{col}{r}"," ",fill=FTOT,border=True)
-for col,fmt in [("F",EUR),("G",NB),("H",NB),("I",EUR),("J",EUR),("K",EUR),("L",EUR)]:
+for col,fmt in [("F",EUR),("G",NB),("H",NB),("I",EUR),("J",EUR),("K",EUR),("L",EUR),("Q",NB)]:
     C(ws,f"{col}{r}",f"=SUM({col}{AA0}:{col}{r-1})",CFB,FTOT,fmt=fmt,align=AR,border=True)
 C(ws,f"M{r}",f"=IFERROR(L{r}/G{r},0)",CFB,FTOT,fmt=EUR,align=AR,border=True)
 C(ws,f"N{r}",f"=IFERROR(L{r}/H{r},0)",CFB,FTOT,fmt=EUR,align=AR,border=True)
@@ -979,6 +990,14 @@ C(ws,f"A{vr+1}","Indice > 1 = ville chère (Paris ≈ loyer + salaires 1,6× la 
 # --- rappel cohorte ---
 ky=vr+4; band(ws,ky,"A","H","Rappel — on ferme le ROBINET (l'entrée), la cohorte suit")
 C(ws,f"A{ky+1}","La décision de fermeture porte sur la 1ʳᵉ année (entrée) ; B2/B3 sont des cohortes déjà engagées (« conséquence », non pilotables ici). Fermer une entrée assèche le campus sur 3 ans — raison de plus pour décider sur la contribution, pas sur un coût complet trompeur.",CIT,align=ALW); ws.merge_cells(f"A{ky+1}:{GL(NC)}{ky+2}"); ws.row_dimensions[ky+1].height=34
+# --- composition des coûts (ce que contiennent Variable & Structure) ---
+cz=ky+4; band(ws,cz,"A","H","Composition des coûts — et pourquoi l'enseignement se répartit par HEURES")
+comp=[("Variable (évitable)","Vacataires (par HEURES) + sous-traitance + fournitures pédago + marketing d'acquisition. Disparaît si la classe ferme → base de la CONTRIBUTION."),
+ ("Structure (reste)","Permanents (par HEURES) + loyer + administratif + charges sociales + siège. Ne disparaît pas : se réalloue sur les voisines."),
+ ("Enseignement = coût de SECTION","Vacataires (variable) + permanents (fixe). Piloté par les HEURES = sections × volume horaire. L'INITIAL a plus d'heures que l'ALTERNANCE (l'alternant est en entreprise) : Bachelor 600 h (init) vs 480 h (alt), Mastère 520/420, BTS 1000/700. D'où un coût d'enseignement par section différencié — visible colonne « Heures/an » de 10_Allocation.")]
+for i,(t,d) in enumerate(comp):
+    rr2=cz+1+i; C(ws,f"A{rr2}",t,CB,FLIGHT,align=AL,border=True); ws.merge_cells(f"A{rr2}:C{rr2}")
+    C(ws,f"D{rr2}",d,CREG,align=ALW,border=True); ws.merge_cells(f"D{rr2}:{GL(NC)}{rr2}"); ws.row_dimensions[rr2].height=(40 if len(d)>140 else 28)
 
 # ============================================================ 01b_Pilotage (marque×ville) — en fin car dépend de tous les onglets
 ws=wb.create_sheet("01b_Pilotage",index=2); ws.sheet_view.showGridLines=False
