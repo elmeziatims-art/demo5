@@ -193,10 +193,12 @@ CAPKEY=f"{PIL}$C${PP0}:$C${PPN}"; CAPVAL=f"{PIL}$J${PP0}:$J${PPN}"   # clé camp
 ALLOC_N1=f"{PIL}$D$4"; ALLOC_N2=f"{PIL}$D$5"; ALLOC_N3=f"{PIL}$D$6"  # clés d'allocation (cockpit 2) → pilotent la répartition EBITDA
 CPKEY=f"{CAD}$J$7:$J$11"; CPVAL=f"{CAD}$K$7:$K$11"      # coeff prix par MARQUE (décision unique de prix)
 
-BR0=4; BRN=BR0+N-1
+CRMY=[2026,2025,2024]   # exercices : 2026 (atterrissage) · 2025 (N-1) · 2024 (N-2)
+BR0=4; BRN=BR0+N-1      # brng = bloc ATTERRISSAGE (exercice 2026), maille cellule → moteur inchangé
 BASE="'02_Socle'!"
 def brng(col): return f"{BASE}${col}${BR0}:${col}${BRN}"
-CR0=5; CRN=CR0+CG-1
+XR0=5; XRN=XR0+CG*3-1   # historique marketing (campus × 3 ans) dans 03_Campagnes
+CR0=50; CRN=CR0+CG-1    # mesures campus dans 03_Campagnes (sous l'historique marketing)
 CAMP="'03_Campagnes'!"
 MR0=4; MRN=MR0+N-1; MTOT=MR0+N
 
@@ -338,70 +340,60 @@ C(ws,f"J{r+1}","Indice = prix moyen ville ÷ national, calculé sur le réalisé
 
 # ============================================================ 02_Socle (fusion Base + CRM : référentiel opérationnel + historique multi-année)
 ws=wb.create_sheet("02_Socle"); ws.sheet_view.showGridLines=False
-bcols=["Marque","Ville","Programme","Cycle","Année","Modalité","Entrée",
- "Leads hist","Cand hist","Admis hist","Nouv hist","Réins hist","Effectif hist","Eff. année inf.","Classes hist",
- "Revenu/étudiant","Taux passage","Taux lead→cand","Taux cand→admis","Yield admis→inscrit","CA réf"]
-for i,w in enumerate([15,10,20,6,6,7,7,9,9,9,9,9,10,11,9,12,10,11,11,12,12]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells(f"A1:{GL(len(bcols))}1"); C(ws,"A1","SOCLE & HISTORIQUE — ① référentiel opérationnel (atterrissage, maille cellule) · ② historique multi-année (campus × année) plus bas",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
-ws.merge_cells(f"A2:{GL(len(bcols))}2"); C(ws,"A2","① Une ligne = marque × ville × programme × niveau × modalité (atterrissage). Leads = observés · Taux = mesurés (formules, aval÷amont) · CA réf = effectif×revenu + nouveaux×frais. Revenu différencié alternance (OPCO) / initial.",CIT,align=ALW); ws.row_dimensions[2].height=28
+bcols=["Marque","Ville","Programme","Cycle","Niveau","Modalité","Entrée",
+ "Leads","Cand.","Admis","Nouveaux","Réinscrits","Effectif","Eff. niv. inf.","Classes",
+ "Revenu/étudiant","Taux passage","Taux lead→cand","Taux cand→admis","Yield admis→inscrit","CA","Exercice"]
+for i,w in enumerate([15,10,20,6,6,9,7,9,9,9,9,9,9,11,8,12,10,11,11,12,12,9]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells(f"A1:{GL(len(bcols))}1"); C(ws,"A1","SOCLE — UN seul tableau à la maille fine (cellule) · historique en lignes (Exercice 2024·2025·2026) · l'atterrissage 2026 alimente le moteur",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
+ws.merge_cells(f"A2:{GL(len(bcols))}2"); C(ws,"A2","Une ligne = marque × ville × programme × niveau × modalité × EXERCICE. Leads = observés · Taux = formules (aval÷amont) · CA = effectif×revenu + nouveaux×frais. Historique opérationnel rétropolé (cohérent compta). Le marketing (dépense/leads org-payant) est campus → onglet 03_Campagnes.",CIT,align=ALW); ws.row_dimensions[2].height=28
 for i,h in enumerate(bcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[3].height=30
-for idx,rr in enumerate(rows):
-    r=BR0+idx
-    frr=f"{CAD}$D$30"   # frais de dossier de référence (constante cadrage)
-    vals=[rr["marque"],rr["ville"],rr["prog"],rr["type"],rr["niv"],("Alternance" if rr["mod"]=="ALT" else "Initial"),rr["entry"],
-          rr["leads"],rr["cand"],rr["admis"],rr["nouv"],rr["rein"],rr["eff"],rr["eff_prev"],rr["classes"],
-          rr["rev"],
-          f"=IFERROR(M{r}/N{r},0)",   # Q passage = effectif ÷ effectif année inf.
-          f"=IFERROR(I{r}/H{r},0)",   # R lead→cand = candidatures ÷ leads
-          f"=IFERROR(J{r}/I{r},0)",   # S cand→admis = admis ÷ candidatures
-          f"=IFERROR(K{r}/J{r},0)",   # T yield = nouveaux ÷ admis
-          f"=M{r}*P{r}+K{r}*{frr}"]   # U CA réf = effectif×revenu + nouveaux×frais
-    fmts=[None,None,None,None,None,None,NB,NB,NB,NB,NB,NB,NB,NB,NB,EUR,PCT,PCT,PCT,PCT,EUR]
-    for i,(v,f) in enumerate(zip(vals,fmts)):
-        al=AL if i<6 else AC
-        C(ws,f"{GL(1+i)}{r}",v,(CF if i>=16 else CL),fmt=f,align=al,border=True)
+frr=f"{CAD}$D$30"    # frais de dossier de référence (constante cadrage)
+GSOC=1.06            # rétropolation de l'historique opérationnel (croissance ~ compta)
+fmts=[None,None,None,None,None,None,NB,NB,NB,NB,NB,NB,NB,NB,NB,EUR,PCT,PCT,PCT,PCT,EUR,None]
+srow=BR0
+for yr,n in [(2026,0),(2025,1),(2024,2)]:   # atterrissage 2026 en tête (rows 4-61 = brng, moteur inchangé), puis historique
+    fac=GSOC**n
+    for rr in rows:
+        r=srow; sc=lambda x:(x if n==0 else round(x/fac))
+        clh=rr["classes"] if n==0 else (max(1,round(rr["classes"]/fac)) if rr["classes"] else 0)
+        vals=[rr["marque"],rr["ville"],rr["prog"],rr["type"],rr["niv"],("Alternance" if rr["mod"]=="ALT" else "Initial"),rr["entry"],
+              sc(rr["leads"]),sc(rr["cand"]),sc(rr["admis"]),sc(rr["nouv"]),sc(rr["rein"]),sc(rr["eff"]),sc(rr["eff_prev"]),clh,
+              rr["rev"],
+              f"=IFERROR(M{r}/N{r},0)",f"=IFERROR(I{r}/H{r},0)",f"=IFERROR(J{r}/I{r},0)",f"=IFERROR(K{r}/J{r},0)",
+              f"=M{r}*P{r}+K{r}*{frr}", yr]
+        for i,(v,f) in enumerate(zip(vals,fmts)):
+            al=AL if i<6 else AC
+            C(ws,f"{GL(1+i)}{r}",v,(CF if 16<=i<=20 else CL),fmt=f,align=al,border=True)
+        srow+=1
 ws.freeze_panes="A4"
 
-# ---- ② HISTORIQUE multi-année (maille campus × année) : opérationnel + marketing — "historique partout" ----
-CRMY=[2024,2025,2026]   # 2024 (N-2) · 2025 (N-1) · 2026 (atterrissage)  →  on construit le budget 2027
-camp_ca={}; camp_eff={}
-for rr in rows:
-    k=(rr["marque"],rr["ville"]); camp_ca[k]=camp_ca.get(k,0)+rr["eff"]*rr["rev"]+rr["nouv"]*FRAIS_DEF; camp_eff[k]=camp_eff.get(k,0)+rr["eff"]
-xcols=["Marque","Ville","clé","Année","Leads organiques","Leads payants","Leads totaux","Dépense acquisition","Dépense marque","Effectif","CA"]
-SB0=BRN+2
-band(ws,SB0,"A",GL(len(xcols)),"② HISTORIQUE multi-année (maille campus × année) — opérationnel (effectif, CA) + marketing (leads, dépenses) · 2024 · 2025 · 2026")
-ws.merge_cells(f"A{SB0+1}:{GL(len(xcols))}{SB0+1}"); C(ws,f"A{SB0+1}","Source : CRM (leads, tag organique/payant) + compta (ACQUISITION = compte 6231 · MARQUE = compte 6236) + opérationnel (effectif, CA). 03_Campagnes MESURE CPL, rendements et part organique depuis ces 3 années — rien n'est saisi.",CIT,align=ALW); ws.row_dimensions[SB0+1].height=26
-for i,h in enumerate(xcols): C(ws,f"{GL(1+i)}{SB0+2}",h,CHDR,FBLUE,align=AC,border=True)
-ws.row_dimensions[SB0+2].height=26
-XR0=SB0+3; xr=XR0
-for cc in campus:
-    k=(cc["marque"],cc["ville"])
-    for vi,yr in enumerate(CRMY):
-        n=2-vi   # 2024→2, 2025→1, 2026→0
-        C(ws,f"A{xr}",cc["marque"],CL,align=AL,border=True); C(ws,f"B{xr}",cc["ville"],CL,align=AC,border=True)
-        C(ws,f"C{xr}",f'=A{xr}&"|"&B{xr}',CF,align=AC,border=True)
-        C(ws,f"D{xr}",yr,CL,align=AC,border=True)
-        C(ws,f"E{xr}",cc["org"][vi],CL,fmt=NB,align=AR,border=True); C(ws,f"F{xr}",cc["paid"][vi],CL,fmt=NB,align=AR,border=True)
-        C(ws,f"G{xr}",f"=E{xr}+F{xr}",CF,fmt=NB,align=AR,border=True); C(ws,f"H{xr}",cc["spend"][vi],CL,fmt=EUR,align=AR,border=True)
-        C(ws,f"I{xr}",cc["bspend"][vi],CL,fmt=EUR,align=AR,border=True)
-        C(ws,f"J{xr}",round(camp_eff[k]/1.06**n),CL,fmt=NB,align=AR,border=True)   # effectif historique (rétropolé)
-        C(ws,f"K{xr}",round(camp_ca[k]/1.06**n),CL,fmt=EUR,align=AR,border=True)   # CA historique (rétropolé, Σ = compta)
-        xr+=1
-XRN=xr-1; ws.freeze_panes="A4"
-CRM="'02_Socle'!"
+# ============================================================ 03_Campagnes (historique marketing + mesure CPL/rendement/part org + budget→leads)
+ws=wb.create_sheet("03_Campagnes"); ws.sheet_view.showGridLines=False
+# ---- ① historique marketing (campus × année) : source des mesures ----
+CRM="'03_Campagnes'!"
 def xrng(col): return f"{CRM}${col}${XR0}:${col}${XRN}"
 XKEY=xrng("C"); XVER=xrng("D")
 def xsum(col,key,yr): return f'SUMIFS({xrng(col)},{XKEY},{key},{XVER},{yr})'
-
-# ============================================================ 03_Campagnes (mesure CPL/rendement/part org + budget->leads)
-ws=wb.create_sheet("03_Campagnes"); ws.sheet_view.showGridLines=False
+xcols=["Marque","Ville","clé","Année","Leads organiques","Leads payants","Leads totaux","Dépense acquisition","Dépense marque"]
+band(ws,3,"A",GL(len(xcols)),"① Historique marketing (campus × année) — leads org/payant + dépenses acquisition (6231) & marque (6236) · 2024·2025·2026")
+for i,h in enumerate(xcols): C(ws,f"{GL(1+i)}4",h,CHDR,FBLUE,align=AC,border=True)
+ws.row_dimensions[4].height=26
+xr=XR0
+for cc in campus:
+    for vi,yr in enumerate([2024,2025,2026]):
+        C(ws,f"A{xr}",cc["marque"],CL,align=AL,border=True); C(ws,f"B{xr}",cc["ville"],CL,align=AC,border=True)
+        C(ws,f"C{xr}",f'=A{xr}&"|"&B{xr}',CF,align=AC,border=True); C(ws,f"D{xr}",yr,CL,align=AC,border=True)
+        C(ws,f"E{xr}",cc["org"][vi],CL,fmt=NB,align=AR,border=True); C(ws,f"F{xr}",cc["paid"][vi],CL,fmt=NB,align=AR,border=True)
+        C(ws,f"G{xr}",f"=E{xr}+F{xr}",CF,fmt=NB,align=AR,border=True); C(ws,f"H{xr}",cc["spend"][vi],CL,fmt=EUR,align=AR,border=True)
+        C(ws,f"I{xr}",cc["bspend"][vi],CL,fmt=EUR,align=AR,border=True); xr+=1
 ccols=["Marque","Ville","clé","Leads organiques","Leads payants réf","Leads total réf","Dépense acq. réf","Part organique","CPL mesuré","Rendement acq.","Budget acq. actif","Leads payants actif","Leads actif total","CPL effectif","Conv. lead→inscrit","CAC marginal /inscrit","Dépense marque réf","Rendement marque","Budget marque actif","Leads org. actif","Cap effectif (01b)"]
 for i,w in enumerate([15,11,14,13,13,12,13,11,10,12,13,13,12,10,13,15,14,13,14,13,13]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells(f"A1:{GL(len(ccols))}1"); C(ws,"A1","MOTEUR D'ACQUISITION (campus) — 2 leviers marketing : ACQUISITION (achat de leads → payant) & MARQUE (notoriété → organique), rendements MESURÉS",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
-ws.merge_cells(f"A2:{GL(len(ccols))}2"); C(ws,"A2","ACQUISITION : leads payants = payants réf × (budget acq.÷réf)^rendement acq. · MARQUE : leads organiques = org réf × (budget marque÷réf)^rendement marque (mesuré en AGRÉGÉ, org vs dépense marque sur 3 ans — pas d'attribution au lead). Total = organiques actif + payants actif.",CIT,align=ALW); ws.row_dimensions[2].height=34
-for i,h in enumerate(ccols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
-ws.row_dimensions[3].height=30
+ws.merge_cells(f"A1:{GL(len(ccols))}1"); C(ws,"A1","MARKETING — ① historique (campus × année) · ② moteur d'acquisition : ACQUISITION (→ payant) & MARQUE (→ organique), rendements MESURÉS",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
+ws.merge_cells(f"A2:{GL(len(ccols))}2"); C(ws,"A2","② Leads payants = payants réf × (budget acq.÷réf)^rendement acq. · Leads organiques = org réf × (budget marque÷réf)^rendement marque (mesuré en AGRÉGÉ, org vs dépense marque sur 3 ans — pas d'attribution au lead). Total = organiques actif + payants actif.",CIT,align=ALW); ws.row_dimensions[2].height=34
+band(ws,CR0-2,"A",GL(len(ccols)),"② Moteur d'acquisition (campus) — CPL · rendement · part organique MESURÉS depuis l'historique ① ci-dessus, puis budget → leads")
+for i,h in enumerate(ccols): C(ws,f"{GL(1+i)}{CR0-1}",h,CHDR,FBLUE,align=AC,border=True)
+ws.row_dimensions[CR0-1].height=30
 YATT=2026; YOLD=2024
 for idx,cc in enumerate(campus):
     r=CR0+idx; key=f"C{r}"
