@@ -188,9 +188,9 @@ CAD="'01_Cadrage'!"
 LMKT,LBRAND,LPRIX,LGLC,LGCV,LPASS,LINFL,LSAL,LEFFP,LPROD,LSTRUCT=(f"{CAD}$H${_r}" for _r in range(16,27))  # leviers ACTIF (11)
 KFRAIS=f"{CAD}$H$30"    # frais de dossier (décision) ; rendement/part org/CPL sont MESURÉS (03_Campagnes)
 CROISS=f"{CAD}$F$3"; MARGEC=f"{CAD}$H$3"                 # cible top-down : croissance CA & marge EBITDA
-PIL="'01b_Pilotage'!"; PP0=12; PPN=PP0+CG-1   # onglet pilotage marque×ville : clés d'alloc (haut) puis cap par campus
+PIL="'01b_Pilotage'!"; PP0=15; PPN=PP0+CG-1   # onglet pilotage : KPI (haut) · clés d'alloc · cap par campus
 CAPKEY=f"{PIL}$C${PP0}:$C${PPN}"; CAPVAL=f"{PIL}$J${PP0}:$J${PPN}"   # clé campus & cap retenu (saisie marque×ville)
-ALLOC_N1=f"{PIL}$D$4"; ALLOC_N2=f"{PIL}$D$5"; ALLOC_N3=f"{PIL}$D$6"  # clés d'allocation (cockpit 2) → pilotent la répartition EBITDA
+ALLOC_N1=f"{PIL}$D$7"; ALLOC_N2=f"{PIL}$D$8"; ALLOC_N3=f"{PIL}$D$9"  # clés d'allocation (cockpit 2) → pilotent la répartition EBITDA
 CPKEY=f"{CAD}$J$7:$J$11"; CPVAL=f"{CAD}$K$7:$K$11"      # coeff prix par MARQUE (décision unique de prix)
 
 CRMY=[2026,2025,2024]   # exercices : 2026 (atterrissage) · 2025 (N-1) · 2024 (N-2)
@@ -893,18 +893,33 @@ MOA_=f"'04_Moteur'!$A${MR0}:$A${MRN}"; MOB_=f"'04_Moteur'!$B${MR0}:$B${MRN}"
 MOAA_=f"'04_Moteur'!$AA${MR0}:$AA${MRN}"; MOAJ_=f"'04_Moteur'!$AJ${MR0}:$AJ${MRN}"; MOY_=f"'04_Moteur'!$Y${MR0}:$Y${MRN}"
 ALA=f"'10_Allocation'!$A$8:$A${8+N-1}"; ALB=f"'10_Allocation'!$B$8:$B${8+N-1}"; ALF=f"'10_Allocation'!$F$8:$F${8+N-1}"; ALL=f"'10_Allocation'!$L$8:$L${8+N-1}"
 for i,w in enumerate([14,10,13,13,13,13,9,9,9,12]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells("A1:J1"); C(ws,"A1","PILOTAGE MARQUE × VILLE — clés d'allocation · cap stratégique (saisie campus) · synthèse CA & EBITDA",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
+ws.merge_cells("A1:J1"); C(ws,"A1","PILOTAGE MARQUE × VILLE — KPI groupe · clés d'allocation · cap stratégique · synthèse CA & EBITDA",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
+# ---- BANDEAU KPI groupe (CA & EBITDA du budget construit — réagit aux caps & leviers) ----
+_MCA=f"'04_Moteur'!$AA${MTOT}"; _MEFF=f"'04_Moteur'!$Y${MTOT}"
+BIGW=Font(name=Fn,bold=True,size=20,color="FFFFFF"); BIGD=Font(name=Fn,bold=True,size=20,color="1F3864")
+LBLW=Font(name=Fn,size=9,color="D9E1F2"); LBLD=Font(name=Fn,size=9,italic=True,color="595959")
+def kpi(c0,c1,label,formula,fmt,fill,vfont,lfont):
+    for col in range(c0,c1+1):
+        for rr in (3,4): cc=ws.cell(row=rr,column=col); cc.fill=fill; cc.border=BORD
+    a=GL(c0); b=GL(c1); ws.merge_cells(f"{a}3:{b}3"); ws.merge_cells(f"{a}4:{b}4")
+    vv=ws[f"{a}3"]; vv.value=formula; vv.font=vfont; vv.alignment=AC; vv.number_format=fmt
+    ll=ws[f"{a}4"]; ll.value=label; ll.font=lfont; ll.alignment=AC
+kpi(1,3,"CHIFFRE D'AFFAIRES (budget construit)",f"={_MCA}",EUR,FNAVY,BIGW,LBLW)
+kpi(4,6,"EBITDA (budget)",f"={PNL_EBb}",EUR,FBLUE,BIGW,LBLW)
+kpi(7,8,"Marge EBITDA",f"=IFERROR({PNL_EBb}/{_MCA},0)",PCT,FGRN,BIGD,LBLD)
+kpi(9,10,"Effectif",f"={_MEFF}",NB,FLIGHT,BIGD,LBLD)
+ws.row_dimensions[3].height=34; ws.row_dimensions[4].height=15
 # ---- ⓪ Clés d'allocation (décision CFO) → pilotent la répartition de l'EBITDA (synthèse ② ci-dessous) ----
-band(ws,3,"A","J","⓪ Clés d'allocation — décision CFO (méthode figée, uniforme groupe) → répartit l'EBITDA ci-dessous")
+band(ws,6,"A","J","⓪ Clés d'allocation — décision CFO (méthode figée, uniforme groupe) → répartit l'EBITDA ci-dessous")
 dva=DataValidation(type="list",formula1='"Chiffre d\'affaires,Effectif,Nombre de classes"',allow_blank=False); ws.add_data_validation(dva)
-for rr,lab,dft in [(4,"① Groupe → Marque","Chiffre d'affaires"),(5,"② Marque → Campus","Effectif"),(6,"③ Campus → Classe","Nombre de classes")]:
+for rr,lab,dft in [(7,"① Groupe → Marque","Chiffre d'affaires"),(8,"② Marque → Campus","Effectif"),(9,"③ Campus → Classe","Nombre de classes")]:
     C(ws,f"A{rr}",lab,CB,align=AL,border=True); ws.merge_cells(f"A{rr}:C{rr}")
     C(ws,f"D{rr}",dft,CINB,FYEL,align=AC,border=True); ws.merge_cells(f"D{rr}:E{rr}"); dva.add(ws[f"D{rr}"])
-C(ws,"A8","La CLÉ (méthode) est figée par le CFO, uniforme sur tout le groupe (comparabilité). Changez une clé → l'EBITDA se redéploie entre marques/campus dans la synthèse ②, à total groupe constant. Le contrôleur ne choisit pas la clé, il conteste l'assiette (10_Allocation).",CIT,align=ALW); ws.merge_cells("A8:J9"); ws.row_dimensions[8].height=40
+C(ws,"A11","La CLÉ (méthode) est figée par le CFO, uniforme sur tout le groupe (comparabilité). Changez une clé → l'EBITDA se redéploie entre marques/campus dans la synthèse ②, à total groupe constant. Le contrôleur ne choisit pas la clé, il conteste l'assiette (10_Allocation).",CIT,align=ALW); ws.merge_cells("A11:J12"); ws.row_dimensions[11].height=40
 # ---- ① Cap stratégique par campus : saisie + justification ----
-band(ws,10,"A","J","① Cap stratégique par campus (marque×ville) — 🔵 saisie du cap retenu · 🟢 caps proposés (mesurés)")
-for i,h in enumerate(["Marque","Ville","clé","CAC marginal","Croiss. leads","Intensité mkt","Cap éff.","Cap mom.","Cap pot.","🔵 Cap retenu"]): C(ws,f"{GL(1+i)}11",h,CHDR,FBLUE,align=AC,border=True)
-ws.row_dimensions[11].height=30
+band(ws,13,"A","J","① Cap stratégique par campus (marque×ville) — 🔵 saisie du cap retenu · 🟢 caps proposés (mesurés)")
+for i,h in enumerate(["Marque","Ville","clé","CAC marginal","Croiss. leads","Intensité mkt","Cap éff.","Cap mom.","Cap pot.","🔵 Cap retenu"]): C(ws,f"{GL(1+i)}14",h,CHDR,FBLUE,align=AC,border=True)
+ws.row_dimensions[14].height=30
 CACr=f"$D${PP0}:$D${PPN}"; CRWr=f"$E${PP0}:$E${PPN}"; INTr=f"$F${PP0}:$F${PPN}"
 for i,c in enumerate(campus):
     r=PP0+i; m=c["marque"]; v=c["ville"]
