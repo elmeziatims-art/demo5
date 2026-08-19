@@ -1,37 +1,35 @@
 -- =============================================================================
--- VUE ALLOCATION — coût complet par CLASSE  (corps CREATE OR REPLACE VIEW V_ALLOCATION AS
-SELECT ; SAP HANA)
+-- V_ALLOCATION — coût complet par CLASSE — SAP HANA
 -- Sources : AW_002_000002_000001 (socle, drivers) + AW_002_000004_000001 (compta, charges)
--- Reproduit l'onglet 10_Allocation, calculé à la volée, pour chaque EXERCICE :
---   - enseignement (621 vac -> variable ; 6411 perm -> structure) réparti par HEURES
---     (heures = sections x volume horaire ; INITIAL > ALTERNANCE)
+-- Reproduit 10_Allocation, calculé à la volée, pour chaque EXERCICE :
+--   - enseignement 621 vac -> variable / 6411 perm -> structure, réparti par HEURES (INITIAL>ALT)
 --   - autres directs : 604+6063 par effectif, 6231 par entrants (-> variable)
 --   - structure campus (loyer, admin, charges, assur, entretien, CFE) par classes
 --   - siège (GRP) cascadé Groupe->Marque(CA) x Marque->Campus(effectif) x Campus->Classe(classes)
--- Le loyer parisien / la sous-échelle sont déjà dans les MONTANTS compta (pondérés).
--- CONTRÔLE 2026 : Σ coût = 19 253 195 · Σ CA = 22 544 725 · EBITDA = 3 291 530.
+-- CONTROLE 2026 : SUM coût = 19 253 195, SUM CA = 22 544 725, EBITDA = 3 291 530.
 -- =============================================================================
+CREATE OR REPLACE VIEW V_ALLOCATION AS
 SELECT
     x.SCENARIO, x.PERIODE, x.EXERCICE, x.ENTITY, x.MARQUE,
     x.PROGRAMME, x.AN_ETUDE, x.MODALITE,
     x.VOL_EFF, x.VOL_CLASS, x.CA,
     x.COST_VAC, x.COST_PERM, x.COST_ODIR, x.COST_STRUCT, x.COST_SIEGE,
-    (x.COST_VAC  + x.COST_ODIR)                                   AS COST_VARIABLE,
-    (x.COST_PERM + x.COST_STRUCT + x.COST_SIEGE)                  AS COST_STRUCTURE,
-    (x.COST_VAC + x.COST_ODIR + x.COST_PERM + x.COST_STRUCT + x.COST_SIEGE) AS COST_COMPLET,
+    (x.COST_VAC  + x.COST_ODIR)                                              AS COST_VARIABLE,
+    (x.COST_PERM + x.COST_STRUCT + x.COST_SIEGE)                             AS COST_STRUCTURE,
+    (x.COST_VAC + x.COST_ODIR + x.COST_PERM + x.COST_STRUCT + x.COST_SIEGE)  AS COST_COMPLET,
     (x.CA - (x.COST_VAC + x.COST_ODIR + x.COST_PERM + x.COST_STRUCT + x.COST_SIEGE)) AS MARGE_COMPLETE
 FROM (
     SELECT
         b.SCENARIO, b.PERIODE, b.EXERCICE, b.ENTITY, b.MARQUE,
         b.PROGRAMME, b.AN_ETUDE, b.MODALITE, b.VOL_EFF, b.VOL_CLASS, b.CA,
-        cmp.VAC  * (b.HRS      / NULLIF(b.E_HRS,0))                       AS COST_VAC,
-        cmp.PERM * (b.HRS      / NULLIF(b.E_HRS,0))                       AS COST_PERM,
-        cmp.ODIR_EFF * (b.VOL_EFF  / NULLIF(b.E_EFF,0))
-          + cmp.MKT  * (b.VOL_NEW  / NULLIF(b.E_NEW,0))                   AS COST_ODIR,
+        cmp.VAC  * (b.HRS / NULLIF(b.E_HRS,0))                            AS COST_VAC,
+        cmp.PERM * (b.HRS / NULLIF(b.E_HRS,0))                            AS COST_PERM,
+        cmp.ODIR_EFF * (b.VOL_EFF / NULLIF(b.E_EFF,0))
+          + cmp.MKT  * (b.VOL_NEW / NULLIF(b.E_NEW,0))                    AS COST_ODIR,
         cmp.STRUCT_CAMP * (b.VOL_CLASS / NULLIF(b.E_CLS,0))              AS COST_STRUCT,
         sieg.SIEGE_TOT
-          * (b.M_CA    / NULLIF(b.G_CA,0))
-          * (b.E_EFF   / NULLIF(b.M_EFF,0))
+          * (b.M_CA      / NULLIF(b.G_CA,0))
+          * (b.E_EFF     / NULLIF(b.M_EFF,0))
           * (b.VOL_CLASS / NULLIF(b.E_CLS,0))                            AS COST_SIEGE
     FROM (
         SELECT s.*,

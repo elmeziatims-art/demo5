@@ -1,11 +1,11 @@
 -- =============================================================================
--- VUE P&L / EBITDA — EDUSERVICES  (corps CREATE OR REPLACE VIEW V_PNL AS
-SELECT ; SAP HANA)
+-- VUE P&L / EBITDA — EDUSERVICES  (corps SELECT ; SAP HANA)
 -- Source : AW_002_000004_000001 (compta)
 -- Le sens (Produit/Charge) et le SIG sont des attributs du COMPTE → mappés en CASE.
 -- Grain : ENTITY x EXERCICE (x SCENARIO x PERIOD).  Montants positifs en entrée.
 -- Contrôles 2026 (Σ entités) : Produits 22 544 725 · EBITDA 3 291 530 (14,6%) · EBIT 1 938 847
 -- =============================================================================
+CREATE OR REPLACE VIEW V_PNL AS
 SELECT
     s.ENTITY, s.EXERCICE, s.SCENARIO, s.PERIOD,
     s.SIG_PRODUITS,
