@@ -911,8 +911,8 @@ C(ws,f"B{r+1}","Toutes les grandeurs se recoupent (écart nul aux arrondis près
 ws=wb.create_sheet("12_Simulateur"); ws.sheet_view.showGridLines=False
 ALS="'10_Allocation'!"; ATOT=AA0+N
 scols=["Marque","Ville","Programme","Niveau","Effectif","Sect.","CA","Variable","Contribution",
- "Structure allouée","Coût complet","Marge complète","🔵 Décision","Structure APRÈS","Marge complète APRÈS","Impact EBITDA","Lecture"]
-for i,w in enumerate([13,10,16,7,8,6,11,11,12,12,11,12,11,12,15,12,42]): ws.column_dimensions[GL(1+i)].width=w
+ "Structure allouée","Coût complet","Marge complète","Point mort","Marge sécu.","🔵 Décision","Structure APRÈS","Marge complète APRÈS","Impact EBITDA","Lecture"]
+for i,w in enumerate([13,10,16,7,8,6,11,11,12,12,11,12,10,10,11,12,15,12,42]): ws.column_dimensions[GL(1+i)].width=w
 NC=len(scols)
 ws.merge_cells(f"A1:{GL(NC)}1"); C(ws,"A1","COÛT COMPLET PAR CLASSE & PIÈGE DE LA FERMETURE — la structure (loyer, permanents, siège) est allouée jusqu'à la classe par une CLÉ · fermer une classe ne fait pas disparaître le fixe : il se RÉALLOUE",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
 ws.merge_cells(f"A2:{GL(NC)}2"); C(ws,"A2","Un campus à loyer cher (Paris) ou sous-dimensionné voit des classes en DÉFICIT « coût complet » — alors que leur CONTRIBUTION (CA − variable) est positive. Tenté de fermer ? Le loyer reste et se réalloue sur les classes voisines (même CLÉ) → une classe saine bascule à son tour, et l'EBITDA baisse de la contribution perdue. La CLÉ d'allocation (cockpit 01b ③) décide qui paraît déficitaire.",CIT,align=ALW); ws.row_dimensions[2].height=48
@@ -923,8 +923,8 @@ for i,h in enumerate(scols): C(ws,f"{GL(1+i)}5",h,CHDR,FBLUE,align=AC,border=Tru
 ws.row_dimensions[5].height=34
 dvs=DataValidation(type="list",formula1='"Garder,Fermer"',allow_blank=False); ws.add_data_validation(dvs)
 S0=6; SN=S0+N-1
-AR_=f"$A${S0}:$A${SN}"; BR_=f"$B${S0}:$B${SN}"; MR_=f"$M${S0}:$M${SN}"
-RR_=f"$R${S0}:$R${SN}"; SR_=f"$S${S0}:$S${SN}"; TR_=f"$T${S0}:$T${SN}"   # helpers (masqués) : K campus · siège · driver
+AR_=f"$A${S0}:$A${SN}"; BR_=f"$B${S0}:$B${SN}"; DEC_=f"$O${S0}:$O${SN}"
+HKC_=f"$T${S0}:$T${SN}"; HSG_=f"$U${S0}:$U${SN}"; HDR_=f"$V${S0}:$V${SN}"   # helpers (masqués) : K campus · siège · driver
 for idx in range(N):
     r=S0+idx; a=AA0+idx; rr=rows[idx]; is_entry=rr["entry"]==1
     for col in ("A","B","C","D"): C(ws,f"{col}{r}",f"={ALS}{col}{a}",CL,align=(AL if col in("A","C") else AC),border=True)
@@ -933,49 +933,83 @@ for idx in range(N):
     C(ws,f"G{r}",f"={ALS}F{a}",CF,fmt=EUR,align=AR,border=True)    # CA
     C(ws,f"H{r}",f"={ALS}I{a}",CF,fmt=EUR,align=AR,border=True)    # variable (directs évitables)
     C(ws,f"I{r}",f"=G{r}-H{r}",CFB,fmt=EUR,align=AR,border=True)   # CONTRIBUTION = CA − variable
-    C(ws,f"J{r}",f"=R{r}+S{r}",CF,fmt=EUR,align=AR,border=True)    # structure allouée = campus + siège (par la CLÉ)
+    C(ws,f"J{r}",f"=T{r}+U{r}",CF,fmt=EUR,align=AR,border=True)    # structure allouée = campus + siège (par la CLÉ)
     C(ws,f"K{r}",f"=H{r}+J{r}",CF,fmt=EUR,align=AR,border=True)    # coût complet
     C(ws,f"L{r}",f"=G{r}-K{r}",CFB,fmt=EUR,align=AR,border=True)   # marge complète (peut être <0 = déficit apparent)
+    # point mort coût complet = nb d'étudiants où la contribution/tête couvre la structure allouée
+    C(ws,f"M{r}",f'=IF(I{r}<=0,"contrib≤0",ROUNDUP(J{r}/I{r}*E{r},0))',CF,fmt=NB,align=AR,border=True)
+    # marge de sécurité = 1 − structure/contribution (>0 = au-dessus du point mort ; <0 = déficit complet)
+    C(ws,f"N{r}",f'=IF(I{r}<=0,"—",1-J{r}/I{r})',CF,fmt=PCT,align=AR,border=True)
     if is_entry:
-        C(ws,f"M{r}","Garder",CINB,FYEL,align=AC,border=True); dvs.add(ws[f"M{r}"])
+        C(ws,f"O{r}","Garder",CINB,FYEL,align=AC,border=True); dvs.add(ws[f"O{r}"])
     else:
-        C(ws,f"M{r}","cohorte",CF,FLIGHT,align=AC,border=True)     # B2/B3 : conséquence, non pilotable
-    # cascade : structure CAMPUS des fermées (R) → réallouée sur les GARDÉES du MÊME campus (clé T) ; siège (S) → sur le groupe
-    poolC=f'SUMIFS({RR_},{AR_},A{r},{BR_},B{r},{MR_},"Fermer")'
-    survC=f'SUMIFS({TR_},{AR_},A{r},{BR_},B{r},{MR_},"<>Fermer")'
-    poolS=f'SUMIFS({SR_},{MR_},"Fermer")'
-    survS=f'SUMIFS({TR_},{MR_},"<>Fermer")'
-    Kaf=f'(R{r}+IFERROR({poolC}*T{r}/{survC},0))'
-    Jaf=f'(S{r}+IFERROR({poolS}*T{r}/{survS},0))'
-    C(ws,f"N{r}",f'=IF(M{r}="Fermer","—",{Kaf}+{Jaf})',CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"O{r}",f'=IF(M{r}="Fermer","—",G{r}-H{r}-N{r})',CFB,fmt=EUR,align=AR,border=True)
-    C(ws,f"P{r}",f'=IF(M{r}="Fermer",-I{r},0)',CF,fmt=EUR,align=AR,border=True)
-    C(ws,f"Q{r}",f'=IF(M{r}="Fermer","✖ Fermer = −"&TEXT(I{r},"# ##0")&" € d\'EBITDA (le fixe reste)",IF(AND(L{r}>=0,O{r}<0),"⚠ BASCULE : saine → déficit à cause d\'une fermeture voisine",IF(L{r}<0,IF(I{r}>0,"Déficit COMPLET mais contribution POSITIVE → NE PAS fermer (artefact d\'allocation)","Contribution négative — vrai point dur"),"Rentable en coût complet")))',CF,align=AL,border=True)
+        C(ws,f"O{r}","cohorte",CF,FLIGHT,align=AC,border=True)     # B2/B3 : conséquence, non pilotable
+    # cascade : structure CAMPUS des fermées (T) → réallouée sur les GARDÉES du MÊME campus (clé V) ; siège (U) → sur le groupe
+    poolC=f'SUMIFS({HKC_},{AR_},A{r},{BR_},B{r},{DEC_},"Fermer")'
+    survC=f'SUMIFS({HDR_},{AR_},A{r},{BR_},B{r},{DEC_},"<>Fermer")'
+    poolS=f'SUMIFS({HSG_},{DEC_},"Fermer")'
+    survS=f'SUMIFS({HDR_},{DEC_},"<>Fermer")'
+    Kaf=f'(T{r}+IFERROR({poolC}*V{r}/{survC},0))'
+    Jaf=f'(U{r}+IFERROR({poolS}*V{r}/{survS},0))'
+    C(ws,f"P{r}",f'=IF(O{r}="Fermer","—",{Kaf}+{Jaf})',CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"Q{r}",f'=IF(O{r}="Fermer","—",G{r}-H{r}-P{r})',CFB,fmt=EUR,align=AR,border=True)
+    C(ws,f"R{r}",f'=IF(O{r}="Fermer",-I{r},0)',CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"S{r}",f'=IF(O{r}="Fermer","✖ Fermer = −"&TEXT(I{r},"# ##0")&" € d\'EBITDA (le fixe reste)",IF(AND(L{r}>=0,Q{r}<0),"⚠ BASCULE : saine → déficit à cause d\'une fermeture voisine",IF(L{r}<0,IF(I{r}>0,"Déficit COMPLET mais contribution POSITIVE → NE PAS fermer (artefact d\'allocation)","Contribution négative — vrai point dur"),"Rentable — point mort "&TEXT(M{r},"0")&" étud., marge sécu "&TEXT(N{r},"0%"))))',CF,align=AL,border=True)
     # helpers masqués
-    C(ws,f"R{r}",f"={ALS}K{a}",CF,fmt=EUR,align=AR)   # structure campus (réallouable dans le campus)
-    C(ws,f"S{r}",f"={ALS}J{a}",CF,fmt=EUR,align=AR)   # siège (réallouable sur le groupe)
-    C(ws,f"T{r}",f'=IF({ALLOC_N3}="Effectif",E{r},IF({ALLOC_N3}="Nombre de classes",F{r},G{r}))',CF,align=AR)  # driver = clé ③
-for col in ("R","S","T"): ws.column_dimensions[col].hidden=True
+    C(ws,f"T{r}",f"={ALS}K{a}",CF,fmt=EUR,align=AR)   # structure campus (réallouable dans le campus)
+    C(ws,f"U{r}",f"={ALS}J{a}",CF,fmt=EUR,align=AR)   # siège (réallouable sur le groupe)
+    C(ws,f"V{r}",f'=IF({ALLOC_N3}="Effectif",E{r},IF({ALLOC_N3}="Nombre de classes",F{r},G{r}))',CF,align=AR)  # driver = clé ③
+for col in ("T","U","V"): ws.column_dimensions[col].hidden=True
 r=S0+N
 C(ws,f"A{r}","TOTAL",CFB,FTOT,align=AL,border=True)
-for col in ("B","C","D"): C(ws,f"{col}{r}"," ",fill=FTOT,border=True)
-for col in ("E","F","G","H","I","J","K","L","P"):
+for col in ("B","C","D","M","N","O","P","Q","S"): C(ws,f"{col}{r}"," ",fill=FTOT,border=True)
+for col in ("E","F","G","H","I","J","K","L","R"):
     C(ws,f"{col}{r}",f"=SUM({col}{S0}:{col}{SN})",CFB,FTOT,fmt=(NB if col in("E","F") else EUR),align=AR,border=True)
 ws.freeze_panes="E6"
 ws.conditional_formatting.add(f"L{S0}:L{SN}",ColorScaleRule(start_type="num",start_value=0,start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
-ws.conditional_formatting.add(f"O{S0}:O{SN}",ColorScaleRule(start_type="num",start_value=0,start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
+ws.conditional_formatting.add(f"N{S0}:N{SN}",ColorScaleRule(start_type="num",start_value=0,start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
+ws.conditional_formatting.add(f"Q{S0}:Q{SN}",ColorScaleRule(start_type="num",start_value=0,start_color="F8696B",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
 # --- synthèse : Δ EBITDA + bascules provoquées ---
 gy=r+2; band(ws,gy,"A","H","Impact des fermetures — Δ EBITDA & effet domino")
 EB_ref=f"({ALS}F{ATOT}-{ALS}L{ATOT})"
 C(ws,f"A{gy+1}","EBITDA de référence :",CB,align=AR); ws.merge_cells(f"A{gy+1}:C{gy+1}"); C(ws,f"D{gy+1}",f"={EB_ref}",CFB,fmt=EUR,align=AR,border=True)
-C(ws,f"A{gy+2}","Δ EBITDA (contributions perdues) :",CB,align=AR); ws.merge_cells(f"A{gy+2}:C{gy+2}"); C(ws,f"D{gy+2}",f"=P{r}",CFB,fmt=EUR,align=AR,border=True)
-C(ws,f"A{gy+3}","EBITDA après fermetures :",CB,align=AR); ws.merge_cells(f"A{gy+3}:C{gy+3}"); C(ws,f"D{gy+3}",f"={EB_ref}+P{r}",CFB,FGRN,fmt=EUR,align=AR,border=True)
-C(ws,f"E{gy+1}","Classes fermées :",CB,align=AR); C(ws,f"F{gy+1}",f'=COUNTIF({MR_},"Fermer")',CFB,FYEL,fmt=NB,align=AC,border=True)
+C(ws,f"A{gy+2}","Δ EBITDA (contributions perdues) :",CB,align=AR); ws.merge_cells(f"A{gy+2}:C{gy+2}"); C(ws,f"D{gy+2}",f"=R{r}",CFB,fmt=EUR,align=AR,border=True)
+C(ws,f"A{gy+3}","EBITDA après fermetures :",CB,align=AR); ws.merge_cells(f"A{gy+3}:C{gy+3}"); C(ws,f"D{gy+3}",f"={EB_ref}+R{r}",CFB,FGRN,fmt=EUR,align=AR,border=True)
+C(ws,f"E{gy+1}","Classes fermées :",CB,align=AR); C(ws,f"F{gy+1}",f'=COUNTIF({DEC_},"Fermer")',CFB,FYEL,fmt=NB,align=AC,border=True)
 C(ws,f"E{gy+2}","Déficits « coût complet » AVANT :",CB,align=AR); C(ws,f"F{gy+2}",f'=COUNTIF(L{S0}:L{SN},"<0")',CFB,fmt=NB,align=AC,border=True)
-C(ws,f"E{gy+3}","Classes basculées PAR les fermetures (domino) :",CB,align=AR); C(ws,f"F{gy+3}",f'=SUMPRODUCT(--(L{S0}:L{SN}>=0),--(O{S0}:O{SN}<0))',CFB,FYEL,fmt=NB,align=AC,border=True)
+C(ws,f"E{gy+3}","Classes basculées PAR les fermetures (domino) :",CB,align=AR); C(ws,f"F{gy+3}",f'=SUMPRODUCT(--(L{S0}:L{SN}>=0),--(Q{S0}:Q{SN}<0))',CFB,FYEL,fmt=NB,align=AC,border=True)
 C(ws,f"A{gy+5}","La règle : on ferme sur la CONTRIBUTION (CA − variable), jamais sur le coût complet. Une classe à contribution positive rapporte à l'EBITDA même si son coût COMPLET est négatif — car le fixe (loyer, permanents, siège) reste de toute façon. Fermer la détruit deux fois : on perd sa contribution ET son loyer retombe sur les voisines (colonnes APRÈS), qui basculent à leur tour. Le vrai levier sur le fixe est ailleurs (renégocier un bail, mutualiser un campus), pas la fermeture d'une classe.",CIT,align=ALW); ws.merge_cells(f"A{gy+5}:{GL(NC)}{gy+6}"); ws.row_dimensions[gy+5].height=52
+# --- OUVRIR : capter la demande PROJETÉE non servie (moteur) ---
+oy=gy+8; band(ws,oy,"A","S","OUVRIR — capter la demande PROJETÉE non servie : ouvrir une section si le surplus couvre son point mort")
+C(ws,f"A{oy+1}","Effectif projeté = funnel du moteur (leads → candidatures → inscrits + cohorte). Surplus = projeté − capacité actuelle. On n'ouvre que si ce surplus couvre le POINT MORT d'une section (sinon file d'attente / on absorbe). Réagit au scénario : plus le moteur projette de croissance, plus il y a d'ouvertures.",CIT,align=ALW); ws.merge_cells(f"A{oy+1}:{GL(NC)}{oy+2}"); ws.row_dimensions[oy+1].height=32
+ohdr=["Marque","Ville","Programme","Eff. projeté","Capacité","Surplus","Pt mort/sect."]
+for i,h in enumerate(ohdr): C(ws,f"{GL(1+i)}{oy+3}",h,CHDR,FBLUE,align=AC,border=True)
+C(ws,f"H{oy+3}","Recommandation",CHDR,FBLUE,align=AC,border=True); ws.merge_cells(f"H{oy+3}:{GL(NC)}{oy+3}")
+ws.row_dimensions[oy+3].height=30
+ent_idx=[i for i,rr in enumerate(rows) if rr["entry"]==1]
+ent_idx.sort(key=lambda i:-(rows[i]["eff"]/(rows[i]["classes"]*CAPT[rows[i]["type"]])))
+orow=oy+4
+for i in ent_idx:
+    sim=S0+i; mr=MR0+i; capt=CAPT[rows[i]["type"]]
+    C(ws,f"A{orow}",rows[i]["marque"],CL,align=AL,border=True)
+    C(ws,f"B{orow}",rows[i]["ville"],CL,align=AC,border=True)
+    C(ws,f"C{orow}",f'{rows[i]["prog"]} {rows[i]["niv"]}',CL,align=AL,border=True)
+    C(ws,f"D{orow}",f"='04_Moteur'!Y{mr}",CF,fmt=NB,align=AR,border=True)   # effectif projeté (moteur)
+    C(ws,f"E{orow}",f"=F{sim}*{capt}",CF,fmt=NB,align=AR,border=True)        # capacité actuelle = sections × places
+    C(ws,f"F{orow}",f"=D{orow}-E{orow}",CFB,fmt=NB,align=AR,border=True)     # surplus = demande projetée non servie
+    C(ws,f"G{orow}",f'=IF(I{sim}<=0,"—",ROUNDUP(J{sim}/I{sim}*E{sim}/F{sim},0))',CF,fmt=NB,align=AR,border=True)  # point mort d'une section
+    reco=(f'=IF(I{sim}<=0,"— contribution négative, pas d\'ouverture",'
+          f'IF(F{orow}>={capt},"🟢 OUVRIR — la demande remplit une section entière (+"&TEXT(F{orow},"0")&" pour "&{capt}&" places)",'
+          f'IF(F{orow}>=G{orow},"🟠 OUVRIR sous réserve — viable mais sous-remplie (+"&TEXT(F{orow},"0")&" vs point mort "&TEXT(G{orow},"0")&")",'
+          f'IF(F{orow}>0,"🕐 File d\'attente — surplus +"&TEXT(F{orow},"0")&" < point mort "&TEXT(G{orow},"0")&" d\'une section",'
+          f'"— Capacité suffisante"))))')
+    C(ws,f"H{orow}",reco,CF,align=AL,border=True); ws.merge_cells(f"H{orow}:{GL(NC)}{orow}")
+    orow+=1
+oe=orow-1
+ws.conditional_formatting.add(f"F{oy+4}:F{oe}",ColorScaleRule(start_type="num",start_value=0,start_color="F8F8F8",mid_type="num",mid_value=0,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
+C(ws,f"A{orow+1}","Règle : OUVRIR si le surplus ≥ la capacité d'une section (la demande remplit une classe de plus) · OUVRIR sous réserve si le surplus couvre au moins le point mort d'une section (viable mais démarre sous-remplie — pari sur la montée en charge) · sinon file d'attente / on absorbe. L'ouverture ne présume aucun « +30 » : elle lit le surplus RÉEL projeté par le moteur, et le point mort qu'il doit franchir.",CIT,align=ALW); ws.merge_cells(f"A{orow+1}:{GL(NC)}{orow+2}"); ws.row_dimensions[orow+1].height=44
 # --- coût fixe par ville (d'où viennent les déficits) ---
-vy=gy+8; band(ws,vy,"A","H","Pourquoi ces déficits ? Le coût de STRUCTURE par classe n'est pas le même partout")
+vy=orow+4; band(ws,vy,"A","H","Pourquoi ces déficits ? Le coût de STRUCTURE par classe n'est pas le même partout")
 for i,h in enumerate(["Ville","Indice coût (immo+salaires)","Structure / classe (moyenne)","CA / classe (moyenne)","Lecture"]): C(ws,f"{GL(1+i)}{vy+1}",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[vy+1].height=30
 KAL=f"{ALS}$K${AA0}:$K${AA0+N-1}"; JAL=f"{ALS}$J${AA0}:$J${AA0+N-1}"; HAL=f"{ALS}$H${AA0}:$H${AA0+N-1}"; FAL=f"{ALS}$F${AA0}:$F${AA0+N-1}"; BAL=f"{ALS}$B${AA0}:$B${AA0+N-1}"
