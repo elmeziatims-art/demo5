@@ -188,13 +188,13 @@ CAD="'01_Cadrage'!"
 LMKT,LBRAND,LPRIX,LGLC,LGCV,LPASS,LINFL,LSAL,LEFFP,LPROD,LSTRUCT=(f"{CAD}$H${_r}" for _r in range(16,27))  # leviers ACTIF (11)
 KFRAIS=f"{CAD}$H$30"    # frais de dossier (décision) ; rendement/part org/CPL sont MESURÉS (03_Campagnes)
 CROISS=f"{CAD}$F$3"; MARGEC=f"{CAD}$H$3"                 # cible top-down : croissance CA & marge EBITDA
-PIL="'01b_Pilotage'!"; PP0=5; PPN=PP0+CG-1   # onglet pilotage marque×ville : cap & override par campus
+PIL="'01b_Pilotage'!"; PP0=12; PPN=PP0+CG-1   # onglet pilotage marque×ville : clés d'alloc (haut) puis cap par campus
 CAPKEY=f"{PIL}$C${PP0}:$C${PPN}"; CAPVAL=f"{PIL}$J${PP0}:$J${PPN}"   # clé campus & cap retenu (saisie marque×ville)
-CPROV=f"{PIL}$K${PP0}:$K${PPN}"                                      # override prix par campus (exception locale)
-CPKEY=f"{CAD}$J$7:$J$11"; CPVAL=f"{CAD}$K$7:$K$11"      # coeff prix par MARQUE (décision)
+ALLOC_N1=f"{PIL}$D$4"; ALLOC_N2=f"{PIL}$D$5"; ALLOC_N3=f"{PIL}$D$6"  # clés d'allocation (cockpit 2) → pilotent la répartition EBITDA
+CPKEY=f"{CAD}$J$7:$J$11"; CPVAL=f"{CAD}$K$7:$K$11"      # coeff prix par MARQUE (décision unique de prix)
 
 BR0=4; BRN=BR0+N-1
-BASE="'02_Base'!"
+BASE="'02_Socle'!"
 def brng(col): return f"{BASE}${col}${BR0}:${col}${BRN}"
 CR0=5; CRN=CR0+CG-1
 CAMP="'03_Campagnes'!"
@@ -242,10 +242,10 @@ for c,w in {"A":2,"B":30,"C":80}.items(): ws.column_dimensions[c].width=w
 ws.merge_cells("B2:C2"); C(ws,"B2","EDUSERVICES — Modèle de CA (v3, budget-driven, leads observés)",CTIT,FNAVY,align=AL); ws.row_dimensions[2].height=30
 ws.merge_cells("B3:C3"); C(ws,"B3","Budget marketing → leads (CRM, socle organique + payant) → funnel mesuré → inscrits → CA. Revenu et taux différenciés alternance / initial.",CIT)
 band(ws,5,"B","C","Les feuilles (périmètre : CA → EBITDA)")
-notice=[("01_Cadrage","POSTE DE COMMANDE CFO : objectif CA & EBITDA (calculé), scénarios, 9 leviers (CA + coûts), coefficients prix par marque×ville."),
- ("02_Base","BASE DE RÉFÉRENCE (version unique) : fusion historique + paramètres. LEADS OBSERVÉS (CRM) et taux de funnel MESURÉS (lead→cand, cand→admis, admis→inscrit), différenciés par modalité."),
- ("02_CRM","HISTORIQUE MULTISOURCE (format long) : leads organiques/payants + dépense marketing par campus × 3 exercices. Sert à MESURER CPL, rendement et part organique."),
- ("03_Campagnes","MOTEUR D'ACQUISITION (campus) : CPL, rendement, part organique MESURÉS depuis le CRM, puis budget → leads (socle organique + part payante à rendement décroissant)."),
+notice=[("01_Cadrage","COCKPIT 1 (groupe) : scénario, cibles CA & EBITDA, réconciliation groupe, 11 leviers (CA + coûts), coeff prix par marque."),
+ ("01b_Pilotage","COCKPIT 2 (marque×ville) : clés d'allocation, cap stratégique par campus (+ caps proposés justifiés), synthèse CA & EBITDA par campus."),
+ ("02_Socle","SOCLE & HISTORIQUE : ① référentiel opérationnel (atterrissage, maille cellule, leads observés + taux mesurés) · ② historique multi-année (campus × année) opérationnel + marketing — historique partout."),
+ ("03_Campagnes","MOTEUR D'ACQUISITION (campus) : CPL, rendement, part organique MESURÉS depuis le socle, puis budget → leads (organique piloté marque + payant piloté acquisition, rendement décroissant)."),
  ("04_Moteur","MOTEUR DE CA (cellule) : répartition des leads (mix réel) → funnel mesuré → effectif (+cohorte) → CA.")]
 r=6
 for nom,desc in notice:
@@ -317,7 +317,7 @@ CPRIX_M={"MBway":1.20,"ISCOM":1.15,"Ipac Bachelor Factory":0.95,"Pigier":0.90,"T
 r=7
 for m in MARQUES:
     C(ws,f"J{r}",m,CL,align=AL,border=True); C(ws,f"K{r}",CPRIX_M[m],CINB,FYEL,fmt=X2,align=AC,border=True); r+=1
-C(ws,"J12","Coeff prix = décision MARQUE. Override prix par CAMPUS dans l'onglet 01b_Pilotage (exception locale).",CIT,align=ALW); ws.merge_cells("J12:M12"); ws.row_dimensions[12].height=26
+C(ws,"J12","Coeff prix = décision MARQUE (seule décision de prix). L'écart de prix entre villes est déjà déduit dans la base.",CIT,align=ALW); ws.merge_cells("J12:M12"); ws.row_dimensions[12].height=26
 # --- ② cap stratégique & pilotage marque×ville → onglet 01b_Pilotage ---
 band(ws,13,"J","M","② Cap stratégique & pilotage → onglet 01b_Pilotage")
 C(ws,"J14","La SAISIE du cap stratégique par CAMPUS (marque×ville), les caps proposés (efficience / momentum / potentiel) avec leur justification, et la synthèse CA + EBITDA par campus sont regroupés dans l'onglet 01b_Pilotage. Ici, on garde les décisions GROUPE : coeff prix (marque) et clés d'allocation.",CIT,align=ALW)
@@ -333,25 +333,17 @@ for v in sorted(vrev,key=lambda x:-vrev[x]/veff[x]):
     C(ws,f"J{r}",v,CL,align=AL,border=True); C(ws,f"K{r}",round(vrev[v]/veff[v]),CF,fmt=EUR,align=AR,border=True)
     C(ws,f"L{r}",round((vrev[v]/veff[v])/natavg,3),CF,fmt=X2,align=AC,border=True); r+=1
 C(ws,f"J{r+1}","Indice = prix moyen ville ÷ national, calculé sur le réalisé (le niveau de prix par ville est déjà dans les revenus). Le pouvoir de prix se pilote par MARQUE ci-dessus.",CIT,align=AL); ws.merge_cells(f"J{r+1}:M{r+2}"); ws.row_dimensions[r+1].height=28
-# --- ④ clés d'allocation — DÉCISION CFO (top-down) : la MÉTHODE est centrale, figée ; les campus n'ajustent que la MATIÈRE ---
-band(ws,34,"J","M","Clés d'allocation — décision CFO (top-down)")
-for i,h in enumerate(["Niveau de cascade","🔵 Clé retenue"]): C(ws,f"{GL(10+i*2)}35",h,CHDR,FBLUE,align=AC,border=True); ws.merge_cells(f"{GL(10+i*2)}35:{GL(11+i*2)}35")
-dva=DataValidation(type="list",formula1='"Chiffre d\'affaires,Effectif,Nombre de classes"',allow_blank=False); ws.add_data_validation(dva)
-for rr,lab,dft in [(36,"① Groupe → Marque","Chiffre d'affaires"),(37,"② Marque → Campus","Effectif"),(38,"③ Campus → Classe","Nombre de classes")]:
-    C(ws,f"J{rr}",lab,CL,align=AL,border=True); ws.merge_cells(f"J{rr}:K{rr}")
-    C(ws,f"L{rr}",dft,CINB,FYEL,align=AC,border=True); ws.merge_cells(f"L{rr}:M{rr}"); dva.add(ws[f"L{rr}"])
-C(ws,"J40","La CLÉ (méthode) est une décision de gouvernance : le CFO la fige ici, elle s'applique à tout le groupe pour rester comparable. Le contrôleur ne choisit pas la clé — il conteste la MATIÈRE (assiette réelle) dans 10_Allocation.",CIT,align=ALW); ws.merge_cells("J40:M42"); ws.row_dimensions[40].height=42
-ALLOC_N1=f"{CAD}$L$36"; ALLOC_N2=f"{CAD}$L$37"; ALLOC_N3=f"{CAD}$L$38"
+# ④ clés d'allocation → déplacées sur le cockpit 2 (01b_Pilotage), collées à leur impact EBITDA
 # ⑤ traduction CA + ⑥ EBITDA + lexique → déplacés dans l'onglet 01b_Pilotage (tableau complet marque×ville)
 
-# ============================================================ 02_Base
-ws=wb.create_sheet("02_Base"); ws.sheet_view.showGridLines=False
+# ============================================================ 02_Socle (fusion Base + CRM : référentiel opérationnel + historique multi-année)
+ws=wb.create_sheet("02_Socle"); ws.sheet_view.showGridLines=False
 bcols=["Marque","Ville","Programme","Cycle","Année","Modalité","Entrée",
  "Leads hist","Cand hist","Admis hist","Nouv hist","Réins hist","Effectif hist","Eff. année inf.","Classes hist",
  "Revenu/étudiant","Taux passage","Taux lead→cand","Taux cand→admis","Yield admis→inscrit","CA réf"]
 for i,w in enumerate([15,10,20,6,6,7,7,9,9,9,9,9,10,11,9,12,10,11,11,12,12]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells(f"A1:{GL(len(bcols))}1"); C(ws,"A1","BASE DE RÉFÉRENCE — version unique · fusion historique + paramètres · leads observés (CRM) & taux mesurés",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
-ws.merge_cells(f"A2:{GL(len(bcols))}2"); C(ws,"A2","Une ligne = marque × ville × programme × année × modalité. Leads = donnée observée (CRM). Taux = mesurés (aval÷amont). Revenu différencié alternance (OPCO) / initial (étudiant).",CIT,align=ALW); ws.row_dimensions[2].height=16
+ws.merge_cells(f"A1:{GL(len(bcols))}1"); C(ws,"A1","SOCLE & HISTORIQUE — ① référentiel opérationnel (atterrissage, maille cellule) · ② historique multi-année (campus × année) plus bas",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
+ws.merge_cells(f"A2:{GL(len(bcols))}2"); C(ws,"A2","① Une ligne = marque × ville × programme × niveau × modalité (atterrissage). Leads = observés · Taux = mesurés (formules, aval÷amont) · CA réf = effectif×revenu + nouveaux×frais. Revenu différencié alternance (OPCO) / initial.",CIT,align=ALW); ws.row_dimensions[2].height=28
 for i,h in enumerate(bcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
 ws.row_dimensions[3].height=30
 for idx,rr in enumerate(rows):
@@ -371,26 +363,33 @@ for idx,rr in enumerate(rows):
         C(ws,f"{GL(1+i)}{r}",v,(CF if i>=16 else CL),fmt=f,align=al,border=True)
 ws.freeze_panes="A4"
 
-# ============================================================ 02_CRM (historique multisource, format LONG, par ANNÉE)
+# ---- ② HISTORIQUE multi-année (maille campus × année) : opérationnel + marketing — "historique partout" ----
 CRMY=[2024,2025,2026]   # 2024 (N-2) · 2025 (N-1) · 2026 (atterrissage)  →  on construit le budget 2027
-ws=wb.create_sheet("02_CRM"); ws.sheet_view.showGridLines=False
-xcols=["Marque","Ville","clé","Année","Leads organiques","Leads payants","Leads totaux","Dépense acquisition","Dépense marque"]
-for i,w in enumerate([15,11,15,10,15,14,13,16,14]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells(f"A1:{GL(len(xcols))}1"); C(ws,"A1","CRM & MARKETING — historique multisource (format long, par année) : leads organiques/payants + dépenses acquisition & marque",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=22
-ws.merge_cells(f"A2:{GL(len(xcols))}2"); C(ws,"A2","Source : CRM (leads, tag organique/payant) + compta (2 postes : ACQUISITION = achat de leads, compte 6231 · MARQUE = notoriété/salons, compte 6236). 3 années réelles. 03_Campagnes MESURE CPL, rendements et part organique — rien n'est saisi.",CIT,align=ALW); ws.row_dimensions[2].height=30
-for i,h in enumerate(xcols): C(ws,f"{GL(1+i)}3",h,CHDR,FBLUE,align=AC,border=True)
-XR0=4; xr=XR0
+camp_ca={}; camp_eff={}
+for rr in rows:
+    k=(rr["marque"],rr["ville"]); camp_ca[k]=camp_ca.get(k,0)+rr["eff"]*rr["rev"]+rr["nouv"]*FRAIS_DEF; camp_eff[k]=camp_eff.get(k,0)+rr["eff"]
+xcols=["Marque","Ville","clé","Année","Leads organiques","Leads payants","Leads totaux","Dépense acquisition","Dépense marque","Effectif","CA"]
+SB0=BRN+2
+band(ws,SB0,"A",GL(len(xcols)),"② HISTORIQUE multi-année (maille campus × année) — opérationnel (effectif, CA) + marketing (leads, dépenses) · 2024 · 2025 · 2026")
+ws.merge_cells(f"A{SB0+1}:{GL(len(xcols))}{SB0+1}"); C(ws,f"A{SB0+1}","Source : CRM (leads, tag organique/payant) + compta (ACQUISITION = compte 6231 · MARQUE = compte 6236) + opérationnel (effectif, CA). 03_Campagnes MESURE CPL, rendements et part organique depuis ces 3 années — rien n'est saisi.",CIT,align=ALW); ws.row_dimensions[SB0+1].height=26
+for i,h in enumerate(xcols): C(ws,f"{GL(1+i)}{SB0+2}",h,CHDR,FBLUE,align=AC,border=True)
+ws.row_dimensions[SB0+2].height=26
+XR0=SB0+3; xr=XR0
 for cc in campus:
+    k=(cc["marque"],cc["ville"])
     for vi,yr in enumerate(CRMY):
+        n=2-vi   # 2024→2, 2025→1, 2026→0
         C(ws,f"A{xr}",cc["marque"],CL,align=AL,border=True); C(ws,f"B{xr}",cc["ville"],CL,align=AC,border=True)
         C(ws,f"C{xr}",f'=A{xr}&"|"&B{xr}',CF,align=AC,border=True)
         C(ws,f"D{xr}",yr,CL,align=AC,border=True)
         C(ws,f"E{xr}",cc["org"][vi],CL,fmt=NB,align=AR,border=True); C(ws,f"F{xr}",cc["paid"][vi],CL,fmt=NB,align=AR,border=True)
         C(ws,f"G{xr}",f"=E{xr}+F{xr}",CF,fmt=NB,align=AR,border=True); C(ws,f"H{xr}",cc["spend"][vi],CL,fmt=EUR,align=AR,border=True)
         C(ws,f"I{xr}",cc["bspend"][vi],CL,fmt=EUR,align=AR,border=True)
+        C(ws,f"J{xr}",round(camp_eff[k]/1.06**n),CL,fmt=NB,align=AR,border=True)   # effectif historique (rétropolé)
+        C(ws,f"K{xr}",round(camp_ca[k]/1.06**n),CL,fmt=EUR,align=AR,border=True)   # CA historique (rétropolé, Σ = compta)
         xr+=1
 XRN=xr-1; ws.freeze_panes="A4"
-CRM="'02_CRM'!"
+CRM="'02_Socle'!"
 def xrng(col): return f"{CRM}${col}${XR0}:${col}${XRN}"
 XKEY=xrng("C"); XVER=xrng("D")
 def xsum(col,key,yr): return f'SUMIFS({xrng(col)},{XKEY},{key},{XVER},{yr})'
@@ -472,7 +471,7 @@ for idx in range(N):
     C(ws,f"W{r}",f"=IF(F{r}=1,V{r}*(Q{r}+{LGCV}+AG{r}),0)",CFB,fmt=NB,align=AR,border=True)
     C(ws,f"X{r}",f"=IF(F{r}=1,0,L{r}*(N{r}+{LPASS}+AH{r}))",CF,fmt=NB,align=AR,border=True)
     C(ws,f"Y{r}",f"=W{r}+X{r}",CFB,fmt=NB,align=AR,border=True)
-    C(ws,f"Z{r}",f"=M{r}*(1+{LPRIX}*INDEX({CPVAL},MATCH(A{r},{CPKEY},0))+INDEX({CPROV},MATCH({key},{CAPKEY},0)))",CF,fmt=EUR,align=AR,border=True)  # prix : hausse × coeff marque + override campus (01b)
+    C(ws,f"Z{r}",f"=M{r}*(1+{LPRIX}*INDEX({CPVAL},MATCH(A{r},{CPKEY},0)))",CF,fmt=EUR,align=AR,border=True)  # prix appliqué = prix réf × (1 + levier prix × coeff marque)
     C(ws,f"AA{r}",f"=Y{r}*Z{r}+W{r}*{KFRAIS}",CFB,fmt=EUR,align=AR,border=True)
     # ② CADRÉ : semé seul, auto-porté (sans aucun ajustement contrôleur)
     C(ws,f"AB{r}",f"=IF(F{r}=1,T{r}*(O{r}+{LGLC})*P{r}*(Q{r}+{LGCV}),0)",CF,fmt=NB,align=AR,border=True)
@@ -900,12 +899,19 @@ BUr=brng('U'); BAr=brng('A'); BBr=brng('B'); xG=xrng('G'); xA=xrng('A'); xB=xrng
 MOA_=f"'04_Moteur'!$A${MR0}:$A${MRN}"; MOB_=f"'04_Moteur'!$B${MR0}:$B${MRN}"
 MOAA_=f"'04_Moteur'!$AA${MR0}:$AA${MRN}"; MOAJ_=f"'04_Moteur'!$AJ${MR0}:$AJ${MRN}"; MOY_=f"'04_Moteur'!$Y${MR0}:$Y${MRN}"
 ALA=f"'10_Allocation'!$A$8:$A${8+N-1}"; ALB=f"'10_Allocation'!$B$8:$B${8+N-1}"; ALF=f"'10_Allocation'!$F$8:$F${8+N-1}"; ALL=f"'10_Allocation'!$L$8:$L${8+N-1}"
-for i,w in enumerate([14,10,13,13,13,13,9,9,9,12,12]): ws.column_dimensions[GL(1+i)].width=w
-ws.merge_cells("A1:K1"); C(ws,"A1","PILOTAGE MARQUE × VILLE — cap stratégique (saisie campus) · caps proposés (justifiés) · synthèse CA & EBITDA",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
+for i,w in enumerate([14,10,13,13,13,13,9,9,9,12]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells("A1:J1"); C(ws,"A1","PILOTAGE MARQUE × VILLE — clés d'allocation · cap stratégique (saisie campus) · synthèse CA & EBITDA",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
+# ---- ⓪ Clés d'allocation (décision CFO) → pilotent la répartition de l'EBITDA (synthèse ② ci-dessous) ----
+band(ws,3,"A","J","⓪ Clés d'allocation — décision CFO (méthode figée, uniforme groupe) → répartit l'EBITDA ci-dessous")
+dva=DataValidation(type="list",formula1='"Chiffre d\'affaires,Effectif,Nombre de classes"',allow_blank=False); ws.add_data_validation(dva)
+for rr,lab,dft in [(4,"① Groupe → Marque","Chiffre d'affaires"),(5,"② Marque → Campus","Effectif"),(6,"③ Campus → Classe","Nombre de classes")]:
+    C(ws,f"A{rr}",lab,CB,align=AL,border=True); ws.merge_cells(f"A{rr}:C{rr}")
+    C(ws,f"D{rr}",dft,CINB,FYEL,align=AC,border=True); ws.merge_cells(f"D{rr}:E{rr}"); dva.add(ws[f"D{rr}"])
+C(ws,"A8","La CLÉ (méthode) est figée par le CFO, uniforme sur tout le groupe (comparabilité). Changez une clé → l'EBITDA se redéploie entre marques/campus dans la synthèse ②, à total groupe constant. Le contrôleur ne choisit pas la clé, il conteste l'assiette (10_Allocation).",CIT,align=ALW); ws.merge_cells("A8:J9"); ws.row_dimensions[8].height=40
 # ---- ① Cap stratégique par campus : saisie + justification ----
-band(ws,3,"A","K","① Cap stratégique par campus (marque×ville) — 🔵 saisie (cap retenu, override prix) · 🟢 caps proposés (mesurés)")
-for i,h in enumerate(["Marque","Ville","clé","CAC marginal","Croiss. leads","Intensité mkt","Cap éff.","Cap mom.","Cap pot.","🔵 Cap retenu","🔵 Override prix"]): C(ws,f"{GL(1+i)}4",h,CHDR,FBLUE,align=AC,border=True)
-ws.row_dimensions[4].height=30
+band(ws,10,"A","J","① Cap stratégique par campus (marque×ville) — 🔵 saisie du cap retenu · 🟢 caps proposés (mesurés)")
+for i,h in enumerate(["Marque","Ville","clé","CAC marginal","Croiss. leads","Intensité mkt","Cap éff.","Cap mom.","Cap pot.","🔵 Cap retenu"]): C(ws,f"{GL(1+i)}11",h,CHDR,FBLUE,align=AC,border=True)
+ws.row_dimensions[11].height=30
 CACr=f"$D${PP0}:$D${PPN}"; CRWr=f"$E${PP0}:$E${PPN}"; INTr=f"$F${PP0}:$F${PPN}"
 for i,c in enumerate(campus):
     r=PP0+i; m=c["marque"]; v=c["ville"]
@@ -917,10 +923,9 @@ for i,c in enumerate(campus):
     C(ws,f"H{r}",f"=IFERROR(E{r}/(SUM({CRWr})/COUNT({CRWr})),0)",CF,FGRN,fmt=X2,align=AC,border=True)                  # cap mom proposé
     C(ws,f"I{r}",f"=IFERROR((1/F{r})/(SUMPRODUCT(1/{INTr})/COUNT({INTr})),0)",CF,FGRN,fmt=X2,align=AC,border=True)     # cap pot proposé
     C(ws,f"J{r}",1.0,CINB,FYEL,fmt=X2,align=AC,border=True)    # 🔵 cap retenu (saisie campus)
-    C(ws,f"K{r}",0,CINB,FYEL,fmt=PCT,align=AC,border=True)     # 🔵 override prix (saisie campus)
 ws.conditional_formatting.add(f"G{PP0}:I{PPN}",ColorScaleRule(start_type="num",start_value=0.7,start_color="F8696B",mid_type="num",mid_value=1,mid_color="FFEB84",end_type="num",end_value=1.3,end_color="63BE7B"))
 lg=PPN+2
-C(ws,f"A{lg}","🟢 Caps proposés = mesurés (vert) : Cap éff. ∝ 1/CAC · Cap mom. ∝ croissance leads · Cap pot. ∝ 1/intensité, normalisés à moyenne 1 (seul le relatif compte). 🔵 Cap retenu = choix CFO qui pilote le budget d'acquisition (enveloppe groupe constante) · Override prix = exception locale. Sources : CAC & budget = 03_Campagnes, croissance = 02_CRM, CA = 02_Base.",CIT,align=ALW); ws.merge_cells(f"A{lg}:K{lg+1}"); ws.row_dimensions[lg].height=44
+C(ws,f"A{lg}","🟢 Caps proposés = mesurés (vert) : Cap éff. ∝ 1/CAC · Cap mom. ∝ croissance leads · Cap pot. ∝ 1/intensité, normalisés à moyenne 1 (seul le relatif compte). 🔵 Cap retenu = choix CFO qui pilote le budget d'acquisition (enveloppe groupe constante). Sources : CAC & budget = 03_Campagnes, croissance = 02_Socle (historique), CA = 02_Socle.",CIT,align=ALW); ws.merge_cells(f"A{lg}:J{lg+1}"); ws.row_dimensions[lg].height=44
 # ---- ② Synthèse par campus : CA & EBITDA ----
 b2=lg+3
 band(ws,b2,"A","I","② Synthèse par campus — CA (réf · cible · construit) & EBITDA (réparti selon les clés d'allocation)")
@@ -944,7 +949,6 @@ C(ws,f"I{sT}",f"=IFERROR(H{sT}/C{sT},0)",CFB,FTOT,fmt=PCT,align=AC,border=True)
 ws.conditional_formatting.add(f"E{s0}:E{sT-1}",DataBarRule(start_type="min",end_type="max",color="5B9BD5"))
 ws.conditional_formatting.add(f"H{s0}:H{sT-1}",DataBarRule(start_type="min",end_type="max",color="70AD47"))
 ws.conditional_formatting.add(f"I{s0}:I{sT-1}",ColorScaleRule(start_type="min",start_color="F8696B",mid_type="percentile",mid_value=50,mid_color="FFEB84",end_type="max",end_color="63BE7B"))
-ws.freeze_panes="C5"
 nn=sT+2
 C(ws,f"A{nn}","CA réf = atterrissage · CA cible = éclatement top-down (proportionnel au CA réf) · CA construit = moteur (budget→leads→funnel→effectif→CA). EBITDA = CA réf − coût pleinement alloué (10_Allocation) : changez une CLÉ d'allocation (01_Cadrage) → l'EBITDA se redéploie entre campus, total groupe constant (somme nulle).",CIT,align=ALW); ws.merge_cells(f"A{nn}:I{nn+1}"); ws.row_dimensions[nn].height=42
 # ---- lexique ----
@@ -956,7 +960,6 @@ LEX=[
  ("Intensité mkt","Budget d'acquisition ÷ CA du campus. Basse = campus sous-investi en marketing vs sa taille."),
  ("🟢 Cap éff. / mom. / pot.","Caps PROPOSÉS (mesurés) : éff. ∝ 1/CAC (efficience) · mom. ∝ croissance (momentum) · pot. ∝ 1/intensité (potentiel). Normalisés à moyenne 1. Ils éclairent, ils ne décident pas — la divergence est le plus instructif."),
  ("🔵 Cap retenu","LE choix du CFO, saisi ICI par campus (marque×ville). Concentre le BUDGET MARKETING d'acquisition à enveloppe groupe CONSTANTE : monter le cap d'un campus → plus de budget → plus de leads → son CA CONSTRUIT monte (baisse ailleurs). Cap = 1 partout = aucune redistribution ; seuls les caps RELATIFS comptent."),
- ("🔵 Override prix","Exception de prix locale par campus (%), qui s'ajoute au coeff prix de la marque. L'écart de prix entre villes est déjà déduit dans la base — cet override ne sert qu'aux cas particuliers."),
  ("🎯 CA cible","Part du CA cible groupe attribuée au campus par l'éclatement top-down (proportionnel au CA réf). Somme des cibles = objectif groupe."),
  ("🔧 CA construit","Ce que le moteur reconstruit du bas vers le haut après leviers, cap et ajustements. C'est le budget réel du campus."),
  ("EBITDA / Marge","CA réf − coût pleinement alloué (directs + siège cascadé + structure, 10_Allocation). Dépend des CLÉS d'allocation fixées par le CFO : changer une clé redéploie l'EBITDA entre campus, à total groupe constant."),
