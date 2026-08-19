@@ -8,7 +8,7 @@ SELECT
     t.SCENARIO, t.PERIODE, t.ENTITY, t.PROGRAMME, t.AN_ETUDE, t.MODALITE, t.EXERCICE,
     t.VOL_LEAD, t.VOL_CAND, t.VOL_ADMIS, t.VOL_NEW, t.VOL_REINS,
     t.VOL_EFF, t.VOL_EFF_INF, t.VOL_CLASS, t.REV_STUD, t.REV_FRAIS_INS,
-    t.VOL_LEAD_ORG, t.VOL_LEAD_PAY, t.DEP_ACQ, t.DEP_MARQUE,
+    t.VOL_LEAD_ORG, t.VOL_LEAD_PAY, t.DEPENSE_ACQ, t.DEPENSE_MARQUE,
 
     -- Funnel
     COALESCE(t.VOL_EFF   / NULLIF(t.VOL_EFF_INF, 0), 0)    AS TX_PASSAGE,
@@ -19,7 +19,7 @@ SELECT
     -- Marketing dérivé
     (t.VOL_LEAD_ORG + t.VOL_LEAD_PAY)                                        AS VOL_LEAD_TOTAL,
     COALESCE(t.VOL_LEAD_ORG / NULLIF(t.VOL_LEAD_ORG + t.VOL_LEAD_PAY, 0), 0) AS PART_ORG,
-    COALESCE(t.DEP_ACQ / NULLIF(t.VOL_LEAD_PAY, 0), 0)                       AS CPL,
+    COALESCE(t.DEPENSE_ACQ / NULLIF(t.VOL_LEAD_PAY, 0), 0)                       AS CPL,
 
     -- CA
     (t.VOL_EFF * t.REV_STUD + t.VOL_NEW * t.REV_FRAIS_INS)                   AS CA
