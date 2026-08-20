@@ -37,7 +37,7 @@ FROM (
     FROM (
         -- ===== RÉEL 2024-2026 : compta (SIG) + effectif socle =====
         SELECT
-            p.ENTITY, p.EXERCICE, 'ACT' AS VERSION, p.SCENARIO, TO_NVARCHAR(p.PERIOD) AS PERIOD,
+            p.ENTITY, p.EXERCICE, 'ACT' AS VERSION, p.SCENARIO, CAST(p.PERIOD AS NVARCHAR(10)) AS PERIOD,
             p.SIG_PRODUITS,
             COALESCE(e.EFFECTIF, 0) AS EFFECTIF,
             p.C_DIRECTS, p.C_PERSONNEL, p.C_STRUCTURE, p.C_IMPOTS, p.C_DOTATIONS

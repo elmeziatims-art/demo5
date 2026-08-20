@@ -56,7 +56,7 @@ SELECT
     '2027'        AS EXERCICE,
     l.VERSION,
     '2027BUD_V1'  AS SCENARIO,
-    '12'          AS PERIOD,   -- texte : PERIOD est une dimension caractère, pas un nombre
+    CAST('12' AS NVARCHAR(10)) AS PERIOD,   -- caractère explicite (dimension, pas mesure)
     COALESCE(m.CA_2027,0)                                                                       AS SIG_PRODUITS,
     COALESCE(m.EFF_2027,0)                                                                       AS EFFECTIF,
     (c.DIRECTS_AUTRES * f.CAF * (1 - l.PROD) + c.MKT_ACQ * (1 + l.ACQ))                          AS C_DIRECTS,
