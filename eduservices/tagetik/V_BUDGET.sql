@@ -41,8 +41,8 @@ cpt AS (   -- compta 2026 ventilée par nature (6231 et 6236 isolés pour leurs 
     WHERE EXERCICE = '2026'
     GROUP BY ENTITY
 ),
-mot AS (   -- CA construit 2027 par entité et version (agrégé du moteur)
-    SELECT ENTITY, VERSION, SUM(CA) AS CA_2027
+mot AS (   -- CA + effectif construits 2027 par entité et version (agrégé du moteur)
+    SELECT ENTITY, VERSION, SUM(CA) AS CA_2027, SUM(EFFECTIF) AS EFF_2027
     FROM V_MOTEUR
     GROUP BY ENTITY, VERSION
 ),
@@ -58,6 +58,7 @@ SELECT
     '2027BUD_V1'  AS SCENARIO,
     '12'          AS PERIOD,   -- texte : PERIOD est une dimension caractère, pas un nombre
     COALESCE(m.CA_2027,0)                                                                       AS SIG_PRODUITS,
+    COALESCE(m.EFF_2027,0)                                                                       AS EFFECTIF,
     (c.DIRECTS_AUTRES * f.CAF * (1 - l.PROD) + c.MKT_ACQ * (1 + l.ACQ))                          AS C_DIRECTS,
     (c.PERSONNEL * (1 + l.SAL) * (1 + l.FTE))                                                    AS C_PERSONNEL,
     (c.STRUCTURE_AUTRES * (1 + l.INFL) * (1 - l.PROD) * (1 + l.STRUCT) + c.MKT_BRAND * (1 + l.BRAND)) AS C_STRUCTURE,
