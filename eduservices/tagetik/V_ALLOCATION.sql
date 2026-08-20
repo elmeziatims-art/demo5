@@ -1,20 +1,28 @@
 -- =============================================================================
 -- V_ALLOCATION — coût complet par CLASSE, DYNAMIQUE sur les clés d'allocation — SAP HANA
 -- Sources : AW_002_000002_000001 (socle) + AW_002_000004_000001 (compta) + AW_002_000001_000001 (cadrage: KEY_ALLOC)
--- Les 3 clés (ALLOC_GRP_BRAND / ALLOC_BRAND_CAMP / ALLOC_CAMP_CLASS) pilotent la cascade du SIÈGE
--- et la répartition de la STRUCTURE campus. Valeurs de clé : REV_CA / VOL_EFF / VOL_CLASS.
+-- 4 clés pilotent la cascade :
+--   ALLOC_GRP_BRAND  (K1) : holding groupe -> marque
+--   ALLOC_GRP_MARQUE (K4) : FRAIS DE MARQUE (6236) groupe -> marque   [pool distinct]
+--   ALLOC_BRAND_CAMP (K2) : marque -> campus
+--   ALLOC_CAMP_CLASS (K3) : campus -> classe  (et répartition de la STRUCTURE campus)
+-- Valeurs de clé : REV_CA / VOL_EFF / VOL_CLASS.
+-- Le SIÈGE est scindé en 2 pools qui télescopent chacun -> total groupe constant :
+--   HOLDING = 6414,6226,626,6281,6331,6333   (cascade K1)
+--   MARQUE  = 6236 (pub/marque)              (cascade K4)  -> une marque paie SA pub.
 -- Enseignement (621 vac / 6411 perm) = HEURES (fixe) ; autres directs = effectif/entrants (fixe).
--- Changer une clé redistribue le coût à TOTAL GROUPE CONSTANT (somme nulle). Contrôle 2026 : marge 3 291 530.
+-- Contrôle 2026 : marge complète 3 291 530 (inchangée par le split ; seule la répartition bouge).
 -- =============================================================================
 CREATE OR REPLACE VIEW V_ALLOCATION AS
 SELECT
     c.SCENARIO, c.PERIODE, c.EXERCICE, c.ENTITY, c.MARQUE, c.PROGRAMME, c.AN_ETUDE, c.MODALITE,
     c.VOL_EFF, c.VOL_CLASS, c.CA,
-    c.COST_VAC, c.COST_PERM, c.COST_ODIR, c.COST_STRUCT, c.COST_SIEGE,
-    (c.COST_VAC + c.COST_ODIR)                                              AS COST_VARIABLE,
-    (c.COST_PERM + c.COST_STRUCT + c.COST_SIEGE)                            AS COST_STRUCTURE,
-    (c.COST_VAC + c.COST_ODIR + c.COST_PERM + c.COST_STRUCT + c.COST_SIEGE) AS COST_COMPLET,
-    (c.CA - (c.COST_VAC + c.COST_ODIR + c.COST_PERM + c.COST_STRUCT + c.COST_SIEGE)) AS MARGE_COMPLETE
+    c.COST_VAC, c.COST_PERM, c.COST_ODIR, c.COST_STRUCT, c.COST_MARQUE, c.COST_HOLDING,
+    (c.COST_MARQUE + c.COST_HOLDING)                                       AS COST_SIEGE,
+    (c.COST_VAC + c.COST_ODIR)                                             AS COST_VARIABLE,
+    (c.COST_PERM + c.COST_STRUCT + c.COST_MARQUE + c.COST_HOLDING)         AS COST_STRUCTURE,
+    (c.COST_VAC + c.COST_ODIR + c.COST_PERM + c.COST_STRUCT + c.COST_MARQUE + c.COST_HOLDING) AS COST_COMPLET,
+    (c.CA - (c.COST_VAC + c.COST_ODIR + c.COST_PERM + c.COST_STRUCT + c.COST_MARQUE + c.COST_HOLDING)) AS MARGE_COMPLETE
 FROM (
     SELECT s.SCENARIO, s.PERIODE, s.EXERCICE, s.ENTITY, s.MARQUE, s.PROGRAMME, s.AN_ETUDE, s.MODALITE,
         s.VOL_EFF, s.VOL_CLASS, s.CA,
@@ -22,7 +30,10 @@ FROM (
         s.PERM * (s.HRS / NULLIF(s.E_HRS,0))                                AS COST_PERM,
         s.ODIR_EFF * (s.VOL_EFF / NULLIF(s.E_EFF,0)) + s.MKT * (s.VOL_NEW / NULLIF(s.E_NEW,0)) AS COST_ODIR,
         s.STRUCT_CAMP * (s.D3C / NULLIF(s.D3E,0))                           AS COST_STRUCT,
-        s.SIEGE_TOT * (s.D1M / NULLIF(s.D1G,0)) * (s.D2E / NULLIF(s.D2M,0)) * (s.D3C / NULLIF(s.D3E,0)) AS COST_SIEGE
+        -- FRAIS DE MARQUE (6236) : cascade K4 (groupe->marque) puis K2, K3
+        s.MARQUE_TOT  * (s.D1M4 / NULLIF(s.D1G4,0)) * (s.D2E / NULLIF(s.D2M,0)) * (s.D3C / NULLIF(s.D3E,0)) AS COST_MARQUE,
+        -- HOLDING : cascade K1 (groupe->marque) puis K2, K3
+        s.HOLDING_TOT * (s.D1M  / NULLIF(s.D1G,0))  * (s.D2E / NULLIF(s.D2M,0)) * (s.D3C / NULLIF(s.D3E,0)) AS COST_HOLDING
     FROM (
         SELECT b.*,
             CASE b.K3 WHEN 'REV_CA' THEN b.CA   WHEN 'VOL_EFF' THEN b.VOL_EFF ELSE b.VOL_CLASS END AS D3C,
@@ -30,10 +41,13 @@ FROM (
             CASE b.K2 WHEN 'REV_CA' THEN b.E_CA WHEN 'VOL_EFF' THEN b.E_EFF   ELSE b.E_CLS     END AS D2E,
             CASE b.K2 WHEN 'REV_CA' THEN b.M_CA WHEN 'VOL_EFF' THEN b.M_EFF   ELSE b.M_CLS     END AS D2M,
             CASE b.K1 WHEN 'REV_CA' THEN b.M_CA WHEN 'VOL_EFF' THEN b.M_EFF   ELSE b.M_CLS     END AS D1M,
-            CASE b.K1 WHEN 'REV_CA' THEN b.G_CA WHEN 'VOL_EFF' THEN b.G_EFF   ELSE b.G_CLS     END AS D1G
+            CASE b.K1 WHEN 'REV_CA' THEN b.G_CA WHEN 'VOL_EFF' THEN b.G_EFF   ELSE b.G_CLS     END AS D1G,
+            CASE b.K4 WHEN 'REV_CA' THEN b.M_CA WHEN 'VOL_EFF' THEN b.M_EFF   ELSE b.M_CLS     END AS D1M4,
+            CASE b.K4 WHEN 'REV_CA' THEN b.G_CA WHEN 'VOL_EFF' THEN b.G_EFF   ELSE b.G_CLS     END AS D1G4
         FROM (
-            SELECT w.*, cmp.VAC, cmp.PERM, cmp.ODIR_EFF, cmp.MKT, cmp.STRUCT_CAMP, sieg.SIEGE_TOT,
-                k.K1, k.K2, k.K3
+            SELECT w.*, cmp.VAC, cmp.PERM, cmp.ODIR_EFF, cmp.MKT, cmp.STRUCT_CAMP,
+                sieg.HOLDING_TOT, sieg.MARQUE_TOT,
+                k.K1, k.K2, k.K3, k.K4
             FROM (
                 SELECT s0.*,
                     SUM(s0.HRS)       OVER (PARTITION BY s0.EXERCICE, s0.ENTITY) AS E_HRS,
@@ -73,17 +87,21 @@ FROM (
             ) cmp ON cmp.ENTITY = w.ENTITY AND cmp.EXERCICE = w.EXERCICE
             JOIN (
                 SELECT cc.EXERCICE,
-                    SUM(CASE WHEN cc.ACCOUNT IN ('6414','6226','6236','626','6281','6331','6333') THEN cc.AMOUNT ELSE 0 END) AS SIEGE_TOT
+                    -- HOLDING = siège hors pub/marque
+                    SUM(CASE WHEN cc.ACCOUNT IN ('6414','6226','626','6281','6331','6333') THEN cc.AMOUNT ELSE 0 END) AS HOLDING_TOT,
+                    -- FRAIS DE MARQUE = 6236 (pub/marque)
+                    SUM(CASE WHEN cc.ACCOUNT = '6236' THEN cc.AMOUNT ELSE 0 END) AS MARQUE_TOT
                 FROM AW_002_000004_000001 cc WHERE cc.ENTITY='GRP' GROUP BY cc.EXERCICE
             ) sieg ON sieg.EXERCICE = w.EXERCICE
             CROSS JOIN (
                 SELECT
                     MAX(CASE WHEN PARAMETRE='ALLOC_GRP_BRAND'  THEN KEY_ALLOC END) AS K1,
                     MAX(CASE WHEN PARAMETRE='ALLOC_BRAND_CAMP' THEN KEY_ALLOC END) AS K2,
-                    MAX(CASE WHEN PARAMETRE='ALLOC_CAMP_CLASS' THEN KEY_ALLOC END) AS K3
+                    MAX(CASE WHEN PARAMETRE='ALLOC_CAMP_CLASS' THEN KEY_ALLOC END) AS K3,
+                    MAX(CASE WHEN PARAMETRE='ALLOC_GRP_MARQUE' THEN KEY_ALLOC END) AS K4
                 FROM AW_002_000001_000001
-                WHERE PARAMETRE IN ('ALLOC_GRP_BRAND','ALLOC_BRAND_CAMP','ALLOC_CAMP_CLASS')
+                WHERE PARAMETRE IN ('ALLOC_GRP_BRAND','ALLOC_BRAND_CAMP','ALLOC_CAMP_CLASS','ALLOC_GRP_MARQUE')
             ) k
         ) b
     ) s
-) c
+) c;
