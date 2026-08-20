@@ -38,7 +38,7 @@ FROM (
     FROM (
         -- ===== RÉEL 2024-2026 (compta) =====
         SELECT
-            t.ENTITY, t.EXERCICE, 'ACT' AS VERSION, t.SCENARIO, TO_INTEGER(t.PERIOD) AS PERIOD,
+            t.ENTITY, t.EXERCICE, 'ACT' AS VERSION, t.SCENARIO, TO_NVARCHAR(t.PERIOD) AS PERIOD,
             SUM(CASE WHEN t.ACCOUNT IN ('7062','706','708')                              THEN t.AMOUNT ELSE 0 END) AS SIG_PRODUITS,
             SUM(CASE WHEN t.ACCOUNT IN ('621','604','6063','6231')                       THEN t.AMOUNT ELSE 0 END) AS C_DIRECTS,
             SUM(CASE WHEN t.ACCOUNT IN ('6411','6413','6414','645')                      THEN t.AMOUNT ELSE 0 END) AS C_PERSONNEL,
