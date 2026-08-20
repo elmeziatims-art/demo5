@@ -39,6 +39,10 @@ ORDER={"BAC":["B1","B2","B3"],"MAST":["M1","M2"],"BTS":["1","2"]}
 CITY_VOL ={"Paris":1.30,"Lyon":1.10,"Nantes":1.00,"Bordeaux":0.85,"Lille":0.90,"Toulouse":0.85,"Rennes":0.80,"Montpellier":0.80}
 CITY_PRICE={"Paris":1.12,"Lyon":1.05,"Nantes":1.00,"Bordeaux":0.97,"Lille":0.98,"Toulouse":0.96,"Rennes":0.95,"Montpellier":0.95}
 CITY_CPL ={"Paris":1.35,"Lyon":1.10,"Nantes":1.00,"Bordeaux":0.95,"Lille":1.00,"Toulouse":0.95,"Rennes":0.90,"Montpellier":0.90}
+# --- codes référentiel Tagetik (100% aligné) ---
+MARQUE_CODE={"MBway":"MBWAY","ISCOM":"ISCOM","Ipac Bachelor Factory":"IPAC","Pigier":"PIGIER","Tunon":"TUNON"}
+VILLE_CODE ={"Paris":"PAR","Lyon":"LYO","Nantes":"NAN","Bordeaux":"BOR","Lille":"LIL","Toulouse":"TLS","Rennes":"REN","Montpellier":"MTP"}
+def entity_code(m,v): return MARQUE_CODE[m]+"_"+VILLE_CODE[v]   # ex. MBWAY_LYO (identique à AW_002_*)
 CAPT={"BTS":30,"BAC":32,"MAST":26}
 # revenu / étudiant / an de référence (€) par cycle x modalité (benchmarks secteur — illustratif)
 REV={("BTS","ALT"):6000,("BTS","INIT"):5500,("BAC","ALT"):7000,("BAC","INIT"):7500,("MAST","ALT"):7500,("MAST","INIT"):9000}
@@ -259,8 +263,8 @@ C(ws,f"B{r+2}","Au budget de référence, tous leviers à 0, le moteur reproduit
 ws=wb.create_sheet("01_Cadrage"); ws.sheet_view.showGridLines=False
 for c,w in {"A":2,"B":36,"C":13,"D":13,"E":13,"F":12,"G":12,"H":13,"I":2,"J":16,"K":13,"L":11,"M":13,"N":9,"O":9,"P":9}.items(): ws.column_dimensions[c].width=w
 ws.merge_cells("B1:H1"); C(ws,"B1","POSTE DE COMMANDE CFO — Cadrage CA & EBITDA",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=28
-C(ws,"B3","Scénario actif :",CB,align=AR); C(ws,"D3","Cadrage",CINB,FYEL,align=AC,border=True)
-dv=DataValidation(type="list",formula1='"Référence,Cadrage,Optimiste,Prudent"',allow_blank=False); ws.add_data_validation(dv); dv.add(ws["D3"])
+C(ws,"B3","Scénario actif :",CB,align=AR); C(ws,"D3","V01",CINB,FYEL,align=AC,border=True)
+dv=DataValidation(type="list",formula1='"Référence,V01,V02,V03"',allow_blank=False); ws.add_data_validation(dv); dv.add(ws["D3"])
 C(ws,"E3","🎯 Croissance CA cible :",CB,align=AR); C(ws,"F3",0.05,CINB,FYEL,fmt=PCT,align=AC,border=True)
 C(ws,"G3","Marge EBITDA cible :",CB,align=AR); C(ws,"H3",0.15,CINB,FYEL,fmt=PCT,align=AC,border=True)
 # --- réconciliation top-down / bottom-up ---
@@ -282,11 +286,11 @@ C(ws,"B12","RESTE À TROUVER — CA :",CB,align=AR); ws.merge_cells("B12:C12")
 C(ws,"D12","=IF(D7-E7>0,D7-E7,0)",CFB,FYEL,fmt=EUR,align=AR,border=True); C(ws,"E12","EBITDA :",CB,align=AR); C(ws,"F12","=IF(D8-E8>0,D8-E8,0)",CFB,FYEL,fmt=EUR,align=AR,border=True)
 # --- leviers ---
 band(ws,14,"B","H","② Leviers — bascule par scénario (colonne ACTIF)")
-for i,h in enumerate(["Paramètre","Unité","Référence","Cadrage","Optimiste","Prudent","ACTIF"]): C(ws,f"{GL(2+i)}15",h,CHDR,FBLUE,align=AC,border=True)
+for i,h in enumerate(["Paramètre","Unité","Référence","V01","V02","V03","ACTIF"]): C(ws,f"{GL(2+i)}15",h,CHDR,FBLUE,align=AC,border=True)
 MATCHSC='MATCH($D$3,$D$15:$G$15,0)'   # colonne D = scénario "Référence" (leviers à 0)
 levs=[("Variation du budget d'acquisition (→ leads payants)","%",0,0.08,0.15,-0.05),
  ("Variation du budget de marque (→ socle organique)","%",0,0.10,0.20,-0.05),
- ("Hausse tarifaire (prix)","%",0,0.025,0.035,0.02),
+ ("Hausse tarifaire (prix)","%",0,0.020,0.035,0.02),   # V01 aligné Tagetik (0,020)
  ("Gain taux lead → candidature","pts",0,0.01,0.03,0.0),
  ("Gain conversion admis → inscrit","pts",0,0.01,0.025,0.0),
  ("Amélioration du taux de passage","pts",0,0.005,0.015,-0.01),
@@ -303,7 +307,7 @@ for lib,u,ba,cad,opt,pru in levs:
 C(ws,"B27",'Leviers 1-6 → CA (moteur) · leviers 7-11 → coûts (P&L Budget → EBITDA). Acquisition = achat de leads (payant) · Marque = notoriété (socle organique). « Référence » remet tout à 0 = atterrissage.',CIT,align=AL); ws.merge_cells("B27:H27")
 # --- constantes ---
 band(ws,28,"B","H","③ Constante — frais de dossier (décision)")
-for i,h in enumerate(["Paramètre","Unité","Référence","Cadrage","Optimiste","Prudent","ACTIF"]): C(ws,f"{GL(2+i)}29",h,CHDR,FBLUE,align=AC,border=True)
+for i,h in enumerate(["Paramètre","Unité","Référence","V01","V02","V03","ACTIF"]): C(ws,f"{GL(2+i)}29",h,CHDR,FBLUE,align=AC,border=True)
 consts=[("Frais de dossier / nouvel inscrit","€",FRAIS_DEF,EUR)]
 r=30
 for lib,u,val,fmt in consts:
@@ -566,11 +570,11 @@ for code,lib,sens,sig,niv,drv,pct,vf in ACCTS:
         if sens=="Produit":
             for k,d in capm.items():
                 val={"alt":d["alt"],"init":d["init"],"frais":d["frais"]}[drv]*(ca_ver(n)/REFCA)
-                if val>0: compta.append((slug(k[0])+"_"+slug(k[1]),f"{k[0]} {k[1]}",k[0],k[1],code,lib,poste,sens,sig,vcode,exlab,round(val)))
+                if val>0: compta.append((entity_code(k[0],k[1]),f"{k[0]} {k[1]}",k[0],k[1],code,lib,poste,sens,sig,vcode,exlab,round(val)))
         elif code=="6231":   # marketing acquisition = dépense CRM, par campus (alignement CRM ↔ compta)
             for k in capm:
                 val=cmap[k]["spend"][2-n]
-                compta.append((slug(k[0])+"_"+slug(k[1]),f"{k[0]} {k[1]}",k[0],k[1],code,lib,poste,sens,sig,vcode,exlab,round(val)))
+                compta.append((entity_code(k[0],k[1]),f"{k[0]} {k[1]}",k[0],k[1],code,lib,poste,sens,sig,vcode,exlab,round(val)))
         elif code=="6236":   # marketing de marque = dépense CRM, pilotée au SIÈGE (fonction centrale)
             compta.append(("GROUPE","GROUPE — Siège","(groupe)","(groupe)",code,lib,poste,sens,sig,vcode,exlab,round(brand_spend_ver(n))))
         else:
@@ -578,7 +582,7 @@ for code,lib,sens,sig,niv,drv,pct,vf in ACCTS:
             if niv=="groupe":
                 compta.append(("GROUPE","GROUPE — Siège","(groupe)","(groupe)",code,lib,poste,sens,sig,vcode,exlab,round(tot)))
             else:
-                for k in capm: compta.append((slug(k[0])+"_"+slug(k[1]),f"{k[0]} {k[1]}",k[0],k[1],code,lib,poste,sens,sig,vcode,exlab,round(tot*share_w(k,drv,vf,sig))))
+                for k in capm: compta.append((entity_code(k[0],k[1]),f"{k[0]} {k[1]}",k[0],k[1],code,lib,poste,sens,sig,vcode,exlab,round(tot*share_w(k,drv,vf,sig))))
 # vérification EBITDA par version
 for vcode,exlab,n,vt,vy in VERS:
     ca=sum(m for row in compta for m in [row[11]] if row[7]=="Produit" and row[9]==vcode)
@@ -1219,7 +1223,7 @@ except Exception: pass
 ws.add_chart(cht,"F5")
 band(ws,21,"B","D","② Croissance CA par scénario")
 C(ws,"B22","Scénario",CHDR,FBLUE,align=AL,border=True); C(ws,"C22","Croissance CA",CHDR,FBLUE,align=AC,border=True)
-sc=[("Cadrage",0.076),("Optimiste",0.134),("Prudent",0.005)]
+sc=[("V01",0.076),("V02",0.134),("V03",0.005)]
 rr=23
 for s,g in sc:
     C(ws,f"B{rr}",s,CL,align=AL,border=True); C(ws,f"C{rr}",g,CF,fmt=PCT,align=AR,border=True); rr+=1
@@ -1228,6 +1232,28 @@ d=Reference(ws,min_col=3,min_row=22,max_row=25); cc=Reference(ws,min_col=2,min_r
 chs.add_data(d,titles_from_data=True); chs.set_categories(cc); _fill(chs.series[0],"1F3A5F")
 ws.add_chart(chs,"F21")
 C(ws,"B27","La table complète des leviers par scénario est dans l'onglet 01_Cadrage. Message clé : les deux plus gros leviers EBITDA sont les COÛTS et la CONVERSION — bien avant le prix ou le marketing.",CIT,align=ALW); ws.merge_cells("B27:I28"); ws.row_dimensions[27].height=40
+
+# ============================================================ 00b_Referentiel (mapping Tagetik : codes entité + versions)
+ws=wb.create_sheet("00b_Referentiel", index=1); ws.sheet_view.showGridLines=False
+for i,w in enumerate([22,13,14,12,16]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells("A1:E1"); C(ws,"A1","RÉFÉRENTIEL TAGETIK — codes entité & versions (Excel 100 % aligné AW_002_*)",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
+band(ws,3,"A","E","① Entités  (ENTITY = <CODE_MARQUE>_<CODE_VILLE>)")
+for i,h in enumerate(["Marque","Code marque","Ville","Code ville","ENTITY"]): C(ws,f"{GL(1+i)}4",h,CHDR,FBLUE,align=AC,border=True)
+seen=[]
+for rr in rows:
+    k=(rr["marque"],rr["ville"])
+    if k not in seen: seen.append(k)
+r=5
+for m,v in sorted(seen,key=lambda x:(MARQUE_CODE[x[0]],VILLE_CODE[x[1]])):
+    C(ws,f"A{r}",m,CL,align=AL,border=True); C(ws,f"B{r}",MARQUE_CODE[m],CF,align=AC,border=True)
+    C(ws,f"C{r}",v,CL,align=AL,border=True); C(ws,f"D{r}",VILLE_CODE[v],CF,align=AC,border=True)
+    C(ws,f"E{r}",entity_code(m,v),CFB,FLIGHT,align=AC,border=True); r+=1
+r+=1; band(ws,r,"A","E","② Versions (scénarios) — VERSION output côté Tagetik"); r+=1
+for i,h in enumerate(["Version","Scénario","Rôle"]): C(ws,f"{GL(1+i)}{r}",h,CHDR,FBLUE,align=AC,border=True)
+r+=1
+for vc,sc,role in [("V01","Cadrage","budget construit (défaut)"),("V02","Optimiste","borne haute"),("V03","Prudent","borne basse"),("GEN","—","cibles TEC & clés d'allocation")]:
+    C(ws,f"A{r}",vc,CFB,align=AC,border=True); C(ws,f"B{r}",sc,CL,align=AL,border=True); C(ws,f"C{r}",role,CIT,align=AL,border=True); ws.merge_cells(f"C{r}:E{r}"); r+=1
+r+=1; C(ws,f"A{r}","Codes identiques aux tables Tagetik AW_002_* · scénario 2027BUD_V1 · période 12 · cibles TEC_PL/TEC_EBITDA sur GEN.",CIT,align=AL); ws.merge_cells(f"A{r}:E{r+1}"); ws.row_dimensions[r].height=28
 
 try: wb.calculation.fullCalcOnLoad=True
 except Exception: pass
