@@ -11,7 +11,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.utils import get_column_letter as GL, column_index_from_string as CI
 from openpyxl.formatting.rule import ColorScaleRule, CellIsRule, DataBarRule
-from openpyxl.chart import BarChart, Reference
+from openpyxl.chart import BarChart, LineChart, Reference, Series
 
 OUT="/home/user/demo5/eduservices/EDUSERVICES_Modele_CA_v3.xlsx"
 
@@ -1129,6 +1129,105 @@ LEX=[
 for term,desc in LEX:
     C(ws,f"A{lx}",term,CB,FLIGHT,align=AL,border=True)
     C(ws,f"B{lx}",desc,CREG,align=ALW,border=True); ws.merge_cells(f"B{lx}:I{lx}"); ws.row_dimensions[lx].height=(42 if len(desc)>150 else 30); lx+=1
+
+from openpyxl.chart.shapes import GraphicalProperties
+from openpyxl.drawing.line import LineProperties
+def _fill(series,hex_):
+    series.graphicalProperties=GraphicalProperties(solidFill=hex_)
+def _nofill(series):
+    gp=GraphicalProperties(); gp.noFill=True; series.graphicalProperties=gp
+def _line(series,hex_,w=28000):
+    gp=GraphicalProperties(); gp.line=LineProperties(solidFill=hex_,w=w); series.graphicalProperties=gp
+
+# ============================================================ 13_Objectifs (scorecard : atteinte cibles · pont EBITDA · trajectoire)
+ws=wb.create_sheet("13_Objectifs"); ws.sheet_view.showGridLines=False
+for i,w in enumerate([3,26,15,15,15,14,16,12,12,12,12,12]): ws.column_dimensions[GL(1+i)].width=w
+CAD="'01_Cadrage'!"
+ws.merge_cells("B1:M1"); C(ws,"B1","OBJECTIFS — atteinte des cibles, pont EBITDA & trajectoire",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
+ws.merge_cells("B2:M2"); C(ws,"B2","Construit vs 🎯 cible vs référence · le pont montre d'où vient l'EBITDA · les chiffres sont liés à l'onglet 01_Cadrage (vivant).",CIT,align=AL)
+# ① Atteinte
+band(ws,4,"B","G","① Atteinte des objectifs")
+hdr=["Indicateur","Référence","🎯 Cible","🔧 Construit","Écart","Statut"]
+for i,h in enumerate(hdr): C(ws,f"{GL(2+i)}5",h,CHDR,FBLUE,align=AC,border=True)
+objrows=[("Chiffre d'affaires",7,EUR),("EBITDA",8,EUR),("Marge EBITDA %",9,PCT),("Effectif total",10,NB)]
+rr=6
+for lab,src,fmt in objrows:
+    C(ws,f"B{rr}",lab,CB,align=AL,border=True)
+    C(ws,f"C{rr}",f"={CAD}C{src}",CF,fmt=fmt,align=AR,border=True)
+    C(ws,f"D{rr}",f"={CAD}D{src}",CF,fmt=fmt,align=AR,border=True)
+    C(ws,f"E{rr}",f"={CAD}E{src}",CFB,fmt=fmt,align=AR,border=True)
+    C(ws,f"F{rr}",f"=E{rr}-D{rr}",CF,fmt=fmt,align=AR,border=True)
+    C(ws,f"G{rr}",f'=IF(E{rr}>=D{rr},"✓ atteinte","sous la cible")',CF,align=AC,border=True)
+    rr+=1
+# ② Pont EBITDA (waterfall via barres empilées : base invisible + hausse + baisse)
+band(ws,12,"B","E","② Pont EBITDA — référence → construit")
+C(ws,"B13","Étape",CHDR,FBLUE,align=AL,border=True); C(ws,"C13","Base",CHDR,FBLUE,align=AC,border=True)
+C(ws,"D13","Hausse",CHDR,FBLUE,align=AC,border=True); C(ws,"E13","Baisse",CHDR,FBLUE,align=AC,border=True)
+wf=[("EBITDA réf.",0,3291530,0),("Acquisition",3291530,172210,0),("Marque",3463740,108149,0),
+    ("Prix",3571889,563617,0),("Conversion",4135506,542135,0),("Passage",4677641,59347,0),
+    ("Coûts*",3991250,0,745738),("EBITDA constr.",0,3991250,0)]
+rr=14
+for lab,base,rise,fall in wf:
+    C(ws,f"B{rr}",lab,CL,align=AL,border=True)
+    C(ws,f"C{rr}",base,CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"D{rr}",rise,CF,fmt=EUR,align=AR,border=True)
+    C(ws,f"E{rr}",fall,CF,fmt=EUR,align=AR,border=True)
+    rr+=1
+C(ws,"B22","* Coûts = inflation charges + salaires + effectifs permanents + productivité",CIT,align=AL); ws.merge_cells("B22:E22")
+ch=BarChart(); ch.type="col"; ch.grouping="stacked"; ch.overlap=100; ch.title="Pont EBITDA (€)"; ch.height=8.5; ch.width=20
+data=Reference(ws,min_col=3,max_col=5,min_row=13,max_row=21); cats=Reference(ws,min_col=2,min_row=14,max_row=21)
+ch.add_data(data,titles_from_data=True); ch.set_categories(cats)
+_nofill(ch.series[0]); _fill(ch.series[1],"1F9E8F"); _fill(ch.series[2],"C64B6E")
+ch.y_axis.majorGridlines=None; ch.gapWidth=40
+try: ch.legend.position='b'
+except Exception: pass
+ws.add_chart(ch,"G5")
+# ③ Trajectoire
+band(ws,24,"B","E","③ Trajectoire — 2024 → 2027")
+C(ws,"B25","Année",CHDR,FBLUE,align=AL,border=True); C(ws,"C25","CA",CHDR,FBLUE,align=AC,border=True); C(ws,"D25","Marge EBITDA",CHDR,FBLUE,align=AC,border=True)
+tj=[("2024",20064725,0.132),("2025",21268606,0.140),("2026",22544725,0.146),("2027",24251927,0.165)]
+rr=26
+for y,ca,mg in tj:
+    C(ws,f"B{rr}",y,CL,align=AC,border=True); C(ws,f"C{rr}",ca,CF,fmt=EUR,align=AR,border=True); C(ws,f"D{rr}",mg,CF,fmt=PCT,align=AR,border=True); rr+=1
+chca=BarChart(); chca.type="col"; chca.title="Chiffre d'affaires (€)"; chca.height=7; chca.width=11; chca.legend=None
+d=Reference(ws,min_col=3,min_row=25,max_row=29); cc=Reference(ws,min_col=2,min_row=26,max_row=29)
+chca.add_data(d,titles_from_data=True); chca.set_categories(cc); _fill(chca.series[0],"2D6CDF")
+ws.add_chart(chca,"G24")
+chmg=LineChart(); chmg.title="Marge EBITDA (%)"; chmg.height=7; chmg.width=11; chmg.legend=None
+d2=Reference(ws,min_col=4,min_row=25,max_row=29); chmg.add_data(d2,titles_from_data=True); chmg.set_categories(cc)
+_line(chmg.series[0],"1F9E8F"); chmg.series[0].smooth=False
+ws.add_chart(chmg,"K24")
+
+# ============================================================ 14_Sensibilite (tornado leviers + scénarios)
+ws=wb.create_sheet("14_Sensibilite"); ws.sheet_view.showGridLines=False
+for i,w in enumerate([3,28,15,15,14,12,12,12,12]): ws.column_dimensions[GL(1+i)].width=w
+ws.merge_cells("B1:I1"); C(ws,"B1","SENSIBILITÉ — quel levier compte le plus pour l'EBITDA ?",CTIT,FNAVY,align=AL); ws.row_dimensions[1].height=24
+ws.merge_cells("B2:I2"); C(ws,"B2","Impact sur l'EBITDA de chaque hypothèse, sur sa plage réaliste Prudent ↔ Optimiste (projection moteur).",CIT,align=AL)
+band(ws,4,"B","D","① Tornado — impact EBITDA")
+C(ws,"B5","Levier",CHDR,FBLUE,align=AL,border=True); C(ws,"C5","Vers Prudent",CHDR,FBLUE,align=AC,border=True); C(ws,"D5","Vers Optimiste",CHDR,FBLUE,align=AC,border=True)
+tor=[("Taux de passage",-178040,118694),("Budget marque",-180723,111510),("Prix",-116080,232160),
+     ("Budget acquisition",-310468,159384),("Conversion lead→inscrit",-542135,625540),("Coûts (inflation, salaires…)",-642976,642976)]
+rr=6
+for lab,p,o in tor:
+    C(ws,f"B{rr}",lab,CL,align=AL,border=True); C(ws,f"C{rr}",p,CF,fmt=EUR,align=AR,border=True); C(ws,f"D{rr}",o,CF,fmt=EUR,align=AR,border=True); rr+=1
+cht=BarChart(); cht.type="bar"; cht.grouping="stacked"; cht.overlap=100; cht.title="Impact EBITDA (€)"; cht.height=8.5; cht.width=18
+d=Reference(ws,min_col=3,max_col=4,min_row=5,max_row=11); cc=Reference(ws,min_col=2,min_row=6,max_row=11)
+cht.add_data(d,titles_from_data=True); cht.set_categories(cc)
+_fill(cht.series[0],"C64B6E"); _fill(cht.series[1],"1F9E8F")
+try: cht.legend.position='b'
+except Exception: pass
+ws.add_chart(cht,"F5")
+band(ws,21,"B","D","② Croissance CA par scénario")
+C(ws,"B22","Scénario",CHDR,FBLUE,align=AL,border=True); C(ws,"C22","Croissance CA",CHDR,FBLUE,align=AC,border=True)
+sc=[("Cadrage",0.076),("Optimiste",0.134),("Prudent",0.005)]
+rr=23
+for s,g in sc:
+    C(ws,f"B{rr}",s,CL,align=AL,border=True); C(ws,f"C{rr}",g,CF,fmt=PCT,align=AR,border=True); rr+=1
+chs=BarChart(); chs.type="col"; chs.title="Croissance CA (%)"; chs.height=7; chs.width=12; chs.legend=None
+d=Reference(ws,min_col=3,min_row=22,max_row=25); cc=Reference(ws,min_col=2,min_row=23,max_row=25)
+chs.add_data(d,titles_from_data=True); chs.set_categories(cc); _fill(chs.series[0],"1F3A5F")
+ws.add_chart(chs,"F21")
+C(ws,"B27","La table complète des leviers par scénario est dans l'onglet 01_Cadrage. Message clé : les deux plus gros leviers EBITDA sont les COÛTS et la CONVERSION — bien avant le prix ou le marketing.",CIT,align=ALW); ws.merge_cells("B27:I28"); ws.row_dimensions[27].height=40
 
 try: wb.calculation.fullCalcOnLoad=True
 except Exception: pass
