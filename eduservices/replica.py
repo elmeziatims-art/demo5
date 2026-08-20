@@ -63,7 +63,7 @@ def base_inputs():
     pil = wb["Pilotage"]
     cap = {r["F"]: (pil["M%d" % (13 + i)].value) for i, r in enumerate(PIL)}
     budref = {r["F"]: r["N"] for r in PIL}
-    keys = {"K1": pil["E9"].value, "K2": pil["E8"].value, "K3": pil["E10"].value}  # GRP_BRAND, BRAND_CAMP, CAMP_CLASS
+    keys = {"K1": pil["C52"].value, "K2": pil["C53"].value, "K3": pil["C54"].value}  # GRP_BRAND, BRAND_CAMP, CAMP_CLASS
     return dict(lev=lev, pcoef=pcoef, cap=cap, budref=budref, keys=keys)
 
 VI = {"V01":0, "V02":1, "V03":2}
