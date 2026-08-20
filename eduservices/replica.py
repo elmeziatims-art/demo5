@@ -52,16 +52,14 @@ ENTRY = {"B1", "M1", "BTS1"}
 def base_inputs():
     cad = wb["cad"]
     def g(cell): return cad[cell].value
-    lev = {  # name -> (V01,V02,V03) from rows
-        "ACQ":(g("I21"),g("J21"),g("K21")), "BRAND":(g("I22"),g("J22"),g("K22")),
-        "PRICE":(g("I23"),g("J23"),g("K23")), "GLC":(g("I24"),g("J24"),g("K24")),
-        "GCV":(g("I25"),g("J25"),g("K25")), "PASS":(g("I26"),g("J26"),g("K26")),
-        "INFL":(g("I27"),g("J27"),g("K27")), "SAL":(g("I28"),g("J28"),g("K28")),
-        "FTE":(g("I29"),g("J29"),g("K29")), "PROD":(g("I30"),g("J30"),g("K30")),
-        "STRUCT":(g("I31"),g("J31"),g("K31")), "FEE":(g("I37"),g("J37"),g("K37")),
+    def row(n): return (g("E%d"%n), g("F%d"%n), g("G%d"%n))  # V01,V02,V03
+    lev = {  # new 'poste de commande' layout (E/F/G = V01/V02/V03)
+        "ACQ":row(16), "BRAND":row(17), "PRICE":row(18), "GLC":row(19),
+        "GCV":row(20), "PASS":row(21), "INFL":row(22), "SAL":row(23),
+        "FTE":row(24), "PROD":row(25), "STRUCT":row(26), "FEE":row(30),
     }
     lev = {k: [0.0 if v is None else v for v in t] for k, t in lev.items()}
-    pcoef = {"MBWAY":g("I9"),"ISCOM":g("I10"),"IPAC":g("I11"),"PIGIER":g("I12"),"TUNON":g("I13")}
+    pcoef = {"MBWAY":g("K7"),"ISCOM":g("K8"),"IPAC":g("K9"),"PIGIER":g("K10"),"TUNON":g("K11")}
     pil = wb["Pilotage"]
     cap = {r["F"]: (pil["M%d" % (13 + i)].value) for i, r in enumerate(PIL)}
     budref = {r["F"]: r["N"] for r in PIL}
