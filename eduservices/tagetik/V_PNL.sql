@@ -1,54 +1,44 @@
 -- =============================================================================
--- VUE P&L / EBITDA — EDUSERVICES  (SAP HANA)
--- Source : AW_002_000004_000001 (compta)   colonnes : ENTITY, ACCOUNT, EXERCICE,
---          SCENARIO, PERIOD, AMOUNT (montants POSITIFS en entrée ; le sens est
---          porté par le COMPTE, mappé en CASE ci-dessous).
--- Grain de sortie : ENTITY x EXERCICE (x SCENARIO x PERIOD).
--- Multi-exercice : un seul SCENARIO (2027BUD_V1), plusieurs EXERCICE (2024..2026).
---          -> la croissance/Δ se calcule d'un EXERCICE à l'autre (LAG).
--- Cascade  : Produits - Directs = MARGE CONTRIB
---            - Personnel - Structure - Impôts = EBITDA
---            - Dotations = EBIT
--- Tie-out (Σ entités) vérifié :
---   2024  Produits 20 064 725  EBITDA 2 648 550 (13,2%)  EBIT 1 444 664
---   2025  Produits 21 268 606  EBITDA 2 977 604 (14,0%)  EBIT 1 701 489
---   2026  Produits 22 544 725  EBITDA 3 291 530 (14,6%)  EBIT 1 938 847
---   (0 compte non mappé)
--- Note : le budget 2027 (construit) n'est PAS dans la compta -> il viendra de
---        V_BUDGET (moteur + leviers de coûts) et pourra s'UNIONner ici ensuite.
+-- VUE P&L / EBITDA UNIFIÉE — EDUSERVICES  (SAP HANA)
+-- TOUS les exercices dans une seule vue :
+--   • RÉEL   2024-2026  ← compta AW_002_000004_000001      (VERSION = 'ACT')
+--   • BUDGET 2027       ← V_BUDGET (moteur + leviers)       (VERSION = V01/V02/V03)
+-- Le réel n'a pas de version (compta) → on le tague 'ACT'. Le budget porte les
+-- 3 scénarios. Un seul SCENARIO (2027BUD_V1), plusieurs EXERCICE.
+-- Cascade : Produits - Directs = MARGE CONTRIB ; - Personnel - Structure - Impôts
+--           = EBITDA ; - Dotations = EBIT.
+-- Tie-out (Σ entités) :
+--   2024 ACT  EBITDA 2 648 550 (13,2%)   2025 ACT 2 977 604 (14,0%)
+--   2026 ACT  EBITDA 3 291 530 (14,6%)   2027 V01 3 875 895 (16,1%)
+-- Restitution trajectoire : filtrer VERSION='ACT' pour 2024-2026 + la version
+-- choisie pour 2027 (l'écart 2027 vs 2026 se lit alors côté restitution).
 -- =============================================================================
 CREATE OR REPLACE VIEW V_PNL AS
 SELECT
-    m.ENTITY, m.EXERCICE, m.SCENARIO, m.PERIOD,
-    -- soldes intermédiaires de gestion
+    m.ENTITY, m.EXERCICE, m.VERSION, m.SCENARIO, m.PERIOD,
     m.SIG_PRODUITS,
     m.C_DIRECTS, m.C_PERSONNEL, m.C_STRUCTURE, m.C_IMPOTS, m.C_DOTATIONS,
-    m.MARGE_CONTRIB,
-    m.EBITDA,
-    m.EBIT,
-    -- ratios
-    COALESCE(m.MARGE_CONTRIB / NULLIF(m.SIG_PRODUITS, 0), 0) AS MARGE_CONTRIB_PCT,
-    COALESCE(m.EBITDA        / NULLIF(m.SIG_PRODUITS, 0), 0) AS MARGE_EBITDA_PCT,
-    COALESCE(m.EBIT          / NULLIF(m.SIG_PRODUITS, 0), 0) AS MARGE_EBIT_PCT,
-    -- évolution d'un exercice à l'autre (même scénario)
+    m.MARGE_CONTRIB, m.EBITDA, m.EBIT,
+    COALESCE(m.MARGE_CONTRIB / NULLIF(m.SIG_PRODUITS,0), 0) AS MARGE_CONTRIB_PCT,
+    COALESCE(m.EBITDA        / NULLIF(m.SIG_PRODUITS,0), 0) AS MARGE_EBITDA_PCT,
+    COALESCE(m.EBIT          / NULLIF(m.SIG_PRODUITS,0), 0) AS MARGE_EBIT_PCT,
+    -- croissance d'un exercice à l'autre AU SEIN d'une même version (ACT : 2025,2026 ;
+    -- budget : NULL car pas d'antériorité dans la version -> écart 2027/2026 en restitution)
     COALESCE(
         m.SIG_PRODUITS
-        / NULLIF(LAG(m.SIG_PRODUITS) OVER (PARTITION BY m.ENTITY, m.SCENARIO
-                                           ORDER BY TO_INTEGER(m.EXERCICE)), 0) - 1,
-        0)                                                  AS TX_CROISSANCE_CA,
-    m.EBITDA - LAG(m.EBITDA) OVER (PARTITION BY m.ENTITY, m.SCENARIO
-                                   ORDER BY TO_INTEGER(m.EXERCICE))
-                                                            AS DELTA_EBITDA
+        / NULLIF(LAG(m.SIG_PRODUITS) OVER (PARTITION BY m.ENTITY, m.VERSION
+                                           ORDER BY TO_INTEGER(m.EXERCICE)), 0) - 1, 0) AS TX_CROISSANCE_CA
 FROM (
     SELECT
-        s.ENTITY, s.EXERCICE, s.SCENARIO, s.PERIOD,
-        s.SIG_PRODUITS, s.C_DIRECTS, s.C_PERSONNEL, s.C_STRUCTURE, s.C_IMPOTS, s.C_DOTATIONS,
-        (s.SIG_PRODUITS - s.C_DIRECTS)                                                        AS MARGE_CONTRIB,
-        (s.SIG_PRODUITS - s.C_DIRECTS - s.C_PERSONNEL - s.C_STRUCTURE - s.C_IMPOTS)            AS EBITDA,
-        (s.SIG_PRODUITS - s.C_DIRECTS - s.C_PERSONNEL - s.C_STRUCTURE - s.C_IMPOTS - s.C_DOTATIONS) AS EBIT
+        u.ENTITY, u.EXERCICE, u.VERSION, u.SCENARIO, u.PERIOD,
+        u.SIG_PRODUITS, u.C_DIRECTS, u.C_PERSONNEL, u.C_STRUCTURE, u.C_IMPOTS, u.C_DOTATIONS,
+        (u.SIG_PRODUITS - u.C_DIRECTS)                                                             AS MARGE_CONTRIB,
+        (u.SIG_PRODUITS - u.C_DIRECTS - u.C_PERSONNEL - u.C_STRUCTURE - u.C_IMPOTS)                 AS EBITDA,
+        (u.SIG_PRODUITS - u.C_DIRECTS - u.C_PERSONNEL - u.C_STRUCTURE - u.C_IMPOTS - u.C_DOTATIONS) AS EBIT
     FROM (
+        -- ===== RÉEL 2024-2026 (compta) =====
         SELECT
-            t.ENTITY, t.EXERCICE, t.SCENARIO, t.PERIOD,
+            t.ENTITY, t.EXERCICE, 'ACT' AS VERSION, t.SCENARIO, TO_INTEGER(t.PERIOD) AS PERIOD,
             SUM(CASE WHEN t.ACCOUNT IN ('7062','706','708')                              THEN t.AMOUNT ELSE 0 END) AS SIG_PRODUITS,
             SUM(CASE WHEN t.ACCOUNT IN ('621','604','6063','6231')                       THEN t.AMOUNT ELSE 0 END) AS C_DIRECTS,
             SUM(CASE WHEN t.ACCOUNT IN ('6411','6413','6414','645')                      THEN t.AMOUNT ELSE 0 END) AS C_PERSONNEL,
@@ -57,5 +47,13 @@ FROM (
             SUM(CASE WHEN t.ACCOUNT IN ('6811')                                          THEN t.AMOUNT ELSE 0 END) AS C_DOTATIONS
         FROM AW_002_000004_000001 t
         GROUP BY t.ENTITY, t.EXERCICE, t.SCENARIO, t.PERIOD
-    ) s
+
+        UNION ALL
+
+        -- ===== BUDGET 2027 (construit) =====
+        SELECT
+            b.ENTITY, b.EXERCICE, b.VERSION, b.SCENARIO, b.PERIOD,
+            b.SIG_PRODUITS, b.C_DIRECTS, b.C_PERSONNEL, b.C_STRUCTURE, b.C_IMPOTS, b.C_DOTATIONS
+        FROM V_BUDGET b
+    ) u
 ) m;
