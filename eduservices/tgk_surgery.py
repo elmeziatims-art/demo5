@@ -22,6 +22,7 @@ def split_ref(ref):
 class Sheet:
     def __init__(self,xml):
         self.xml=xml
+        self.raw=None; self.raw_cols=None; self.raw_merges=None; self.raw_dim=None
         m=re.search(r'<sheetData>(.*?)</sheetData>',xml,re.S)
         if m is None:
             m=re.search(r'<sheetData/>',xml); self.sd_start,self.sd_end,body=m.start(),m.end(),""
@@ -59,7 +60,19 @@ class Sheet:
     def set_text(self,ref,text,s=None):
         a=(' s="%d"'%s if s is not None else '')+' t="inlineStr"'
         self._set(ref,a,'<is><t xml:space="preserve">%s</t></is>'%escape(str(text)))
+    def set_raw(self,inner,cols=None,merges=None,dim=None):
+        self.raw=inner; self.raw_cols=cols; self.raw_merges=merges; self.raw_dim=dim
     def render(self):
+        if self.raw is not None:
+            sd="<sheetData>"+self.raw+"</sheetData>"
+            xml=self.xml[:self.sd_start]+sd+self.xml[self.sd_end:]
+            xml=re.sub(r'<cols>.*?</cols>','',xml,flags=re.S)
+            xml=re.sub(r'<mergeCells count="\d+">.*?</mergeCells>','',xml,flags=re.S)
+            xml=re.sub(r'<mergeCells count="\d+"/>','',xml)
+            if self.raw_cols: xml=xml.replace("<sheetData>",self.raw_cols+"<sheetData>",1)
+            if self.raw_merges: xml=xml.replace("</sheetData>","</sheetData>"+self.raw_merges,1)
+            if self.raw_dim: xml=re.sub(r'<dimension ref="[^"]+"/>','<dimension ref="%s"/>'%self.raw_dim,xml,count=1)
+            return xml
         # rebuild sheetData
         parts=[]
         maxc=1;maxr=1;minc=16384;minr=1048576
@@ -92,7 +105,9 @@ class Book:
         rels=self.zin.read("xl/_rels/workbook.xml.rels").decode("utf8")
         ridmap=dict(re.findall(r'Id="(rId\d+)"[^>]*Target="worksheets/(sheet\d+\.xml)"',rels))
         self.name2xml={n:ridmap[r] for n,r in re.findall(r'<sheet name="([^"]+)"[^>]*r:id="(rId\d+)"',self.wbxml)}
-        self.mods={}; self._newsheets=[]
+        self.mods={}; self._newsheets=[]; self._styles=None
+    def styles_xml(self): return self.zin.read("xl/styles.xml").decode("utf8")
+    def set_styles(self,xml): self._styles=xml
     def sheet(self,name):
         xf="xl/worksheets/"+self.name2xml[name]
         if xf not in self.mods: self.mods[xf]=Sheet(self.zin.read(xf).decode("utf8"))
@@ -151,6 +166,7 @@ class Book:
         rendered={xf:sh.render() for xf,sh in self.mods.items()}
         rendered.update(self._extra)
         rendered["xl/workbook.xml"]=self.wbxml
+        if self._styles is not None: rendered["xl/styles.xml"]=self._styles
         orig=set(zi.filename for zi in self.zin.infolist())
         with zipfile.ZipFile(out,"w",zipfile.ZIP_DEFLATED) as zout:
             for zi in self.zin.infolist():
