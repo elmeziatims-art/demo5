@@ -38,6 +38,11 @@ class Sheet:
                 col=cm.group(1); attrs=cm.group(3); content=cm.group(4)
                 cells[col2num(col)]=(attrs,content)
             self.rows[rn]=cells
+    def get_style(self,ref):
+        col,rn=split_ref(ref); cn=col2num(col)
+        cell=self.rows.get(rn,{}).get(cn)
+        if not cell: return None
+        m=re.search(r's="(\d+)"',cell[0]); return int(m.group(1)) if m else None
     def _set(self,ref,attrs,content):
         col,rn=split_ref(ref); cn=col2num(col)
         self.rows.setdefault(rn,{})[cn]=(attrs,content)
