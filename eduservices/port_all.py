@@ -11,8 +11,10 @@ from tgk_surgery import Book
 
 PROTO="CAD_SAAD_LIVE.xlsx"
 P=openpyxl.load_workbook(PROTO)
+Pd=openpyxl.load_workbook(PROTO,data_only=True)   # valeurs (donnees baseline des feeds)
 ADD_TABS=["_CALC_MOTEUR","_CALC_PNL","_CALC_ALLOC","3_Allocation","Pilotage","00_Cartographie"]
 FEEDS={"Socle":29,"Campagne":14,"Moteur":13,"Compta":6,"PNL":9,"Allocation":20}
+RAWW={"Socle":29,"Campagne":14,"Moteur":13,"Compta":6,"PNL":7,"Allocation":20}  # colonnes brutes (hors live)
 
 def put(sh,ref,v):
     if isinstance(v,str) and v.startswith("="): sh.set_formula(ref,v[1:])
@@ -20,7 +22,7 @@ def put(sh,ref,v):
     elif isinstance(v,bool): sh.set_number(ref,1 if v else 0)
     else: sh.set_number(ref,v)
 
-def build(src,out):
+def build(src,out,embed_baseline=False):
     b=Book(src)
     # ---- 1) zones nommees repointees sur le cad du DESIGN ----
     d={}
@@ -48,6 +50,15 @@ def build(src,out):
                 if c.value is not None: put(sh,c.coordinate,c.value)
         for rr,dim in ws.row_dimensions.items():
             if dim.outline_level: sh.set_row_outline(rr,dim.outline_level,bool(dim.hidden))
+    # ---- 3bis) donnees baseline des feeds (valeurs de reference du prototype) ----
+    if embed_baseline:
+        for feed,rw in RAWW.items():
+            pv=Pd[feed]; fsh=b.sheet(feed)
+            for r in range(2,pv.max_row+1):
+                if pv.cell(r,1).value in (None,""): continue
+                for c in range(1,rw+1):
+                    v=pv.cell(r,c).value
+                    if v is not None: put(fsh,"%s%d"%(GCL(c),r),v)
     # ---- 4) colonnes LIVE des feeds (= colonnes contenant des formules dans le proto) ----
     for feed in FEEDS:
         pws=P[feed]; fsh=b.sheet(feed)
@@ -65,6 +76,6 @@ def build(src,out):
     b.set_fullcalc(); b.save(out)
     return len(d),livecols
 
-n,_=build("DESIGN.xlsm","DESIGN_FULL.xlsm")
-build("NAV.xlsx","NAV_FULL.xlsx")
+n,_=build("DESIGN.xlsm","DESIGN_FULL.xlsm",embed_baseline=True)
+build("NAV.xlsx","NAV_FULL.xlsx",embed_baseline=False)
 print("OK. zones nommees:",n)
