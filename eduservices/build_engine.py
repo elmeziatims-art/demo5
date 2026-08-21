@@ -93,20 +93,37 @@ def build(src,out):
     for r in range(13,27):
         pil.set_formula("O%d"%r,"IFERROR(M%d*N%d/SUMPRODUCT($M$13:$M$26,$N$13:$N$26)*SUM($N$13:$N$26),0)"%(r,r),S_NUM)
 
-    # ================= ALLOC : rollup marque (2026, cout complet) =================
-    alloc.set_text("B10","Marque",S_HDR); alloc.set_text("C10","CA",S_HDR)
-    alloc.set_text("D10","Cout complet",S_HDR); alloc.set_text("E10","Marge complete",S_HDR); alloc.set_text("F10","Marge %",S_HDR)
+    # ================= ALLOC : cascade VIVANTE pilotee par la cle (instant replay) =================
+    # Resolveurs de cle PAR LABEL (INDEX/MATCH) -> insensibles au push de lignes Tagetik.
+    # places en zone fixe (col N, au-dessus du bloc de cles qui s'etend) et nommes.
+    def keyres(label): return 'IFERROR(INDEX(ALLOC!$C:$C,MATCH("%s",ALLOC!$B:$B,0)),"Effectif")'%label
+    alloc.set_formula("N1",keyres("ALLOC_BRAND_CAMP"))
+    alloc.set_formula("N2",keyres("ALLOC_CAMP_CLASS"))
+    alloc.set_formula("N3",keyres("ALLOC_GRP_HOLDING"))
+    alloc.set_formula("N4",'SUMIFS(Allocation!$P:$P,Allocation!$C:$C,"2026")')  # siege groupe total
+    # rollup marque avec re-allocation live du siege selon la cle holding (N3)
+    hdr=[("B","Marque"),("C","CA"),("D","Effectif"),("E","Classes"),
+         ("F","Marge avant siege"),("G","Siege alloue (cle)"),("H","Marge apres siege"),("I","Marge %"),("K","base cle")]
+    for col,t in hdr: alloc.set_text("%s10"%col,t,S_HDR)
     MARQS=["MBWAY","ISCOM","IPAC","PIGIER","TUNON"]
+    def sif(colL,mq): return 'SUMIFS(Allocation!$%s:$%s,Allocation!$E:$E,"%s",Allocation!$C:$C,"2026")'%(colL,colL,mq)
     for i,mq in enumerate(MARQS):
         rr=11+i
         alloc.set_text("B%d"%rr,mq)
-        alloc.set_formula("C%d"%rr,'SUMIFS(Allocation!$K:$K,Allocation!$E:$E,"%s",Allocation!$C:$C,"2026")'%mq,S_NUM)
-        alloc.set_formula("D%d"%rr,'SUMIFS(Allocation!$S:$S,Allocation!$E:$E,"%s",Allocation!$C:$C,"2026")'%mq,S_NUM)
-        alloc.set_formula("E%d"%rr,'SUMIFS(Allocation!$T:$T,Allocation!$E:$E,"%s",Allocation!$C:$C,"2026")'%mq,S_NUM)
-        alloc.set_formula("F%d"%rr,"IFERROR(E%d/C%d,0)"%(rr,rr),S_PCT)
+        alloc.set_formula("C%d"%rr,sif("K",mq),S_NUM)   # CA
+        alloc.set_formula("D%d"%rr,sif("I",mq),S_NUM)   # VOL_EFF
+        alloc.set_formula("E%d"%rr,sif("J",mq),S_NUM)   # VOL_CLASS
+        alloc.set_formula("F%d"%rr,"%s+%s"%(sif("T",mq),sif("P",mq)),S_NUM)  # marge+siege = marge avant siege
+        # base selon la cle holding : CA / classes / effectif
+        alloc.set_formula("K%d"%rr,"IF($N$3=\"Chiffre d'affaires\",C%d,IF($N$3=\"Nombre de classes\",E%d,D%d))"%(rr,rr,rr),S_NUM)
+        alloc.set_formula("G%d"%rr,"IFERROR($N$4*K%d/SUM($K$11:$K$15),0)"%rr,S_NUM)
+        alloc.set_formula("H%d"%rr,"F%d-G%d"%(rr,rr),S_NUM)
+        alloc.set_formula("I%d"%rr,"IFERROR(H%d/C%d,0)"%(rr,rr),S_PCT)
     alloc.set_text("B16","TOTAL",S_HDR)
-    alloc.set_formula("C16","SUM(C11:C15)",S_NUM); alloc.set_formula("D16","SUM(D11:D15)",S_NUM)
-    alloc.set_formula("E16","SUM(E11:E15)",S_NUM); alloc.set_formula("F16","IFERROR(E16/C16,0)",S_PCT)
+    for col in ("C","D","E","F","G","H"): alloc.set_formula("%s16"%col,"SUM(%s11:%s15)"%(col,col),S_NUM)
+    alloc.set_formula("I16","IFERROR(H16/C16,0)",S_PCT)
+    # noms des resolveurs (pilotage par nom)
+    b.add_names({"K_BRAND_CAMP":"ALLOC!$N$1","K_CAMP_CLASS":"ALLOC!$N$2","K_GRP_HOLDING":"ALLOC!$N$3","SIEGE_TOTAL":"ALLOC!$N$4"})
 
     b.set_fullcalc()
     b.save(out)
