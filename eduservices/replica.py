@@ -55,8 +55,8 @@ def base_inputs():
     def row(n): return (g("E%d"%n), g("F%d"%n), g("G%d"%n))  # V01,V02,V03
     lev = {  # new 'poste de commande' layout (E/F/G = V01/V02/V03)
         "ACQ":row(16), "BRAND":row(17), "PRICE":row(18), "GLC":row(19),
-        "GCV":row(20), "PASS":row(21), "INFL":row(22), "SAL":row(23),
-        "FTE":row(24), "PROD":row(25), "STRUCT":row(26), "FEE":row(30),
+        "GCV":row(20), "PASS":row(21), "INFL":row(23), "SAL":row(24),
+        "FTE":row(25), "PROD":row(26), "STRUCT":row(27), "FEE":row(30),
     }
     lev = {k: [0.0 if v is None else v for v in t] for k, t in lev.items()}
     pcoef = {"MBWAY":g("K7"),"ISCOM":g("K8"),"IPAC":g("K9"),"PIGIER":g("K10"),"TUNON":g("K11")}
