@@ -93,37 +93,91 @@ def build(src,out):
     for r in range(13,27):
         pil.set_formula("O%d"%r,"IFERROR(M%d*N%d/SUMPRODUCT($M$13:$M$26,$N$13:$N$26)*SUM($N$13:$N$26),0)"%(r,r),S_NUM)
 
-    # ================= ALLOC : cascade VIVANTE pilotee par la cle (instant replay) =================
-    # Resolveurs de cle PAR LABEL (INDEX/MATCH) -> insensibles au push de lignes Tagetik.
-    # places en zone fixe (col N, au-dessus du bloc de cles qui s'etend) et nommes.
-    def keyres(label): return 'IFERROR(INDEX(ALLOC!$C:$C,MATCH("%s",ALLOC!$B:$B,0)),"Effectif")'%label
-    alloc.set_formula("N1",keyres("ALLOC_BRAND_CAMP"))
-    alloc.set_formula("N2",keyres("ALLOC_CAMP_CLASS"))
-    alloc.set_formula("N3",keyres("ALLOC_GRP_HOLDING"))
-    alloc.set_formula("N4",'SUMIFS(Allocation!$P:$P,Allocation!$C:$C,"2026")')  # siege groupe total
-    # rollup marque avec re-allocation live du siege selon la cle holding (N3)
-    hdr=[("B","Marque"),("C","CA"),("D","Effectif"),("E","Classes"),
-         ("F","Marge avant siege"),("G","Siege alloue (cle)"),("H","Marge apres siege"),("I","Marge %"),("K","base cle")]
-    for col,t in hdr: alloc.set_text("%s10"%col,t,S_HDR)
-    MARQS=["MBWAY","ISCOM","IPAC","PIGIER","TUNON"]
-    def sif(colL,mq): return 'SUMIFS(Allocation!$%s:$%s,Allocation!$E:$E,"%s",Allocation!$C:$C,"2026")'%(colL,colL,mq)
-    for i,mq in enumerate(MARQS):
-        rr=11+i
-        alloc.set_text("B%d"%rr,mq)
-        alloc.set_formula("C%d"%rr,sif("K",mq),S_NUM)   # CA
-        alloc.set_formula("D%d"%rr,sif("I",mq),S_NUM)   # VOL_EFF
-        alloc.set_formula("E%d"%rr,sif("J",mq),S_NUM)   # VOL_CLASS
-        alloc.set_formula("F%d"%rr,"%s+%s"%(sif("T",mq),sif("P",mq)),S_NUM)  # marge+siege = marge avant siege
-        # base selon la cle holding : CA / classes / effectif
-        alloc.set_formula("K%d"%rr,"IF($N$3=\"Chiffre d'affaires\",C%d,IF($N$3=\"Nombre de classes\",E%d,D%d))"%(rr,rr,rr),S_NUM)
-        alloc.set_formula("G%d"%rr,"IFERROR($N$4*K%d/SUM($K$11:$K$15),0)"%rr,S_NUM)
-        alloc.set_formula("H%d"%rr,"F%d-G%d"%(rr,rr),S_NUM)
-        alloc.set_formula("I%d"%rr,"IFERROR(H%d/C%d,0)"%(rr,rr),S_PCT)
-    alloc.set_text("B16","TOTAL",S_HDR)
-    for col in ("C","D","E","F","G","H"): alloc.set_formula("%s16"%col,"SUM(%s11:%s15)"%(col,col),S_NUM)
-    alloc.set_formula("I16","IFERROR(H16/C16,0)",S_PCT)
-    # noms des resolveurs (pilotage par nom)
-    b.add_names({"K_BRAND_CAMP":"ALLOC!$N$1","K_CAMP_CLASS":"ALLOC!$N$2","K_GRP_HOLDING":"ALLOC!$N$3","SIEGE_TOTAL":"ALLOC!$N$4"})
+    # ================= ALLOC : CASCADE VIVANTE JUSQU'A LA CLASSE (comme le prototype, adapte au feed) =================
+    import json
+    HIER=json.load(open("_hier.json"))
+    VILLE={"MBWAY_PAR":"Paris","MBWAY_LYO":"Lyon","MBWAY_NAN":"Nantes","MBWAY_BOR":"Bordeaux",
+     "ISCOM_PAR":"Paris","ISCOM_LIL":"Lille","ISCOM_TLS":"Toulouse","IPAC_NAN":"Nantes","IPAC_REN":"Rennes",
+     "IPAC_MTP":"Montpellier","PIGIER_LYO":"Lyon","PIGIER_BOR":"Bordeaux","TUNON_PAR":"Paris","TUNON_LYO":"Lyon"}
+    LIB={"MBWAY":"MBway","ISCOM":"ISCOM","IPAC":"Ipac","PIGIER":"Pigier","TUNON":"Tunon"}
+    # --- resolveurs : label FR (N1..N3) + code REV_CA/VOL_EFF/VOL_CLASS (P1..P3) + siege total (P4) ---
+    def vlabel(kname,dflt): return 'IFERROR(INDEX(ALLOC!$C:$C,MATCH("%s",ALLOC!$B:$B,0)),"%s")'%(kname,dflt)
+    def code(v): return "IF(%s=\"Chiffre d'affaires\",\"REV_CA\",IF(%s=\"Nombre de classes\",\"VOL_CLASS\",\"VOL_EFF\"))"%(v,v)
+    alloc.set_formula("N1",vlabel("ALLOC_GRP_HOLDING","Chiffre d'affaires"))
+    alloc.set_formula("N2",vlabel("ALLOC_BRAND_CAMP","Effectif"))
+    alloc.set_formula("N3",vlabel("ALLOC_CAMP_CLASS","Nombre de classes"))
+    alloc.set_formula("P1",code("$N$1")); alloc.set_formula("P2",code("$N$2")); alloc.set_formula("P3",code("$N$3"))
+    alloc.set_formula("P4",'SUMIFS(Allocation!$P:$P,Allocation!$C:$C,"2026")')
+    b.add_names({"KC_HOLDING":"ALLOC!$P$1","KC_BRANDCAMP":"ALLOC!$P$2","KC_CAMPCLASS":"ALLOC!$P$3","SIEGE_TOTAL":"ALLOC!$P$4"})
+
+    # --- onglet _CALC_ALLOC : moteur ligne a ligne (aligne au feed Allocation, 200 lignes) ---
+    NROWS=200
+    ca=b.add_sheet("_CALC_ALLOC")
+    HDRC=["EX","ENT","MARQ","EFF","CLS","CA","DIRECT","SIEGEfeed","M_EFF","M_CLS","M_CA",
+          "E_EFF","E_CLS","E_CA","G_EFF","G_CLS","G_CA","D1M","D1G","D2E","D2M","D3C","D3E","SIEGE_NEW","MARGE_NEW"]
+    from openpyxl.utils import get_column_letter as GCL
+    for i,h in enumerate(HDRC): ca.set_text(GCL(i+1),h) if False else ca.set_text("%s1"%GCL(i+1),h)
+    def A(col,r): return "Allocation!$%s%d"%(col,r)
+    def sifm(col,crit): return "SUMIFS(Allocation!$%s:$%s,%s)"%(col,col,crit)
+    for r in range(2,NROWS+2):
+        g=lambda expr:'IF(OR(Allocation!$D%d="",Allocation!$C%d<>"2026"),"",%s)'%(r,r,expr)
+        ca.set_formula("A%d"%r,g('Allocation!$C%d'%r))
+        ca.set_formula("B%d"%r,g('Allocation!$D%d'%r))
+        ca.set_formula("C%d"%r,g('Allocation!$E%d'%r))
+        ca.set_formula("D%d"%r,g('Allocation!$I%d'%r))
+        ca.set_formula("E%d"%r,g('Allocation!$J%d'%r))
+        ca.set_formula("F%d"%r,g('Allocation!$K%d'%r))
+        ca.set_formula("G%d"%r,g('Allocation!$L%d+Allocation!$M%d+Allocation!$N%d+Allocation!$O%d'%(r,r,r,r)))
+        ca.set_formula("H%d"%r,g('Allocation!$P%d'%r))
+        # sommes hierarchiques par base (filtre 2026)
+        mq='$C%d'%r; en='$B%d'%r
+        ca.set_formula("I%d"%r,g('SUMIFS(Allocation!$I:$I,Allocation!$E:$E,_CALC_ALLOC!%s,Allocation!$C:$C,"2026")'%mq))
+        ca.set_formula("J%d"%r,g('SUMIFS(Allocation!$J:$J,Allocation!$E:$E,_CALC_ALLOC!%s,Allocation!$C:$C,"2026")'%mq))
+        ca.set_formula("K%d"%r,g('SUMIFS(Allocation!$K:$K,Allocation!$E:$E,_CALC_ALLOC!%s,Allocation!$C:$C,"2026")'%mq))
+        ca.set_formula("L%d"%r,g('SUMIFS(Allocation!$I:$I,Allocation!$D:$D,_CALC_ALLOC!%s,Allocation!$C:$C,"2026")'%en))
+        ca.set_formula("M%d"%r,g('SUMIFS(Allocation!$J:$J,Allocation!$D:$D,_CALC_ALLOC!%s,Allocation!$C:$C,"2026")'%en))
+        ca.set_formula("N%d"%r,g('SUMIFS(Allocation!$K:$K,Allocation!$D:$D,_CALC_ALLOC!%s,Allocation!$C:$C,"2026")'%en))
+        ca.set_formula("O%d"%r,g('SUMIFS(Allocation!$I:$I,Allocation!$C:$C,"2026")'))
+        ca.set_formula("P%d"%r,g('SUMIFS(Allocation!$J:$J,Allocation!$C:$C,"2026")'))
+        ca.set_formula("Q%d"%r,g('SUMIFS(Allocation!$K:$K,Allocation!$C:$C,"2026")'))
+        # parts de cascade selon les codes de cle
+        ca.set_formula("R%d"%r,g('IF(KC_HOLDING="REV_CA",K%d,IF(KC_HOLDING="VOL_CLASS",J%d,I%d))'%(r,r,r)))
+        ca.set_formula("S%d"%r,g('IF(KC_HOLDING="REV_CA",Q%d,IF(KC_HOLDING="VOL_CLASS",P%d,O%d))'%(r,r,r)))
+        ca.set_formula("T%d"%r,g('IF(KC_BRANDCAMP="REV_CA",N%d,IF(KC_BRANDCAMP="VOL_CLASS",M%d,L%d))'%(r,r,r)))
+        ca.set_formula("U%d"%r,g('IF(KC_BRANDCAMP="REV_CA",K%d,IF(KC_BRANDCAMP="VOL_CLASS",J%d,I%d))'%(r,r,r)))
+        ca.set_formula("V%d"%r,g('IF(KC_CAMPCLASS="REV_CA",F%d,IF(KC_CAMPCLASS="VOL_CLASS",E%d,D%d))'%(r,r,r)))
+        ca.set_formula("W%d"%r,g('IF(KC_CAMPCLASS="REV_CA",N%d,IF(KC_CAMPCLASS="VOL_CLASS",M%d,L%d))'%(r,r,r)))
+        ca.set_formula("X%d"%r,g('IFERROR(SIEGE_TOTAL*(R%d/S%d)*(T%d/U%d)*(V%d/W%d),0)'%(r,r,r,r,r,r)))
+        ca.set_formula("Y%d"%r,g('F%d-G%d-X%d'%(r,r,r)))
+    # --- colonnes live sur le feed Allocation (V=siege live, W=marge live) ---
+    alloc_feed=b.sheet("Allocation")
+    alloc_feed.set_text("V1","COST_SIEGE (live)"); alloc_feed.set_text("W1","MARGE (live)")
+    for r in range(2,NROWS+2):
+        alloc_feed.set_formula("V%d"%r,'IF(Allocation!$D%d="","",_CALC_ALLOC!X%d)'%(r,r))
+        alloc_feed.set_formula("W%d"%r,'IF(Allocation!$D%d="","",_CALC_ALLOC!Y%d)'%(r,r))
+
+    # --- maille marque > campus > classe (outline [+]) lisant les colonnes live ---
+    mh=[("B","Effectif"),("C","CA"),("D","Cout direct"),("E","Siege (live)"),("F","Marge (live)"),("G","Marge %")]
+    alloc.set_text("A24","Maille fine — deplie chaque marque -> campus -> classe (reagit aux cles)",S_HDR)
+    for col,t in mh: alloc.set_text("%s25"%col,t,S_HDR)
+    def mrow(rr,crit,ca_):
+        alloc.set_formula("B%d"%rr,'SUMIFS(Allocation!$I:$I,Allocation!$C:$C,"2026"%s)'%crit,S_NUM)
+        alloc.set_formula("C%d"%rr,'SUMIFS(Allocation!$K:$K,Allocation!$C:$C,"2026"%s)'%crit,S_NUM)
+        alloc.set_formula("D%d"%rr,'SUMIFS(Allocation!$S:$S,Allocation!$C:$C,"2026"%s)-SUMIFS(Allocation!$P:$P,Allocation!$C:$C,"2026"%s)'%(crit,crit),S_NUM)
+        alloc.set_formula("E%d"%rr,'SUMIFS(Allocation!$V:$V,Allocation!$C:$C,"2026"%s)'%crit,S_NUM)
+        alloc.set_formula("F%d"%rr,'SUMIFS(Allocation!$W:$W,Allocation!$C:$C,"2026"%s)'%crit,S_NUM)
+        alloc.set_formula("G%d"%rr,"IFERROR(F%d/C%d,0)"%(rr,rr),S_PCT)
+    rr=26
+    for mq in HIER:
+        alloc.set_text("A%d"%rr,LIB[mq],S_HDR); alloc.set_row_outline(rr,0)
+        mrow(rr,',Allocation!$E:$E,"%s"'%mq,None); rr+=1
+        for ent in HIER[mq]:
+            alloc.set_text("A%d"%rr,"   %s  (%s)"%(VILLE[ent],ent)); alloc.set_row_outline(rr,1)
+            mrow(rr,',Allocation!$D:$D,"%s"'%ent,None); rr+=1
+            for (prog,an,mod) in HIER[mq][ent]:
+                alloc.set_text("A%d"%rr,"      %s %s %s"%(prog,an,mod)); alloc.set_row_outline(rr,2)
+                crit=',Allocation!$D:$D,"%s",Allocation!$F:$F,"%s",Allocation!$G:$G,"%s",Allocation!$H:$H,"%s"'%(ent,prog,an,mod)
+                mrow(rr,crit,None); rr+=1
 
     b.set_fullcalc()
     b.save(out)
