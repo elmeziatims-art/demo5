@@ -48,6 +48,17 @@ class Sheet:
         col,rn=split_ref(ref); cn=col2num(col)
         self.rows.setdefault(rn,{})[cn]=(attrs,content)
         self.rowattrs.setdefault(rn,"")
+    def get_cell(self,ref):
+        col,rn=split_ref(ref); cn=col2num(col)
+        return self.rows.get(rn,{}).get(cn)
+    def put_cell(self,ref,attrs,content):
+        col,rn=split_ref(ref); cn=col2num(col)
+        self.rows.setdefault(rn,{})[cn]=(attrs,content); self.rowattrs.setdefault(rn,"")
+    def move(self,src,dst,newcontent=None):
+        c=self.get_cell(src)
+        if c is None: return
+        self.put_cell(dst,c[0], c[1] if newcontent is None else newcontent)
+        self.clear(src)
     def clear(self,ref):
         col,rn=split_ref(ref); cn=col2num(col)
         if rn in self.rows and cn in self.rows[rn]: del self.rows[rn][cn]
@@ -65,6 +76,18 @@ class Sheet:
         self._set(ref,a,'<is><t xml:space="preserve">%s</t></is>'%escape(str(text)))
     def set_raw(self,inner,cols=None,merges=None,dim=None):
         self.raw=inner; self.raw_cols=cols; self.raw_merges=merges; self.raw_dim=dim
+    new_merges=None
+    def set_merges(self,ranges):
+        self.new_merges=list(ranges)
+    def _apply_merges(self,xml):
+        if self.new_merges is None: return xml
+        xml=re.sub(r'<mergeCells count="\d+">.*?</mergeCells>','',xml,flags=re.S)
+        xml=re.sub(r'<mergeCells count="\d+"/>','',xml)
+        if self.new_merges:
+            blk='<mergeCells count="%d">%s</mergeCells>'%(len(self.new_merges),
+                 "".join('<mergeCell ref="%s"/>'%r for r in self.new_merges))
+            xml=xml.replace("</sheetData>","</sheetData>"+blk,1)
+        return xml
     def render(self):
         if self.raw is not None:
             sd="<sheetData>"+self.raw+"</sheetData>"
@@ -99,6 +122,7 @@ class Sheet:
         if self.rows:
             newdim="%s%d:%s%d"%(num2col(minc),minr,num2col(maxc),maxr)
             xml=re.sub(r'<dimension ref="[^"]+"/>','<dimension ref="%s"/>'%newdim,xml,count=1)
+        xml=self._apply_merges(xml)
         return xml
 
 class Book:
