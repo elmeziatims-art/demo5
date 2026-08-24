@@ -48,6 +48,9 @@ class Sheet:
         col,rn=split_ref(ref); cn=col2num(col)
         self.rows.setdefault(rn,{})[cn]=(attrs,content)
         self.rowattrs.setdefault(rn,"")
+    def clear(self,ref):
+        col,rn=split_ref(ref); cn=col2num(col)
+        if rn in self.rows and cn in self.rows[rn]: del self.rows[rn][cn]
     def set_row_outline(self,rn,level,hidden=False):
         a=' outlineLevel="%d"'%level+(' hidden="1"' if hidden else '')
         self.rowattrs[rn]=a; self.rows.setdefault(rn,{})
@@ -103,8 +106,11 @@ class Book:
         self.src=src; self.zin=zipfile.ZipFile(src)
         self.wbxml=self.zin.read("xl/workbook.xml").decode("utf8")
         rels=self.zin.read("xl/_rels/workbook.xml.rels").decode("utf8")
-        ridmap=dict(re.findall(r'Id="(rId\d+)"[^>]*Target="worksheets/(sheet\d+\.xml)"',rels))
-        self.name2xml={n:ridmap[r] for n,r in re.findall(r'<sheet name="([^"]+)"[^>]*r:id="(rId\d+)"',self.wbxml)}
+        ridmap={}
+        for rel in re.findall(r'<Relationship\b[^>]*/>',rels):
+            rid=re.search(r'Id="(rId\d+)"',rel); tgt=re.search(r'Target="([^"]*worksheets/sheet\d+\.xml)"',rel)
+            if rid and tgt: ridmap[rid.group(1)]=tgt.group(1).split("worksheets/")[-1]
+        self.name2xml={n:ridmap[r] for n,r in re.findall(r'<sheet name="([^"]+)"[^>]*r:id="(rId\d+)"',self.wbxml) if r in ridmap}
         self.mods={}; self._newsheets=[]; self._styles=None
     def styles_xml(self): return self.zin.read("xl/styles.xml").decode("utf8")
     def set_styles(self,xml): self._styles=xml
@@ -119,6 +125,9 @@ class Book:
         else:
             # inserer apres </sheets>
             self.wbxml=re.sub(r'(</sheets>)',r'\1<definedNames>'+block+'</definedNames>',self.wbxml,count=1)
+    def retarget_name(self,name,newref):
+        self.wbxml=re.sub(r'(<definedName name="%s"[^>]*>)[^<]*(</definedName>)'%re.escape(name),
+                          lambda m:m.group(1)+escape(newref)+m.group(2),self.wbxml,count=1)
     def set_fullcalc(self):
         if "<calcPr" in self.wbxml:
             self.wbxml=re.sub(r'<calcPr[^>]*/>','<calcPr calcId="0" fullCalcOnLoad="1"/>',self.wbxml,count=1)
