@@ -16,10 +16,13 @@ NM_MAX={"Socle":2000,"Campagne":2000,"Moteur":2000,"Compta":2000,"Allocation":20
 RAWW={"Socle":29,"Campagne":14,"Moteur":13,"Compta":6,"PNL":7,"Allocation":20}
 
 def remap_calc(f):
+    # Cap lookups BORNES aux lignes 15-28 (zone cap reelle). Les colonnes entieres
+    # PIL!$K:$K / $J:$J / $A:$A engloberaient la synthese (33-49) -> reference
+    # circulaire (J33=H33/D33 -> Moteur!P -> _CALC_MOTEUR) + double comptage.
     f=re.sub(r'SUMIFS\(Pilotage!\$Q:\$Q,Pilotage!\$F:\$F,(\$A\d+)\)',
-             r'SUMIFS(PIL!$K:$K,PIL!$A:$A,\1)*SUMIFS(PIL!$J:$J,PIL!$A:$A,\1)*(SUM(BUD_REF_CAP)/SUMPRODUCT(BUD_REF_CAP,HYP_CAP_RETENU))',f)
-    f=f.replace("Pilotage!$N:$N,Pilotage!$F:$F","PIL!$K:$K,PIL!$A:$A")
-    f=f.replace("Pilotage!$F:$F","PIL!$A:$A").replace("Pilotage!","PIL!")
+             r'SUMIFS(PIL!$K$15:$K$28,PIL!$A$15:$A$28,\1)*SUMIFS(PIL!$J$15:$J$28,PIL!$A$15:$A$28,\1)*(SUM(BUD_REF_CAP)/SUMPRODUCT(BUD_REF_CAP,HYP_CAP_RETENU))',f)
+    f=f.replace("Pilotage!$N:$N,Pilotage!$F:$F","PIL!$K$15:$K$28,PIL!$A$15:$A$28")
+    f=f.replace("Pilotage!$F:$F","PIL!$A$15:$A$28").replace("Pilotage!","PIL!")
     f=f.replace("'3_Allocation'!","ALLOC!").replace("3_Allocation!","ALLOC!")
     return f
 def putf(sh,ref,f): sh.set_formula(ref,f)
