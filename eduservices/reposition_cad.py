@@ -14,7 +14,7 @@ cad.clear("G3"); cad.clear("H3"); b.retarget_name("TEC_EBITDA","cad!$F$4")
 G=cad.get_cell   # (attrs, content)
 # ---------- capture des cellules sources ----------
 cap={}
-for r in range(5,31):
+for r in range(5,46):
     for c in "BCDEFGHJKL":
         v=G("%s%d"%(c,r))
         if v is not None: cap[(c,r)]=v
@@ -25,7 +25,7 @@ def style(ref):
     return int(m.group(1)) if m else None
 S_recon_hdr=style("B6"); S_lever_hdr=style("B15")
 # ---------- nettoyage de la zone (rows 5-31) ----------
-for r in range(5,32):
+for r in range(5,46):
     for c in "ABCDEFGHIJKL":
         cad.clear("%s%d"%(c,r))
 # ---------- helper: reposer une cellule capturee a une nouvelle ref ----------
@@ -36,7 +36,7 @@ def place(src_c,src_r,dst,newcontent=None):
 
 # ================= RECONCILIATION =================
 place("B",5,"B6")                       # titre
-for c in "BCDEFG": place(c,6,"%s7"%c)   # header -> ligne 7 (fusion 7:8)
+for c in "BCDEFG": place(c,6,"%s8"%c)   # header -> ligne 8 (non fusionne), ligne 7 vide
 # data 7->10, 8->11, 9->12, 10->13 (refs internes +3)
 def shift3(f):
     import re
@@ -63,8 +63,8 @@ for i in range(5):                       # marques J7..J11 -> J10..J14
 # ================= LEVIERS =================
 place("B",14,"B16")                     # titre revenus
 # header ligne 15 -> ligne 17, colonnes remappees (E->C,F->D,G->E,H->F ; drop Unite/Ref)
-place("B",15,"B17"); place("E",15,"C17"); place("F",15,"D17"); place("G",15,"E17"); place("H",15,"F17")
-def actif(tr): return "<f>"+"INDEX(C%d:E%d,MATCH(SCENARIO_ACTIF,$C$17:$E$17,0))"%(tr,tr)+"</f>"
+place("B",15,"B18"); place("E",15,"C18"); place("F",15,"D18"); place("G",15,"E18"); place("H",15,"F18")
+def actif(tr): return "<f>"+"INDEX(C%d:E%d,MATCH(SCENARIO_ACTIF,$C$18:$E$18,0))"%(tr,tr)+"</f>"
 def lever(sr,tr):
     place("B",sr,"B%d"%tr)              # label
     place("E",sr,"C%d"%tr)             # Cadrage (V01)
@@ -82,8 +82,6 @@ place("B",28,"B36"); lever(30,37)
 
 # ================= MERGES =================
 merges=["B1:H2","B6:H6","J6:L6","B16:H16","B28:H28","B36:H36"]
-for c in "BCDEFG": merges.append("%s7:%s8"%(c,c))     # header recon tall
-for c in "BCDEF":  merges.append("%s17:%s18"%(c,c))   # header levier tall
 cad.set_merges(merges)
 
 # ================= ZONES NOMMEES repointees =================
@@ -97,5 +95,8 @@ for m,r in {"MBWAY":10,"ISCOM":11,"IPAC":12,"PIGIER":13,"TUNON":14}.items():
     d["HYP_PRICE_COEF_%s"%m]="cad!$K$%d"%r
 for nm,ref in d.items(): b.retarget_name(nm,ref)
 
+# --- trajectoire deplacee plus bas (etait ecrasee par leviers/frais) ---
+for i,sr in enumerate(range(33,39)):
+    for c in "BCDE": place(c,sr,"%s%d"%(c,40+i))
 b.set_fullcalc(); b.save("MOTEUR_adapte.xlsx")
 print("OK cad repositionne.")
