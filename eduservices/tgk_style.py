@@ -20,8 +20,23 @@ class StyleBank:
         self.xf_base     = cnt("cellXfs")
         ids = [int(i) for i in re.findall(r'<numFmt numFmtId="(\d+)"', xml)]
         self.next_nf = max([163] + ids) + 1
-        self.nf, self.fo, self.fl, self.bo, self.xf_ = [], [], [], [], []
+        m = re.search(r'<dxfs count="(\d+)"', xml)
+        self.dxf_base = int(m.group(1)) if m else 0
+        self.nf, self.fo, self.fl, self.bo, self.xf_, self.dx = [], [], [], [], [], []
         self._c = {}
+
+    def dxf(self, color=None, bold=False, fill=None):
+        """format differentiel (conditionalFormatting). Retourne un dxfId."""
+        k = ("dx", color, bold, fill)
+        if k in self._c: return self._c[k]
+        parts = ['<dxf>']
+        if color or bold:
+            parts.append('<font>%s%s</font>' % ('<b/>' if bold else '',
+                         ('<color rgb="FF%s"/>' % color) if color else ''))
+        if fill:
+            parts.append('<fill><patternFill><bgColor rgb="FF%s"/></patternFill></fill>' % fill)
+        parts.append('</dxf>')
+        i = self.dxf_base + len(self.dx); self.dx.append(''.join(parts)); self._c[k] = i; return i
 
     def font(self, sz=10, bold=False, italic=False, color="1C2733"):
         k = ("fo", sz, bold, italic, color)
@@ -87,4 +102,16 @@ class StyleBank:
             xml = re.sub(r'(<%s count=")(\d+)(")' % tag,
                          lambda m: m.group(1) + str(int(m.group(2)) + len(items)) + m.group(3), xml, count=1)
             xml = xml.replace('</%s>' % tag, ''.join(items) + '</%s>' % tag, 1)
+        if self.dx:
+            if '<dxfs' in xml:
+                xml = re.sub(r'(<dxfs count=")(\d+)(")',
+                             lambda m: m.group(1) + str(int(m.group(2)) + len(self.dx)) + m.group(3), xml, count=1)
+                if '</dxfs>' in xml:
+                    xml = xml.replace('</dxfs>', ''.join(self.dx) + '</dxfs>', 1)
+                else:  # <dxfs count="0"/>
+                    xml = re.sub(r'<dxfs count="\d+"/>', '<dxfs count="%d">%s</dxfs>' % (self.dxf_base + len(self.dx), ''.join(self.dx)), xml, count=1)
+            else:  # inserer <dxfs> apres </cellStyles> (ordre schema)
+                blk = '<dxfs count="%d">%s</dxfs>' % (len(self.dx), ''.join(self.dx))
+                if '</cellStyles>' in xml: xml = xml.replace('</cellStyles>', '</cellStyles>' + blk, 1)
+                else: xml = xml.replace('</cellXfs>', '</cellXfs>' + blk, 1)
         return xml

@@ -85,6 +85,14 @@ class Sheet:
     def set_view(self,gridlines_off=False,freeze=None):
         """gridlines_off: masque le quadrillage. freeze: (xSplit,ySplit,topLeftCell)."""
         self._grid_off=gridlines_off; self._freeze=freeze
+    def _apply_cf(self,xml):
+        if not self._new_cf: return xml
+        # conditionalFormatting doit venir avant dataValidations/hyperlinks/printOptions/pageMargins
+        for tag in ('<dataValidations','<hyperlinks','<printOptions','<pageMargins','</worksheet>'):
+            i=xml.find(tag)
+            if i!=-1:
+                return xml[:i]+self._new_cf+xml[i:]
+        return xml
     def _apply_view(self,xml):
         if self._grid_off:
             if re.search(r'<sheetView\b[^>]*showGridLines=',xml):
@@ -98,6 +106,10 @@ class Sheet:
             xml=re.sub(r'<pane\b[^>]*/>','',xml,count=1)
             xml=re.sub(r'(<sheetView\b[^>]*>)',lambda m:m.group(1)+pane,xml,count=1)
         return xml
+    _new_cf=None
+    def set_cf(self,cf_xml):
+        """injecte des blocs <conditionalFormatting> (apres </sheetData>)."""
+        self._new_cf=cf_xml
     new_merges=None
     def set_merges(self,ranges):
         self.new_merges=list(ranges)
@@ -150,7 +162,7 @@ class Sheet:
                 xml=re.sub(r'<cols>.*?</cols>',lambda m:self._new_cols,xml,count=1,flags=re.S)
             else:  # inserer juste avant <sheetData>
                 xml=xml.replace('<sheetData>',self._new_cols+'<sheetData>',1)
-        xml=self._apply_view(xml)
+        xml=self._apply_view(xml); xml=self._apply_cf(xml)
         return xml
 
 class Book:

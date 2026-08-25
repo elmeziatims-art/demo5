@@ -211,6 +211,50 @@ def fr_number(v, fmt):
     if neg: return "("+s+")"
     return s
 
+def fmt_fr(v, fmt):
+    """formate v selon un code Excel (sections ;) -> (texte, couleur_ecart|None)."""
+    import re as _re
+    if fmt is None or fmt in ("General", ""):
+        if float(v).is_integer(): return (format(int(v), ",d").replace(",", " "), None)
+        return (("%.2f" % v).replace(".", ","), None)
+    secs = fmt.split(";")
+    if v > 0 or (v == 0 and len(secs) < 3):
+        sec = secs[0]
+    elif v < 0:
+        sec = secs[1] if len(secs) > 1 else secs[0]
+    else:
+        sec = secs[2] if len(secs) > 2 else secs[0]
+    a = abs(v); is_pct = "%" in sec
+    if is_pct: a *= 100
+    tok = _re.search(r'[#0][#0.,]*', sec)
+    dec = 0
+    if tok and "." in tok.group(0):
+        dec = len(tok.group(0).split(".")[1].replace(",", ""))
+    s_num = ("%.*f" % (dec, a)).replace(".", ",")
+    intp, _, decp = s_num.partition(",")
+    intp = format(int(intp), ",d").replace(",", " ") if intp not in ("", "-") else "0"
+    s_num = intp + (("," + decp) if decp else "")
+    sec2 = _re.sub(r'[#0][#0.,]*', '\x00', sec, count=1)
+    res = ""; j = 0
+    while j < len(sec2):
+        ch = sec2[j]
+        if ch == '"':
+            k = sec2.find('"', j+1); res += sec2[j+1:k] if k != -1 else ""; j = (k+1) if k != -1 else len(sec2)
+        elif ch == '\\':
+            res += sec2[j+1] if j+1 < len(sec2) else ""; j += 2
+        elif ch == '\x00':
+            res += s_num; j += 1
+        elif ch == '%':
+            res += "%"; j += 1
+        elif ch in '_*':
+            j += 2
+        elif ch in '[]':
+            k = sec2.find(']', j); j = (k+1) if k != -1 else j+1  # skip [color]/[cond]
+        else:
+            res += ch; j += 1
+    color = "#2E7D42" if "▲" in res else ("#C0392B" if "▼" in res else None)
+    return (res.strip(), color)
+
 def largeur(displayed_list):
     m = max((len(s) for s in displayed_list if s), default=1)
     return max(10, min(42, round(m*1.15 + 3, 1)))
@@ -363,8 +407,8 @@ def render_html(ws, inject=None, max_row=None, max_col=None):
             # valeur affichee
             disp = val
             if isinstance(val, (int, float)) and not isinstance(val, bool):
-                fk = _fmt_key_from_numfmt(cell.number_format)
-                disp = fr_number(val, fk) if fk else (format(val, ",").replace(",", " "))
+                disp, _cfcol = fmt_fr(val, cell.number_format)
+                if _cfcol: styles.append("color:%s" % _cfcol)   # ecart vert/rouge
             disp = "" if disp is None else str(disp)
             disp = disp.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
             spanattr = (' colspan="%d"' % span) if span > 1 else ""
