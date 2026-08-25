@@ -96,6 +96,20 @@ for r,(v1,v2,v3) in LEV.items():
     SN("C%d"%r,v1,xs); SN("D%d"%r,v2,xs); SN("E%d"%r,v3,xs)
     RS("F%d"%r, XACTe if r==39 else XACT)   # ACTIF (scenario) formate
 
+# ---- differenciation par role (couleurs) : entetes / decision / correction #REF ----
+# a) corrige SCENARIO_CODE : P1 contenait un #REF! herite du design d'origine.
+#    Le code de version pilote toute la reconciliation (filtre des SUMIFS).
+cad.set_formula("P1",'IF(SCENARIO_ACTIF="Optimiste","V02",IF(SCENARIO_ACTIF="Prudent","V03","V01"))',
+                s=cad.get_style("P1"))
+# b) entetes des 3 colonnes de scenario (Cadrage / Optimiste / Prudent) : header neutre.
+#    Retire le JAUNE de "Prudent" qui se confondait avec la couleur de saisie Tagetik.
+XHDR=sb.xf(font=sb.font(10,True,False,NAVY),fill=sb.fill("E8F0FB"),border=BI,halign="center",valign="center")
+for ref in ("C21","D21","E21"): RS(ref,XHDR)
+# c) bandeau "Constante - frais de dossier (decision)" : accent BLEU (role = decision),
+#    distinct du VERT des leviers/hypotheses (B19, B30).
+XSEC_DEC=sb.xf(font=sb.font(11,True,False,BLUE),fill=sb.fill("E8F0FB"),halign="left",valign="center")
+RS("B38",XSEC_DEC)
+
 # ============================================================ PIL + ALLOC
 import warnings;warnings.filterwarnings("ignore")
 import openpyxl,zipfile
@@ -146,6 +160,11 @@ def cs2(sqref,prio,lo=CONC_LO,hi=CONC_HI):
             '<color rgb="FF%s"/><color rgb="FF%s"/></colorScale></cfRule></conditionalFormatting>'%(sqref,prio,lo,hi))
 def format_pil():
     pil=b.sheet("PIL")
+    # entetes du "Cap strategique" (r14) : uniformise les entetes intermediaires.
+    # Retire le GRIS terne (EDEDF2 + police 8A8FA0) -> header bleu clair + navy.
+    # On garde l'accent OR sur "Cap pot." (I, decision) et VERT sur "Budget" (K, resultat).
+    XPILH=sb.xf(font=sb.font(10,True,False,"15406E"),fill=sb.fill("E8F0FB"),border=BI,halign="center",valign="center",wrap=True)
+    for cc in ("D","E","F","G","H","J"): RSp(pil,cc+"14",XPILH)
     # KPI : 5 tuiles reparties B:K (la bande s'arrete a K, alignee sur les tableaux)
     for c in cols_between("B","S"):                 # nettoie l'ancienne bande B6:S7
         pil.put_cell(c+"6",' s="%d"'%sb.xf(),None); pil.put_cell(c+"7",' s="%d"'%sb.xf(),None)
