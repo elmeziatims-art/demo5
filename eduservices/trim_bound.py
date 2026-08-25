@@ -7,7 +7,7 @@ import zipfile,re,sys
 SRC=sys.argv[1] if len(sys.argv)>1 else "DESIGN_REF_v3.xlsm"
 OUT=sys.argv[2] if len(sys.argv)>2 else "DESIGN_REF_v4.xlsm"
 # caps runtime (derniere ligne a garder, en-tete comprise)
-REFCAP={"Socle":175,"Campagne":15,"Compta":675,"Moteur":175,"Allocation":175,
+REFCAP={"Socle":1000,"Campagne":15,"Compta":675,"Moteur":175,"Allocation":175,
         "PNL":1347,"_CALC_MOTEUR":175,"_CALC_PNL":1347,"_CALC_ALLOC":175}
 TRIMCAP={"_CALC_MOTEUR":175,"_CALC_PNL":1347,"_CALC_ALLOC":175,
          "Moteur":175,"PNL":1347,"Allocation":175}
