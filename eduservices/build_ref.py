@@ -96,6 +96,98 @@ for r,(v1,v2,v3) in LEV.items():
     SN("C%d"%r,v1,xs); SN("D%d"%r,v2,xs); SN("E%d"%r,v3,xs)
     RS("F%d"%r, XACTe if r==39 else XACT)   # ACTIF (scenario) formate
 
+# ============================================================ PIL + ALLOC
+import warnings;warnings.filterwarnings("ignore")
+import openpyxl,zipfile
+from xml.sax.saxutils import unescape
+REF=openpyxl.load_workbook("DESIGN_REF.xlsm")
+_ss=zipfile.ZipFile("DESIGN_REF.xlsm").read("xl/sharedStrings.xml").decode("utf8")
+_SI=re.findall(r'<si>(.*?)</si>',_ss,re.S)
+def si_text(i): return unescape("".join(re.findall(r'<t[^>]*>(.*?)</t>',_SI[i],re.S)))
+def cell_text(cp):
+    if cp is None: return ""
+    at,ct=cp; ct=ct or ""
+    if 't="s"' in at:
+        m=re.search(r'<v>(\d+)</v>',ct); return si_text(int(m.group(1))) if m else ""
+    m=re.search(r'<t[^>]*>(.*?)</t>',ct,re.S); return unescape(m.group(1)) if m else ""
+def exfill(sheet,ref):
+    c=REF[sheet][ref]; f=c.fill
+    try: return f.fgColor.rgb[2:] if (f and f.patternType=="solid" and isinstance(f.fgColor.rgb,str) and f.fgColor.rgb!="00000000") else None
+    except: return None
+def DX(sheet,ref,nf=None,color=None,bold=False,halign="right",keepfill=True):
+    fill=exfill(sheet,ref) if keepfill else None
+    return sb.xf(font=sb.font(11,bold,False,color or GREY),fill=(sb.fill(fill) if fill else 0),border=BI,numfmt=nf,halign=halign,valign="center")
+def RSp(sh,ref,s):
+    c=sh.get_cell(ref)
+    if c is None: sh.put_cell(ref,' s="%d"'%s,None); return
+    at,ct=c; at=re.sub(r'\ss="\d+"','',at); sh.put_cell(ref,' s="%d"'%s+at,ct)
+
+CAP=[(1475,.110736,.021757,.814981,1.059705,.864731,1,68291),(1102,.118872,.016735,1.091242,1.137558,1.124198,1,41783),
+ (964,.123795,.014610,1.247557,1.184675,1.287721,1,31533),(890,.126095,.014052,1.351311,1.206678,1.338853,1,24923),
+ (1540,.077745,.020903,.780426,.743989,.900064,1,60800),(979,.081545,.014363,1.228416,.780356,1.309838,1,25220),
+ (919,.082117,.013565,1.308010,.785827,1.386967,1,22083),(1216,.137885,.021344,.988345,1.319506,.881462,1,21760),
+ (1041,.144781,.019104,1.155263,1.385501,.984783,1,14933),(1034,.144781,.019418,1.162606,1.385501,.968887,1,15178),
+ (1705,.085003,.029280,.705063,.813451,.642556,1,36612),(1368,.087533,.024360,.878684,.837659,.772307,1,21968),
+ (2193,.069519,.027841,.548183,.665268,.675746,1,30240),(1625,.072555,.021828,.739912,.694326,.861889,1,18850)]
+CODES=["MBWAY_PAR","MBWAY_LYO","MBWAY_NAN","MBWAY_BOR","ISCOM_PAR","ISCOM_LIL","ISCOM_TLS","IPAC_NAN","IPAC_REN","IPAC_MTP","PIGIER_LYO","PIGIER_BOR","TUNON_PAR","TUNON_LYO"]
+
+from openpyxl.utils import get_column_letter as _GL, column_index_from_string as _CI
+def cols_between(c1,c2): return [_GL(i) for i in range(_CI(c1),_CI(c2)+1)]
+def format_pil():
+    pil=b.sheet("PIL")
+    # KPI : gros chiffre bleu centre sur toute la tuile (centerContinuous)
+    for c1,c2,nf in [("B","G",NF_EUR),("H","J",NF_EUR),("K","M",NF_PCT),("N","O",NF_EFF)]:
+        RSp(pil,c1+"7",sb.xf(font=sb.font(16,True,False,BLUE),numfmt=nf,halign="centerContinuous",valign="center"))
+        for col in cols_between(c1,c2):
+            if col!=c1: pil.put_cell(col+"7",' s="%d"'%sb.xf(halign="centerContinuous"),None)
+    # cap 15-28
+    for i in range(14):
+        r=15+i; d=CAP[i]
+        pil.set_number("D%d"%r,d[0],DX("PIL","D%d"%r,NF_EUR,GREY))
+        pil.set_number("E%d"%r,d[1],DX("PIL","E%d"%r,NF_PCT,GREY)); pil.set_number("F%d"%r,d[2],DX("PIL","F%d"%r,NF_PCT,GREY))
+        for j,cc in enumerate(("G","H","I")): pil.set_number("%s%d"%(cc,r),round(d[3+j],2),DX("PIL","%s%d"%(cc,r),NF_COE,GREY))
+        pil.set_number("J%d"%r,d[6],DX("PIL","J%d"%r,NF_EFF,"1B5FA6",halign="center"))  # cap retenu = saisie
+        pil.set_number("K%d"%r,d[7],DX("PIL","K%d"%r,NF_EUR,NAVY))
+        if REF["PIL"]["L%d"%r].value is not None: pil.set_text("L%d"%r,CODES[i],DX("PIL","L%d"%r,None,"BFBFBF",halign="left"))
+    # synthese 33-46 (formules)
+    for r in range(33,47):
+        RSp(pil,"D%d"%r,DX("PIL","D%d"%r,NF_EFF,GREY)); RSp(pil,"E%d"%r,DX("PIL","E%d"%r,NF_EUR,BLUE,bold=True))
+        RSp(pil,"F%d"%r,DX("PIL","F%d"%r,NF_EUR,GREY)); RSp(pil,"G%d"%r,DX("PIL","G%d"%r,NF_PCT,GREY))
+        RSp(pil,"H%d"%r,DX("PIL","H%d"%r,NF_EUR,BLUE,bold=True)); RSp(pil,"I%d"%r,DX("PIL","I%d"%r,NF_PCT,GREY))
+        RSp(pil,"J%d"%r,DX("PIL","J%d"%r,NF_EUR,GREY)); RSp(pil,"K%d"%r,DX("PIL","K%d"%r,NF_EUR,GREY)); RSp(pil,"L%d"%r,DX("PIL","L%d"%r,NF_EUR,GREY))
+    # totaux 47-49 (garde bandes, gras)
+    for r in (47,48,49):
+        for cc,nf in [("D",NF_EFF),("E",NF_EUR),("F",NF_EUR),("G",NF_PCT),("H",NF_EUR),("I",NF_PCT),("J",NF_EUR),("K",NF_EUR),("L",NF_EUR)]:
+            if REF["PIL"]["%s%d"%(cc,r)].value is not None or cc in "DEFHIJKL":
+                RSp(pil,"%s%d"%(cc,r),DX("PIL","%s%d"%(cc,r),nf,NAVY,bold=True))
+
+def format_alloc():
+    al=b.sheet("ALLOC")
+    # cles : libelles (B) + valeurs saisie creme (C)
+    KEYLAB={6:"Siège administratif  →  marque",7:"Publicité de marque  →  marque",8:"Marque  →  campus",9:"Campus  →  classe"}
+    for r,lab in KEYLAB.items():
+        al.set_text("B%d"%r,lab,sb.xf(font=sb.font(11,True,False,NAVY),halign="left",valign="center"))
+    KEYS={6:"Chiffre d'affaires",7:"Effectif",8:"Effectif",9:"Nombre de classes"}
+    xsai=sb.xf(font=sb.font(11,True,False,"1B5FA6"),fill=sb.fill(CREAM),border=sb.border(top=(GOLDB,"thin"),bottom=(GOLDB,"thin"),left=(GOLDB,"thin"),right=(GOLDB,"thin")),halign="center",valign="center",wrap=True)
+    for r,v in KEYS.items(): al.set_text("C%d"%r,v,xsai)
+    # maille 18-95 (garde bandes marque/campus, formate donnees)
+    for r in range(18,96):
+        c=al.get_cell("B%d"%r); lab=cell_text(c)
+        if not lab: continue
+        lvl=(len(lab)-len(lab.lstrip()))//3; name=lab.strip(); al.rows.setdefault(r,{})
+        gold=(name=="GROUPE")
+        bold=(lvl<=1 or gold)
+        RSp(al,"C%d"%r,DX("ALLOC","C%d"%r,NF_EFF,NAVY if bold else GREY,bold=bold))
+        for cc in "DEFGHIJ": RSp(al,"%s%d"%(cc,r),DX("ALLOC","%s%d"%(cc,r),NF_EUR,(NAVY if bold else GREY),bold=bold))
+        RSp(al,"K%d"%r,DX("ALLOC","K%d"%r,NF_EUR,NAVY,bold=True))                 # cout complet
+        RSp(al,"L%d"%r,DX("ALLOC","L%d"%r,NF_EUR,GREEN if not gold else NAVY,bold=bold))  # marge
+        RSp(al,"M%d"%r,DX("ALLOC","M%d"%r,NF_PCT,(NAVY if bold else GREY),bold=bold))
+        # deplie les classes masquees
+        if REF["ALLOC"].row_dimensions[r].hidden:
+            al.rowattrs[r]=' outlineLevel="%d"'%lvl if lvl else ''
+
+format_pil(); format_alloc()
+
 b.set_styles(sb.render())
 b.save("DESIGN_REF_v2.xlsm")
-print("OK -> DESIGN_REF_v2.xlsm (cad)")
+print("OK -> DESIGN_REF_v2.xlsm (cad + PIL + ALLOC)")
