@@ -277,9 +277,10 @@ def render_html(ws, inject=None, max_row=None, max_col=None):
         if not w: w = 8.43
         return int(round(w*7 + 5))
     colspx = {get_column_letter(c): col_px(get_column_letter(c)) for c in range(1, mc+1)}
+    total_w = sum(colspx[get_column_letter(c)] for c in range(1, mc+1))
     html = ['<html><head><meta charset="utf-8"><style>',
             'body{margin:0;background:#ffffff;}',
-            'table{border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;table-layout:fixed;}',
+            'table{border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;table-layout:fixed;width:%dpx;}' % total_w,
             'td{overflow:hidden;padding:0 4px;box-sizing:border-box;}',
             '</style></head><body><table>']
     # colgroup
@@ -305,7 +306,12 @@ def render_html(ws, inject=None, max_row=None, max_col=None):
             elif ref in inject:
                 val = inject[ref]
             al = cell.alignment
-            # run centerContinuous -> colspan
+            # run centerContinuous OU bande pleine (section) -> colspan
+            def _bg(cl):
+                f = cl.fill
+                if f and f.patternType == "solid" and f.fgColor is not None:
+                    return _argb_to_css(f.fgColor.rgb)
+                return None
             span = 1
             if al and al.horizontal == "centerContinuous":
                 cc = c+1
@@ -315,6 +321,16 @@ def render_html(ws, inject=None, max_row=None, max_col=None):
                         span += 1; cc += 1
                     else:
                         break
+            else:
+                abg = _bg(cell)
+                if abg and (val not in (None, "")) and str(val).strip() != "":
+                    cc = c+1
+                    while cc <= mc:
+                        ncell = ws[get_column_letter(cc)+str(r)]
+                        if (ncell.value in (None, "")) and _bg(ncell) == abg:
+                            span += 1; cc += 1
+                        else:
+                            break
             # styles
             styles = []
             fnt = cell.font

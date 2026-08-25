@@ -81,6 +81,23 @@ class Sheet:
         """remplace le bloc <cols>...</cols> (largeurs de colonnes). cols_xml =
         '<cols><col .../>...</cols>' ou None."""
         self._new_cols=cols_xml
+    _grid_off=False; _freeze=None
+    def set_view(self,gridlines_off=False,freeze=None):
+        """gridlines_off: masque le quadrillage. freeze: (xSplit,ySplit,topLeftCell)."""
+        self._grid_off=gridlines_off; self._freeze=freeze
+    def _apply_view(self,xml):
+        if self._grid_off:
+            if re.search(r'<sheetView\b[^>]*showGridLines=',xml):
+                xml=re.sub(r'(<sheetView\b[^>]*showGridLines=")[^"]*(")',lambda m:m.group(1)+"0"+m.group(2),xml,count=1)
+            else:
+                xml=re.sub(r'(<sheetView\b)',r'\1 showGridLines="0"',xml,count=1)
+        if self._freeze:
+            xs,ys,tl=self._freeze
+            pane='<pane xSplit="%d" ySplit="%d" topLeftCell="%s" activePane="bottomRight" state="frozen"/>'%(xs,ys,tl)
+            # retire un pane existant puis insere en tete du sheetView
+            xml=re.sub(r'<pane\b[^>]*/>','',xml,count=1)
+            xml=re.sub(r'(<sheetView\b[^>]*>)',lambda m:m.group(1)+pane,xml,count=1)
+        return xml
     new_merges=None
     def set_merges(self,ranges):
         self.new_merges=list(ranges)
@@ -133,6 +150,7 @@ class Sheet:
                 xml=re.sub(r'<cols>.*?</cols>',lambda m:self._new_cols,xml,count=1,flags=re.S)
             else:  # inserer juste avant <sheetData>
                 xml=xml.replace('<sheetData>',self._new_cols+'<sheetData>',1)
+        xml=self._apply_view(xml)
         return xml
 
 class Book:
