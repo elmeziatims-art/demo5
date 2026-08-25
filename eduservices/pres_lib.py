@@ -255,6 +255,49 @@ def fmt_fr(v, fmt):
     color = "#2E7D42" if "▲" in res else ("#C0392B" if "▼" in res else None)
     return (res.strip(), color)
 
+def _heatcolor(v, lo, mid, hi, colors):
+    def lerp(c1, c2, t):
+        a = [int(c1[i:i+2], 16) for i in (0, 2, 4)]; b = [int(c2[i:i+2], 16) for i in (0, 2, 4)]
+        return "#%02X%02X%02X" % tuple(round(a[i]+(b[i]-a[i])*t) for i in range(3))
+    if len(colors) >= 3:
+        if v <= mid:
+            t = (v-lo)/(mid-lo) if mid > lo else 0; return lerp(colors[0], colors[1], t)
+        t = (v-mid)/(hi-mid) if hi > mid else 0; return lerp(colors[1], colors[2], t)
+    t = (v-lo)/(hi-lo) if hi > lo else 0; return lerp(colors[0], colors[-1], t)
+
+def compute_heat(ws, inject):
+    import re as _re
+    from openpyxl.utils import column_index_from_string as _CIS, get_column_letter as _GLc
+    inject = inject or {}
+    out = {}
+    def cval(ref):
+        if ref in inject: return inject[ref]
+        v = ws[ref].value
+        return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+    try:
+        cflist = list(ws.conditional_formatting)
+    except Exception:
+        return out
+    for cf in cflist:
+        for rule in cf.rules:
+            if rule.type != 'colorScale' or not rule.colorScale: continue
+            cols = []
+            for c in rule.colorScale.color:
+                rgb = str(c.rgb) if c.rgb else "FFFFFFFF"
+                cols.append(rgb[2:] if len(rgb) == 8 else rgb[-6:])
+            for rng in str(cf.sqref).split():
+                m = _re.match(r'([A-Z]+)(\d+):([A-Z]+)(\d+)$', rng)
+                if not m: continue
+                c1, r1, c2, r2 = m.group(1), int(m.group(2)), m.group(3), int(m.group(4))
+                refs = [_GLc(cc)+str(rr) for cc in range(_CIS(c1), _CIS(c2)+1) for rr in range(r1, r2+1)]
+                nums = [cval(r) for r in refs]; nums = [v for v in nums if v is not None]
+                if not nums: continue
+                lo, hi = min(nums), max(nums); mid = sorted(nums)[len(nums)//2]
+                for ref in refs:
+                    v = cval(ref)
+                    if v is not None: out[ref] = _heatcolor(v, lo, mid, hi, cols)
+    return out
+
 def largeur(displayed_list):
     m = max((len(s) for s in displayed_list if s), default=1)
     return max(10, min(42, round(m*1.15 + 3, 1)))
@@ -313,6 +356,7 @@ def render_html(ws, inject=None, max_row=None, max_col=None):
     """genere un HTML fidele de la feuille. inject: dict {ref: value} pour les
     cellules-formule (valeurs illustratives)."""
     inject = inject or {}
+    heat = compute_heat(ws, inject)
     mr = max_row or ws.max_row
     mc = max_col or ws.max_column
     # largeurs colonnes -> px
@@ -388,6 +432,8 @@ def render_html(ws, inject=None, max_row=None, max_col=None):
             if fl and fl.patternType == "solid" and fl.fgColor is not None:
                 bg = _argb_to_css(fl.fgColor.rgb)
                 if bg: styles.append("background:%s" % bg)
+            if ref in heat:                       # heatmap (colorScale) prime sur le fond
+                styles.append("background:%s" % heat[ref])
             # alignement
             ha = "left"
             if al and al.horizontal in ("right", "center", "centerContinuous"):

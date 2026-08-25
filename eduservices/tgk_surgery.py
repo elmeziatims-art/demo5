@@ -86,8 +86,11 @@ class Sheet:
         """gridlines_off: masque le quadrillage. freeze: (xSplit,ySplit,topLeftCell)."""
         self._grid_off=gridlines_off; self._freeze=freeze
     def _apply_cf(self,xml):
-        if not self._new_cf: return xml
-        # conditionalFormatting doit venir avant dataValidations/hyperlinks/printOptions/pageMargins
+        if self._new_cf is None: return xml
+        # remplace les CF existants (colorScale basiques) par les nouveaux
+        xml=re.sub(r'<conditionalFormatting\b.*?</conditionalFormatting>','',xml,flags=re.S)
+        xml=re.sub(r'<conditionalFormatting\b[^>]*/>','',xml)
+        if not self._new_cf: return xml   # set_cf("") => suppression seule
         for tag in ('<dataValidations','<hyperlinks','<printOptions','<pageMargins','</worksheet>'):
             i=xml.find(tag)
             if i!=-1:

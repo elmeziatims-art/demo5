@@ -133,6 +133,17 @@ CODES=["MBWAY_PAR","MBWAY_LYO","MBWAY_NAN","MBWAY_BOR","ISCOM_PAR","ISCOM_LIL","
 
 from openpyxl.utils import get_column_letter as _GL, column_index_from_string as _CI
 def cols_between(c1,c2): return [_GL(i) for i in range(_CI(c1),_CI(c2)+1)]
+# ---- heatmaps (echelles de couleurs) : tons doux CFO ----
+HEAT_LO="F4A79E"; HEAT_MID="FCEFC7"; HEAT_HI="A9D08E"   # rouge doux / creme / vert doux
+CONC_LO="FFFFFF"; CONC_HI="9CC3E6"                      # blanc -> bleu (concentration)
+def cs3(sqref,prio,lo=HEAT_LO,mid=HEAT_MID,hi=HEAT_HI):
+    return ('<conditionalFormatting sqref="%s"><cfRule type="colorScale" priority="%d">'
+            '<colorScale><cfvo type="min"/><cfvo type="percentile" val="50"/><cfvo type="max"/>'
+            '<color rgb="FF%s"/><color rgb="FF%s"/><color rgb="FF%s"/></colorScale></cfRule></conditionalFormatting>'%(sqref,prio,lo,mid,hi))
+def cs2(sqref,prio,lo=CONC_LO,hi=CONC_HI):
+    return ('<conditionalFormatting sqref="%s"><cfRule type="colorScale" priority="%d">'
+            '<colorScale><cfvo type="min"/><cfvo type="max"/>'
+            '<color rgb="FF%s"/><color rgb="FF%s"/></colorScale></cfRule></conditionalFormatting>'%(sqref,prio,lo,hi))
 def format_pil():
     pil=b.sheet("PIL")
     # KPI : 5 tuiles reparties B:K (la bande s'arrete a K, alignee sur les tableaux)
@@ -172,6 +183,9 @@ def format_pil():
         for cc,nf in [("D",NF_EFF),("E",NF_EUR),("F",NF_EUR),("G",NF_PCT),("H",NF_EUR),("I",NF_PCT),("J",NF_EUR),("K",NF_EUR),("L",NF_EUR)]:
             if REF["PIL"]["%s%d"%(cc,r)].value is not None or cc in "DEFHIJKL":
                 RSp(pil,"%s%d"%(cc,r),DX("PIL","%s%d"%(cc,r),nf,NAVY,bold=True))
+    # HEATMAPS CFO : marge (rentabilite) + part CA (concentration) sur la synthese,
+    # cap potentiel (potentiel de croissance) sur le cap.
+    pil.set_cf(cs3("I33:I46",1)+cs2("G33:G46",2)+cs3("I15:I28",3))
 
 def format_alloc():
     al=b.sheet("ALLOC")
@@ -197,6 +211,8 @@ def format_alloc():
         # deplie les classes masquees
         if REF["ALLOC"].row_dimensions[r].hidden:
             al.rowattrs[r]=' outlineLevel="%d"'%lvl if lvl else ''
+    # HEATMAP CFO : marge % de la maille (repere les programmes destructeurs de marge)
+    al.set_cf(cs3("M18:M95",1))
 
 format_pil(); format_alloc()
 
