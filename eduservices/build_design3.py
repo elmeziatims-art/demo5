@@ -39,8 +39,12 @@ for p,r in LEVROW.items():
 for m,r in {"MBWAY":12,"ISCOM":13,"IPAC":14,"PIGIER":15,"TUNON":16}.items():
     d["HYP_PRICE_COEF_%s"%m]="cad!$J$%d"%r
 d["HYP_CAP_RETENU"]="PIL!$J$15:$J$28"; d["BUD_REF_CAP"]="PIL!$K$15:$K$28"
-d["ALLOC_GRP_BRAND"]="ALLOC!$N$1"; d["ALLOC_GRP_MARQUE"]="ALLOC!$N$2"
-d["ALLOC_BRAND_CAMP"]="ALLOC!$N$3"; d["ALLOC_CAMP_CLASS"]="ALLOC!$N$4"
+# Les zones nommees d'allocation DOIVENT pointer sur les listes deroulantes
+# (LIBELLES en C6-C9), pas sur les helpers CODES N1-N4 : le moteur _CALC_ALLOC
+# compare aux libelles ("Chiffre d'affaires"/"Effectif"/...). Sinon, changer la
+# cle ne fait rien bouger (comparaison code<>libelle toujours fausse).
+d["ALLOC_GRP_BRAND"]="ALLOC!$C$6"; d["ALLOC_GRP_MARQUE"]="ALLOC!$C$7"
+d["ALLOC_BRAND_CAMP"]="ALLOC!$C$8"; d["ALLOC_CAMP_CLASS"]="ALLOC!$C$9"
 b.add_names(d)
 
 # ================= 2) cad : defauts calibres + formules =================
