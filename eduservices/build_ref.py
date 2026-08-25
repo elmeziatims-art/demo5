@@ -135,11 +135,23 @@ from openpyxl.utils import get_column_letter as _GL, column_index_from_string as
 def cols_between(c1,c2): return [_GL(i) for i in range(_CI(c1),_CI(c2)+1)]
 def format_pil():
     pil=b.sheet("PIL")
-    # KPI : gros chiffre bleu centre sur toute la tuile (centerContinuous)
-    for c1,c2,nf in [("B","G",NF_EUR),("H","J",NF_EUR),("K","M",NF_PCT),("N","O",NF_EFF)]:
-        RSp(pil,c1+"7",sb.xf(font=sb.font(16,True,False,BLUE),numfmt=nf,halign="centerContinuous",valign="center"))
+    # KPI : 5 tuiles reparties B:K (la bande s'arrete a K, alignee sur les tableaux)
+    for c in cols_between("B","S"):                 # nettoie l'ancienne bande B6:S7
+        pil.put_cell(c+"6",' s="%d"'%sb.xf(),None); pil.put_cell(c+"7",' s="%d"'%sb.xf(),None)
+    TIL=[("B","C","CA 2027","D4E6FA","E49",NF_EUR),
+         ("D","E","EBITDA (après siège)","DDF2E3","H49",NF_EUR),
+         ("F","G","Marge EBITDA","E8F0FB","I49",NF_PCT),
+         ("H","I","Effectif","ECEEF1","D49",NF_EFF),
+         ("J","K","Croissance CA vs 2026","FBEFD0","IFERROR(E49/cad!$C$12-1,0)",NF_PCT)]
+    for c1,c2,lab,fill,formula,nf in TIL:
+        pil.set_text(c1+"6",lab,sb.xf(font=sb.font(9,True,False,NAVY),fill=sb.fill(fill),halign="centerContinuous",valign="center",wrap=True))
+        for col in cols_between(c1,c2):
+            if col!=c1: pil.put_cell(col+"6",' s="%d"'%sb.xf(fill=sb.fill(fill),halign="centerContinuous"),None)
+        pil.set_formula(c1+"7",formula,s=sb.xf(font=sb.font(15,True,False,BLUE),numfmt=nf,halign="centerContinuous",valign="center"))
         for col in cols_between(c1,c2):
             if col!=c1: pil.put_cell(col+"7",' s="%d"'%sb.xf(halign="centerContinuous"),None)
+    pil.rowattrs[6]=' ht="26" customHeight="1"'; pil.rows.setdefault(6,{})
+    pil.rowattrs[7]=' ht="30" customHeight="1"'; pil.rows.setdefault(7,{})
     # cap 15-28
     for i in range(14):
         r=15+i; d=CAP[i]
