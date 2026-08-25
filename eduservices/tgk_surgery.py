@@ -76,6 +76,11 @@ class Sheet:
         self._set(ref,a,'<is><t xml:space="preserve">%s</t></is>'%escape(str(text)))
     def set_raw(self,inner,cols=None,merges=None,dim=None):
         self.raw=inner; self.raw_cols=cols; self.raw_merges=merges; self.raw_dim=dim
+    _new_cols=None
+    def set_cols(self,cols_xml):
+        """remplace le bloc <cols>...</cols> (largeurs de colonnes). cols_xml =
+        '<cols><col .../>...</cols>' ou None."""
+        self._new_cols=cols_xml
     new_merges=None
     def set_merges(self,ranges):
         self.new_merges=list(ranges)
@@ -123,6 +128,11 @@ class Sheet:
             newdim="%s%d:%s%d"%(num2col(minc),minr,num2col(maxc),maxr)
             xml=re.sub(r'<dimension ref="[^"]+"/>','<dimension ref="%s"/>'%newdim,xml,count=1)
         xml=self._apply_merges(xml)
+        if self._new_cols is not None:
+            if re.search(r'<cols>.*?</cols>',xml,re.S):
+                xml=re.sub(r'<cols>.*?</cols>',lambda m:self._new_cols,xml,count=1,flags=re.S)
+            else:  # inserer juste avant <sheetData>
+                xml=xml.replace('<sheetData>',self._new_cols+'<sheetData>',1)
         return xml
 
 class Book:
