@@ -28,10 +28,17 @@ SELECT
     (c.COST_VAC + c.COST_ODIR)                                             AS COST_VARIABLE,
     (c.COST_PERM + c.COST_STRUCT + c.COST_MARQUE + c.COST_HOLDING)         AS COST_STRUCTURE,
     (c.COST_VAC + c.COST_ODIR + c.COST_PERM + c.COST_STRUCT + c.COST_MARQUE + c.COST_HOLDING) AS COST_COMPLET,
-    (c.CA - (c.COST_VAC + c.COST_ODIR + c.COST_PERM + c.COST_STRUCT + c.COST_MARQUE + c.COST_HOLDING)) AS MARGE_COMPLETE
+    (c.CA - (c.COST_VAC + c.COST_ODIR + c.COST_PERM + c.COST_STRUCT + c.COST_MARQUE + c.COST_HOLDING)) AS MARGE_COMPLETE,
+    -- ==== Entrées brutes ajoutées en fin de vue (mapping A→T inchangé) ====
+    -- lues par l'instantané Excel _CALC_ALLOC en mode autonome (fichier Alloc séparé) :
+    c.VOL_NEW,
+    c.POOL_VAC, c.POOL_PERM, c.POOL_ODIR, c.POOL_MKT, c.POOL_STRUCT, c.POOL_HOLDING, c.POOL_FRAIS_MARQUE
 FROM (
     SELECT s.SCENARIO, s.VERSION, s.PERIODE, s.EXERCICE, s.ENTITY, s.MARQUE, s.PROGRAMME, s.AN_ETUDE, s.MODALITE,
-        s.VOL_EFF, s.VOL_CLASS, s.CA,
+        s.VOL_EFF, s.VOL_CLASS, s.CA, s.VOL_NEW,
+        -- Pools bruts exposes pour alimenter l'instantane Excel (masque autonome) :
+        s.VAC AS POOL_VAC, s.PERM AS POOL_PERM, s.ODIR_EFF AS POOL_ODIR, s.MKT AS POOL_MKT,
+        s.STRUCT_CAMP AS POOL_STRUCT, s.HOLDING_TOT AS POOL_HOLDING, s.MARQUE_TOT AS POOL_FRAIS_MARQUE,
         s.VAC  * (s.HRS / NULLIF(s.E_HRS,0))                                AS COST_VAC,
         s.PERM * (s.HRS / NULLIF(s.E_HRS,0))                                AS COST_PERM,
         s.ODIR_EFF * (s.VOL_EFF / NULLIF(s.E_EFF,0)) + s.MKT * (s.VOL_NEW / NULLIF(s.E_NEW,0)) AS COST_ODIR,
