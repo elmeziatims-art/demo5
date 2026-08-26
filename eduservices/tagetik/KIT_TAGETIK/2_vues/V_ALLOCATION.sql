@@ -8,7 +8,7 @@
 --   VOL_CLASS / HRS = STRUCTURELS (option A) : figés sur la structure Socle 2026,
 --   ne bougent pas avec la simulation (l'ouverture/fermeture de classes est gérée à part).
 -- Clés d'allocation (Cadrage AW_002_000001_000001, KEY_ALLOC) pilotent la cascade :
---   ALLOC_GRP_BRAND  (K1) : holding groupe -> marque
+--   ALLOC_GRP_HOLDING (K1) : holding groupe -> marque
 --   ALLOC_GRP_MARQUE (K4) : FRAIS DE MARQUE (6236) groupe -> marque   [pool distinct]
 --   ALLOC_BRAND_CAMP (K2) : marque -> campus
 --   ALLOC_CAMP_CLASS (K3) : campus -> classe  (et répartition de la STRUCTURE campus)
@@ -136,12 +136,12 @@ FROM (
             ) sieg ON sieg.EXERCICE = w.EXERCICE AND sieg.VERSION = w.VERSION
             CROSS JOIN (
                 SELECT
-                    MAX(CASE WHEN PARAMETRE='ALLOC_GRP_BRAND'  THEN KEY_ALLOC END) AS K1,
+                    MAX(CASE WHEN PARAMETRE='ALLOC_GRP_HOLDING' THEN KEY_ALLOC END) AS K1,
                     MAX(CASE WHEN PARAMETRE='ALLOC_BRAND_CAMP' THEN KEY_ALLOC END) AS K2,
                     MAX(CASE WHEN PARAMETRE='ALLOC_CAMP_CLASS' THEN KEY_ALLOC END) AS K3,
                     MAX(CASE WHEN PARAMETRE='ALLOC_GRP_MARQUE' THEN KEY_ALLOC END) AS K4
                 FROM AW_002_000001_000001
-                WHERE PARAMETRE IN ('ALLOC_GRP_BRAND','ALLOC_BRAND_CAMP','ALLOC_CAMP_CLASS','ALLOC_GRP_MARQUE')
+                WHERE PARAMETRE IN ('ALLOC_GRP_HOLDING','ALLOC_BRAND_CAMP','ALLOC_CAMP_CLASS','ALLOC_GRP_MARQUE')
             ) k
         ) b
     ) s
