@@ -5,6 +5,8 @@ Feuilles : Histoire · Cockpit · Diagnostic CAC · Structure & Mix."""
 import openpyxl
 from openpyxl.styles import Font,PatternFill,Alignment,Border,Side
 from openpyxl.chart import LineChart,BarChart,Reference
+from openpyxl.chart.marker import DataPoint
+from openpyxl.chart.shapes import GraphicalProperties
 INK="152230"; TEAL="0D7A62"; TEALD="0A5A48"; TEALBG="E4F0EC"; CARD2="F5F7F9"; FAINT="7D8B98"
 WHITE="FFFFFF"; BLUE="0000FF"; OCHRE="B3641C"; OCHREBG="F7EAD9"; NAVY="3D4F8F"
 AR="Arial"
@@ -84,18 +86,28 @@ kpi(14,"Inscrits",[1092,1159,1229],NUM)
 kpi(15,"Dépenses acquisition (€)",[358819,394702,434174],EUR,tension=True)
 kpi(16,"CAC (€/inscrit)",["=B15/B14","=C15/C14","=D15/D14"],EURc,tension=True,is_input=False)
 ck.cell(17,1,"CAC +3,7 % : les dépenses (+10 %) montent plus vite que le volume (+6 %) → chaque inscrit coûte un peu plus. Enjeu 2027 : croître SANS laisser filer le CAC.").font=F(8,True,OCHRE,True)
-# tension base 100
+# combo : inscrits (barres) + CAC (courbe, 2e axe) — la tension en valeurs RÉELLES
 tr=19
-ck.cell(tr,1,"TENSION — base 100 en 2024").font=F(10,True,TEALD)
+ck.cell(tr,1,"TENSION — le volume monte, mais le coût unitaire aussi").font=F(10,True,TEALD)
 for k,y in enumerate(("2024","2025","2026")): ck.cell(tr+1,2+k,int(y)).font=F(9,True); ck.cell(tr+1,2+k).alignment=CTR
-ck.cell(tr+1,1,"Année").font=F(9,True)
-ck.cell(tr+2,1,"Activité (CA)").font=F(9); ck.cell(tr+3,1,"Dépenses acq.").font=F(9)
-for k,c in enumerate("BCD"): ck.cell(tr+2,2+k,f"={c}9/$B9*100").number_format='0.0'
-for k,c in enumerate("BCD"): ck.cell(tr+3,2+k,f"={c}15/$B15*100").number_format='0.0'
-chart=LineChart(); chart.title="Dépenses d'acquisition (+21%) décrochent au-dessus de l'activité (+12%) — sur 2 ans"; chart.height=8; chart.width=15
-chart.add_data(Reference(ck,min_col=1,min_row=tr+2,max_row=tr+3,max_col=4),titles_from_data=True,from_rows=True)
-chart.set_categories(Reference(ck,min_col=2,min_row=tr+1,max_col=4,max_row=tr+1)); ck.add_chart(chart,"H7")
-ck.cell(tr+5,1,"Ici on VOIT le mécanisme : les dépenses montent plus vite que le CA. Clic tuile CAC → Diagnostic (funnel + CAC par marque).").font=F(8,True,OCHRE,True)
+ck.cell(tr+2,1,"Inscrits").font=F(9)
+for k,c in enumerate("BCD"): ck.cell(tr+2,2+k,f"={c}14").number_format=NUM
+ck.cell(tr+3,1,"CAC (€)").font=F(9)
+for k,c in enumerate("BCD"): ck.cell(tr+3,2+k,f"={c}16").number_format=EURc
+bar=BarChart(); bar.type="col"; bar.title="Volume (inscrits, barres) vs coût par inscrit (CAC, courbe)"; bar.height=8; bar.width=15
+bar.add_data(Reference(ck,min_col=1,min_row=tr+2,max_row=tr+2,max_col=4),titles_from_data=True,from_rows=True)
+bar.set_categories(Reference(ck,min_col=2,min_row=tr+1,max_col=4,max_row=tr+1))
+bar.series[0].graphicalProperties=GraphicalProperties(solidFill=TEALBG)
+bar.y_axis.title="Inscrits"
+line=LineChart()
+line.add_data(Reference(ck,min_col=1,min_row=tr+3,max_row=tr+3,max_col=4),titles_from_data=True,from_rows=True)
+line.series[0].graphicalProperties=GraphicalProperties()
+line.series[0].graphicalProperties.line.solidFill=OCHRE
+line.series[0].graphicalProperties.line.width=28000
+line.y_axis.axId=200; line.y_axis.title="CAC (€)"; line.y_axis.crosses="max"
+bar+=line
+ck.add_chart(bar,"H7")
+ck.cell(tr+5,1,"Les inscrits progressent (barres) mais le CAC grimpe (courbe) : les dépenses montent plus vite que le volume. Clic tuile CAC → Diagnostic.").font=F(8,True,OCHRE,True)
 for col,w in zip("ABCDEF",[26,13,13,15,11,12]): ck.column_dimensions[col].width=w
 
 # ============================ DIAGNOSTIC CAC ============================
@@ -124,7 +136,32 @@ for i,(m,dep,ins) in enumerate(CAC):
 cch=BarChart(); cch.type="bar"; cch.title="CAC par marque : Tunon décroche (564 € vs ~320 €)"; cch.legend=None; cch.height=6.5; cch.width=11
 cch.add_data(Reference(d,min_col=4,min_row=15,max_row=19)); cch.set_categories(Reference(d,min_col=1,min_row=15,max_row=19)); d.add_chart(cch,"F13")
 d.cell(21,1,"Le funnel dit COMMENT (taux) ; le CAC par marque dit OÙ agir → Tunon en priorité. Clic marque → funnel du campus.").font=F(8,True,OCHRE,True)
-for col,w in zip("ABCDE",[22,13,11,15,16]): d.column_dimensions[col].width=w
+
+# --- BRIDGE du CAC (waterfall) : d'où vient la hausse 2025 -> 2026 ---
+d.cell(29,1,"Bridge du CAC — d'où vient la hausse 2025 → 2026").font=F(11,True,TEALD)
+# inputs (bleu)
+for i,(lab,v) in enumerate([("Dépenses 2025",394702),("Dépenses 2026",434174),("Inscrits 2025",1159),("Inscrits 2026",1229)]):
+    d.cell(30+i,5,lab).font=F(8,False,FAINT); d.cell(30+i,6,v).font=F(9,False,BLUE); d.cell(30+i,6).number_format=NUM
+# F30=dép25 F31=dép26 F32=insc25 F33=insc26
+WF=[("CAC 2025",0,"=F30/F32"),
+    ("+ Effet dépenses","=F30/F32","=(F31-F30)/F32"),
+    ("− Effet volume","=F31/F33","=F31/F32-F31/F33"),
+    ("CAC 2026",0,"=F31/F33")]
+for i,(cat,base,vis) in enumerate(WF):
+    r=30+i
+    d.cell(r,1,cat).font=F(9,True); d.cell(r,1).alignment=LFT
+    d.cell(r,2,base).number_format=EURc; d.cell(r,2).font=F(8,False,WHITE)
+    d.cell(r,3,vis).number_format=EURc; d.cell(r,3).font=F(9,True); d.cell(r,3).alignment=RGT
+wf=BarChart(); wf.type="col"; wf.grouping="stacked"; wf.overlap=100; wf.legend=None
+wf.title="Bridge du CAC : +34 € (dépenses) − 21 € (volume) = +13 € net"; wf.height=7.5; wf.width=13
+wf.add_data(Reference(d,min_col=2,max_col=3,min_row=30,max_row=33))
+wf.set_categories(Reference(d,min_col=1,min_row=30,max_row=33))
+wf.series[0].graphicalProperties=GraphicalProperties(solidFill="FFFFFF")   # base invisible
+for idx,col in enumerate(["9AA7B0",OCHRE,TEAL,NAVY]):
+    dp=DataPoint(idx=idx); dp.graphicalProperties=GraphicalProperties(solidFill=col); wf.series[1].data_points.append(dp)
+d.add_chart(wf,"H29")
+d.cell(35,1,"Lecture : les dépenses poussent le CAC de +34 € ; le volume supplémentaire l'amortit de −21 € ; net +13 €. La tension = l'effet dépenses > l'effet volume.").font=F(8,True,OCHRE,True)
+for col,w in zip("ABCDEF",[22,13,11,15,15,11]): d.column_dimensions[col].width=w
 
 # ============================ STRUCTURE & MIX ============================
 s=wb.create_sheet("Structure & Mix"); s.sheet_view.showGridLines=False
