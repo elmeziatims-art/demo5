@@ -57,14 +57,18 @@ def section(r,txt):
     ck.cell(r,1,txt).font=F(9,True,TEALD)
     for c in range(1,6): ck.cell(r,c).fill=fill(CARD2)
 def kpi(r,lab,f2024,f2025,f2026,fmt,yoy_pt=False,tension=False):
-    col=OCHRE if tension else INK
-    ck.cell(r,1,lab).font=F(10,True,col); ck.cell(r,1).alignment=LFT
+    # tension=True -> le KPI monte mais c'est DÉFAVORABLE (CAC). Sinon monter = bon.
+    lab_col=OCHRE if tension else INK
+    yoy_col=OCHRE if tension else TEALD      # vert = bon sens, ochre = mauvais sens
+    ck.cell(r,1,lab).font=F(10,True,lab_col); ck.cell(r,1).alignment=LFT
     for k,fx in enumerate([f2024,f2025,f2026]):
-        cc=ck.cell(r,2+k,fx); cc.number_format=fmt; cc.alignment=RGT; cc.font=F(10,False,col)
+        cc=ck.cell(r,2+k,fx); cc.number_format=fmt; cc.alignment=RGT; cc.font=F(10,False,lab_col)
     y=ck.cell(r,5)
-    if yoy_pt: y.value=f"=D{r}-C{r}"; y.number_format='0.0" pt"'
-    else: y.value=f"=D{r}/C{r}-1"; y.number_format=PCT
-    y.alignment=RGT; y.font=F(9,False,col,True)
+    arrow="▲ " if not yoy_pt else ""
+    if yoy_pt: y.value=f"=D{r}-C{r}"; y.number_format='"▲ "0.0" pt"'
+    else: y.value=f"=D{r}/C{r}-1"; y.number_format='"▲ "0.0%'
+    y.alignment=RGT; y.font=F(10,True,yoy_col)
+    ck.cell(r,6,"bon sens" if not tension else "à surveiller").font=F(8,False,yoy_col,True)
 section(8,"FINANCE")
 kpi(9,"Chiffre d'affaires (€)","=Données!B5","=Données!B6","=Données!B7",EUR)
 kpi(10,"EBITDA (€)","=Données!C5","=Données!C6","=Données!C7",EUR)
@@ -74,14 +78,6 @@ kpi(13,"Leads","=Données!D5","=Données!D6","=Données!D7",NUM)
 kpi(14,"Inscrits","=Données!E5","=Données!E6","=Données!E7",NUM)
 kpi(15,"CAC (€/inscrit)","=Données!F5/Données!E5","=Données!F6/Données!E6","=Données!F7/Données!E7",EURc,tension=True)
 ck.cell(16,1,"CAC = seul KPI en tension : le coût d'acquisition monte plus vite que le volume. C'est ce qu'on ira traiter dans le budget 2027.").font=F(8,False,OCHRE,True)
-
-# mini-graphes KPI (sparkline-style)
-yhdr=Reference(ck,min_col=2,max_col=4,min_row=hr,max_row=hr)
-for i,row in enumerate([9,10,11,13,14,15]):
-    mc=LineChart(); mc.title=ck.cell(row,1).value; mc.legend=None; mc.height=2.3; mc.width=6.4
-    mc.x_axis.delete=True; mc.y_axis.delete=True
-    mc.add_data(Reference(ck,min_col=2,max_col=4,min_row=row,max_row=row),from_rows=True)
-    mc.set_categories(yhdr); ck.add_chart(mc,"G%d"%(hr+i*6))
 
 # tendance base 100
 tr=18
@@ -94,12 +90,12 @@ for k,dcol in enumerate(["B5","B6","B7"]):
     ck.cell(tr+2,2+k,f"=Données!{dcol}/Données!B5*100").number_format='0.0'
 for k,dcol in enumerate(["F5","F6","F7"]):
     ck.cell(tr+3,2+k,f"=Données!{dcol}/Données!F5*100").number_format='0.0'
-chart=LineChart(); chart.title="Activité vs Dépenses (base 100)"; chart.height=6.5; chart.width=12
+chart=LineChart(); chart.title="Dépenses d'acquisition (+21%) décrochent au-dessus de l'activité (+12%)"; chart.height=8; chart.width=15
 chart.add_data(Reference(ck,min_col=1,min_row=tr+2,max_row=tr+3,max_col=4),titles_from_data=True,from_rows=True)
 chart.set_categories(Reference(ck,min_col=2,min_row=tr+1,max_col=4,max_row=tr+1))
-ck.add_chart(chart,"N18")
-ck.cell(tr+5,1,"Message : commercial ET financier sur un écran. On progresse (CA/EBITDA), mais le CAC se dégrade -> le budget 2027 doit répondre à ça.").font=F(8,False,FAINT,True)
-for col,w in zip("ABCDE",[24,13,13,15,12]): ck.column_dimensions[col].width=w
+ck.add_chart(chart,"H7")   # le SEUL graphe, à droite des tuiles, bien visible
+ck.cell(tr+5,1,"LE graphe qui compte : l'écart entre les 2 courbes = la dégradation du CAC. C'est ce que le budget 2027 doit corriger.").font=F(8,True,OCHRE,True)
+for col,w in zip("ABCDEF",[24,13,13,15,11,12]): ck.column_dimensions[col].width=w
 
 wb.move_sheet("Cockpit",-1)
 out="/home/user/demo5/eduservices/tagetik/COCKPIT_ATTERRISSAGE.xlsx"
