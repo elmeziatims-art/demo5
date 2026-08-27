@@ -2,7 +2,6 @@
 -- V_SOCLE_KPI (enrichie marketing) — SAP HANA
 -- =============================================================================
 CREATE OR REPLACE VIEW V_SOCLE_KPI AS
-SELECT ; SAP HANA)
 -- Source : AW_002_000002_000001 (socle, 14 mesures dont marketing)
 -- Colonnes explicites (pas de SELECT * → on exclut OID/PROVENIENZA/USERUPD/DATEUPD/EN_VERSION)
 -- IFERROR(x,0) -> COALESCE(x / NULLIF(dénominateur,0), 0)
