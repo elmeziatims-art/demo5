@@ -87,28 +87,22 @@ kpi(14,"Inscrits",[1092,1159,1229],NUM)
 kpi(15,"Dépenses acquisition (€)",[358819,394702,434174],EUR,tension=True)
 kpi(16,"CAC (€/inscrit)",["=B15/B14","=C15/C14","=D15/D14"],EURc,tension=True,is_input=False)
 ck.cell(17,1,"CAC +3,7 % : les dépenses (+10 %) montent plus vite que le volume (+6 %) → chaque inscrit coûte un peu plus. Enjeu 2027 : croître SANS laisser filer le CAC.").font=F(8,True,OCHRE,True)
-# combo : inscrits (barres) + CAC (courbe, 2e axe) — la tension en valeurs RÉELLES
+# base 100 : dépenses vs inscrits, MÊME axe (honnête) — l'écart = la hausse du CAC
 tr=19
-ck.cell(tr,1,"TENSION — le volume monte, mais le coût unitaire aussi").font=F(10,True,TEALD)
+ck.cell(tr,1,"TENSION — base 100 en 2024").font=F(10,True,TEALD)
 for k,y in enumerate(("2024","2025","2026")): ck.cell(tr+1,2+k,int(y)).font=F(9,True); ck.cell(tr+1,2+k).alignment=CTR
-ck.cell(tr+2,1,"Inscrits").font=F(9)
-for k,c in enumerate("BCD"): ck.cell(tr+2,2+k,f"={c}14").number_format=NUM
-ck.cell(tr+3,1,"CAC (€)").font=F(9)
-for k,c in enumerate("BCD"): ck.cell(tr+3,2+k,f"={c}16").number_format=EURc
-bar=BarChart(); bar.type="col"; bar.title="Volume (inscrits, barres) vs coût par inscrit (CAC, courbe)"; bar.height=8; bar.width=15
-bar.add_data(Reference(ck,min_col=1,min_row=tr+2,max_row=tr+2,max_col=4),titles_from_data=True,from_rows=True)
-bar.set_categories(Reference(ck,min_col=2,min_row=tr+1,max_col=4,max_row=tr+1))
-bar.series[0].graphicalProperties=GraphicalProperties(solidFill=TEALBG)
-bar.y_axis.title="Inscrits"
-line=LineChart()
-line.add_data(Reference(ck,min_col=1,min_row=tr+3,max_row=tr+3,max_col=4),titles_from_data=True,from_rows=True)
-line.series[0].graphicalProperties=GraphicalProperties()
-line.series[0].graphicalProperties.line.solidFill=OCHRE
-line.series[0].graphicalProperties.line.width=28000
-line.y_axis.axId=200; line.y_axis.title="CAC (€)"; line.y_axis.crosses="max"
-bar+=line
-ck.add_chart(bar,"H7")
-ck.cell(tr+5,1,"Les inscrits progressent (barres) mais le CAC grimpe (courbe) : les dépenses montent plus vite que le volume. Clic tuile CAC → Diagnostic.").font=F(8,True,OCHRE,True)
+ck.cell(tr+1,1,"Année").font=F(9,True)
+ck.cell(tr+2,1,"Dépenses acq.").font=F(9)
+for k,c in enumerate("BCD"): ck.cell(tr+2,2+k,f"={c}15/$B15*100").number_format='0.0'
+ck.cell(tr+3,1,"Inscrits").font=F(9)
+for k,c in enumerate("BCD"): ck.cell(tr+3,2+k,f"={c}14/$B14*100").number_format='0.0'
+chart=LineChart(); chart.title="Dépenses (+21%) montent plus vite que les inscrits (+12%) — l'écart = la hausse du CAC"; chart.height=8; chart.width=15
+chart.add_data(Reference(ck,min_col=1,min_row=tr+2,max_row=tr+3,max_col=4),titles_from_data=True,from_rows=True)
+chart.set_categories(Reference(ck,min_col=2,min_row=tr+1,max_col=4,max_row=tr+1))
+chart.series[0].graphicalProperties=GraphicalProperties(); chart.series[0].graphicalProperties.line.solidFill=OCHRE; chart.series[0].graphicalProperties.line.width=30000
+chart.series[1].graphicalProperties=GraphicalProperties(); chart.series[1].graphicalProperties.line.solidFill=TEAL; chart.series[1].graphicalProperties.line.width=30000
+ck.add_chart(chart,"H7")
+ck.cell(tr+5,1,"Même base (100), même axe : les dépenses (ochre) décrochent au-dessus des inscrits (teal). L'écart = la dégradation du CAC. Clic tuile CAC → Diagnostic.").font=F(8,True,OCHRE,True)
 for col,w in zip("ABCDEF",[26,13,13,15,11,12]): ck.column_dimensions[col].width=w
 
 # ============================ DIAGNOSTIC CAC ============================
