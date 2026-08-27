@@ -45,14 +45,16 @@ Les ratios (CAC, marge, taux) se calculent **dans la matrice**, jamais dans la v
 **Vocabulaire exercices** : 2024-2025 = réalisé · 2026 = atterrissage (estimé finance) · 2027 = budget.
 
 ### ② Objets Tagetik à développer
-**T1 — Board « Cockpit »** (SEUL écran post-chargement, graphes inclus)  ⬜
-- Source : `V_COCKPIT` (niveau Groupe) + `V_TENDANCE` pour le graphe de tendance.
-- Contenu : bandeau réconciliation (`CA_CRM` = `CA_COMPTA`, `ECART_CA` = 0) ;
-  6 tuiles KPI : **CA · EBITDA · Marge % · Leads · Inscrits · CAC**.
-- Graphes **dans le cockpit** : 1 **sparkline** par tuile (série 2024→2026, CAC en
-  tension) **+ 1 graphe de tendance** 2 courbes base 100 (Activité CA vs Dépenses acq.) en bas.
+**T1 — Board « Cockpit d'atterrissage 2026 »** (SEUL écran post-chargement)  ⬜
+- Source : `V_COCKPIT` (niveau Groupe) + `V_TENDANCE` pour le graphe de tension.
+- **Pas de réconciliation** (écartée : artificielle dans le secteur). Message =
+  « atterrissage 2026, point de départ du budget 2027 » + intégration commercial+financier.
+- Bandeau de tête : CA · EBITDA · Marge 2026. Puis 6 tuiles KPI, 2 familles :
+  **Finance** (CA · EBITDA · Marge %) · **Commercial** (Leads · Inscrits · **CAC** en tension).
+- Colonnes 3 ans : **réalisé 2024 · réalisé 2025 · atterrissage 2026**.
+- Graphes : 1 sparkline par tuile + 1 graphe de tension base 100 (Activité vs Dépenses).
 - Ratios : Marge % = ΣEBITDA/ΣCA ; CAC = ΣDEPENSE_ACQ/ΣINSCRITS (dans le board).
-- Réf. rendu : feuille `Cockpit` de `MAQUETTES_RAPPORTS.xlsx` (7 graphes).
+- Réf. rendu : **`COCKPIT_ATTERRISSAGE.xlsx`** (feuilles Cockpit + Données).
 
 **T2 — Report « P&L ① »** (compte de résultat comparatif)  ⬜
 - Source : `V_PNL` (VERSION = `ACT`), via le **FST 010-EBITDA**.
@@ -67,8 +69,7 @@ Les ratios (CAC, marge, taux) se calculent **dans la matrice**, jamais dans la v
 ### ③ Câblage (navigation)
 | # | Depuis | Vers | Mécanisme | Statut |
 |---|---|---|---|---|
-| C1a | Bandeau · **CA CRM** | Détail CRM (Q1) | drill-through | 🔗 |
-| C1b | Bandeau · **CA Budget 2026** | Détail Finance (Q2) | drill-through | 🔗 |
+| ~~C1~~ | ~~Réconciliation CRM/Compta~~ | **rangée** — hors démo (artificielle dans le secteur) ; vues conservées pour analyse | — | 🅿️ |
 | C2 | Cockpit · tuile **EBITDA/Marge** | Report P&L ① (T2) | hyperlink (POV groupe) | 🔗 |
 | C3 | Cockpit · tuile **CAC** | Report Funnel & CAC (T4) | hyperlink (POV groupe) | 🔗 |
 | C4 | P&L ① · ligne **marque** | P&L POV marque → campus | hyperlink | 🔗 |
