@@ -28,8 +28,8 @@ H(hi,5,["#","Ce qu'on FAIT","Ce qu'on AFFICHE","Ce qu'on DIT","Drill / suite"])
 STO=[
 ("0","Chargement compta + CRM","(transition, pas d'écran)","« Deux mondes — finance et commercial — entrent sans friction dans le même modèle. »","→ le cockpit"),
 ("1","On POSE l'état + la tension","COCKPIT d'atterrissage 2026 : bandeau CA/EBITDA/Marge + 6 tuiles KPI (finance & commercial) + 1 graphe de tension","« Voilà où on en est : on progresse partout… sauf un point, le coût d'acquisition se dégrade. C'est le départ du budget 2027. »","clic tuile CAC → Diagnostic"),
-("2","On CREUSE le CAC","DIAGNOSTIC CAC : funnel (taux de passage) + CAC par marque (Tunon 564 €)","« Le CAC n'est pas une fatalité : c'est un taux de conversion. On sait où agir — Tunon en priorité. »","clic marque → funnel campus ; puis → construction 2027"),
-("~","Pilotage complémentaire","STRUCTURE & MIX : mix initiale/alternance (OPCO) + CA par marque","« Attention : 3 marques sont 100 % financées par l'OPCO — dépendance à surveiller. »","rapport à part (pas dans le flux d'accueil)"),
+("2","On CREUSE le CAC (drill principal)","DIAGNOSTIC CAC : funnel (taux de passage) + CAC par marque (Tunon 564 €)","« Le CAC n'est pas une fatalité : c'est un taux de conversion. On sait où agir — Tunon en priorité. »","clic tuile CAC ; clic marque → funnel campus ; puis → construction 2027"),
+("~","2e drill (OPTIONNEL) — le contexte","STRUCTURE & MIX : mix initiale/alternance (OPCO) + CA par marque","« D'où vient le CA et comment il est financé : 2 marques = 70 % du CA, et 3 marques 100 % OPCO — dépendance à surveiller. »","clic tuile CA → Structure & Mix (selon l'audience, hors fil principal)"),
 ("→","On construit","(Acte 2 — cadrage, moteur, scénarios)","« Maintenant qu'on sait d'où on part et où ça tire, on construit le budget 2027. »","suite de la démo"),
 ]
 r=6
