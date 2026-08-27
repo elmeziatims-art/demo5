@@ -38,6 +38,10 @@ Les ratios (CAC, marge, taux) se calculent **dans la matrice**, jamais dans la v
 | V5 | `V_FUNNEL` | idem V3 | LEADS, CANDIDATS, ADMIS, INSCRITS | ✅ |
 | Q1 | `Q_CA_CONSTITUTION_CRM` | drill-through (POV cellule) | Effectifs, tarif moyen, CA scolarité, CA frais insc., CA total | ✅ |
 | Q2 | `Q_CA_CONSTITUTION_COMPTA` | drill-through (POV cellule) | Montant par compte de produit (706/7062/708) | ✅ |
+| Q3 | `Q_RECONCILIATION_CA` | query (par exercice) | CA CRM, CA Compta, Écart | ✅ |
+| Q4 | `Q_BRIDGE_RECONCILIATION_CA` | query (le pont) | CA CRM → rattachement scolarité (Δ PCA) → CA Compta | ✅ |
+
+**Vocabulaire exercices** : 2024-2025 = **réalisé** · 2026 = **atterrissage** (estimé finance, pas clos) · 2027 = **budget**. La réconciliation n'est pas « livres arrêtés » mais **cohérence du modèle** : CRM et P&L, deux lentilles sur les mêmes chiffres. L'écart historique (scolarité, rattachement/PCA) est **assumé et expliqué** par le pont, pas caché.
 
 ### ② Objets Tagetik à développer
 **T1 — Board « Cockpit »** (SEUL écran post-chargement, graphes inclus)  ⬜
@@ -62,7 +66,9 @@ Les ratios (CAC, marge, taux) se calculent **dans la matrice**, jamais dans la v
 ### ③ Câblage (navigation)
 | # | Depuis | Vers | Mécanisme | Statut |
 |---|---|---|---|---|
-| C1 | Cockpit · tuile **CA** | Constitution du CA (Q1 ‖ Q2) | drill-through ×2 | 🔗 |
+| C1a | Bandeau · **CA CRM** | Constitution CRM (Q1) | drill-through | 🔗 |
+| C1b | Bandeau · **CA Compta** | Constitution Compta (Q2) | drill-through | 🔗 |
+| C1c | Bandeau · **Écart** | Report Réconciliation = le pont (Q4) — *la raison : rattachement scolarité / PCA* | hyperlink | 🔗 |
 | C2 | Cockpit · tuile **EBITDA/Marge** | Report P&L ① (T2) | hyperlink (POV groupe) | 🔗 |
 | C3 | Cockpit · tuile **CAC** | Report Funnel & CAC (T4) | hyperlink (POV groupe) | 🔗 |
 | C4 | P&L ① · ligne **marque** | P&L POV marque → campus | hyperlink | 🔗 |
