@@ -9,10 +9,14 @@
 -- La raison = RATTACHEMENT de la scolarité à l'exercice :
 --   le CRM compte la scolarité contractuelle pleine sur l'année d'inscription ;
 --   la compta ne reconnaît que la quote-part courue (année académique sept->août),
---   le reste est différé en PRODUITS CONSTATÉS D'AVANCE (compte 487).
---   Écart = variation des PCA -> change de signe et s'annule (0 en 2026).
---
--- 2024 : rattachement -12 297 | 2025 : +28 428 | 2026 : 0
+--   le reste est en PRODUITS CONSTATÉS D'AVANCE (compte 487).
+--   Écart annuel = MOUVEMENT du solde de PCA (pas une réversion qui s'annule) :
+--     2024 : on DIFFÈRE net (compta<CRM, le solde 487 augmente)   -> -12 297
+--     2025 : on REPREND net (compta>CRM, le solde 487 diminue)    -> +28 428
+--     2026 : mouvement nul (atterrissage calé)                    ->       0
+--   Cohérent avec un solde de PCA d'ouverture (~>=16 k€ fin 2023), normal pour
+--   une école en régime établi. Le solde reste positif ; il ne s'annule pas
+--   sur la période (somme des écarts = +16 331).
 -- =============================================================================
 SELECT
     crm.EXERCICE                                   AS "Exercice",
