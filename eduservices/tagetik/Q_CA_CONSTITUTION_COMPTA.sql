@@ -17,10 +17,12 @@ SELECT
     SUBSTR_BEFORE(ENTITY, '_')                 AS "Marque",
     ENTITY                                     AS "Campus",
     ACCOUNT                                    AS "Compte",
+    -- libellés alignés sur la dimension Compte Tagetik (noeud PRODUITS) ;
+    -- au drill, Tagetik résout le libellé depuis sa dimension (fait foi).
     CASE ACCOUNT
-        WHEN '706'  THEN 'Prestations de services (scolarité)'
-        WHEN '7062' THEN 'Frais de scolarité'
-        WHEN '708'  THEN 'Produits des activités annexes'
+        WHEN '706'  THEN 'Prestations de formation - scolarité (initial)'
+        WHEN '7062' THEN 'Prestations de formation - alternance (OPCO)'
+        WHEN '708'  THEN 'Frais de dossier & droits d''inscription'
         ELSE 'Autre produit'
     END                                        AS "Libellé",
     SUM(AMOUNT)                                AS "Montant"
