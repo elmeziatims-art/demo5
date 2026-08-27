@@ -40,22 +40,19 @@ Les ratios (CAC, marge, taux) se calculent **dans la matrice**, jamais dans la v
 | Q2 | `Q_CA_CONSTITUTION_COMPTA` | drill-through (POV cellule) | Montant par compte de produit (706/7062/708) | ✅ |
 
 ### ② Objets Tagetik à développer
-**T1 — Board « Cockpit »**  ⬜
-- Source : `V_COCKPIT`, niveau **Groupe**.
+**T1 — Board « Cockpit »** (SEUL écran post-chargement, graphes inclus)  ⬜
+- Source : `V_COCKPIT` (niveau Groupe) + `V_TENDANCE` pour le graphe de tendance.
 - Contenu : bandeau réconciliation (`CA_CRM` = `CA_COMPTA`, `ECART_CA` = 0) ;
   6 tuiles KPI : **CA · EBITDA · Marge % · Leads · Inscrits · CAC**.
-- Graphes : 1 **sparkline** par tuile (série 2024→2026) ; CAC marqué « tension ».
+- Graphes **dans le cockpit** : 1 **sparkline** par tuile (série 2024→2026, CAC en
+  tension) **+ 1 graphe de tendance** 2 courbes base 100 (Activité CA vs Dépenses acq.) en bas.
 - Ratios : Marge % = ΣEBITDA/ΣCA ; CAC = ΣDEPENSE_ACQ/ΣINSCRITS (dans le board).
-- Réf. rendu : feuille `Cockpit` de `MAQUETTES_RAPPORTS.xlsx`.
+- Réf. rendu : feuille `Cockpit` de `MAQUETTES_RAPPORTS.xlsx` (7 graphes).
 
 **T2 — Report « P&L ① »** (compte de résultat comparatif)  ⬜
 - Source : `V_PNL` (VERSION = `ACT`), via le **FST 010-EBITDA**.
 - Lignes : hiérarchie Compte → EBITDA → EBIT. Colonnes : Exercice **2024/2025/2026**.
 - POV : Marque (vide = groupe). Réf. rendu : feuille `P&L ①`.
-
-**T3 — Report « Tendance »** (fin du Bloc 1)  ⬜
-- Source : `V_TENDANCE`. Graphe **2 courbes base 100** : Activité (CA) vs Dépenses acq.
-- Réf. rendu : graphe de la feuille `Cockpit`.
 
 **T4 — Report « Funnel & CAC »** (un seul rapport)  ⬜
 - Source : matrice multidim sur `V_FUNNEL` + `V_CAC`.
@@ -71,7 +68,8 @@ Les ratios (CAC, marge, taux) se calculent **dans la matrice**, jamais dans la v
 | C4 | P&L ① · ligne **marque** | P&L POV marque → campus | hyperlink | 🔗 |
 | C5 | Funnel & CAC · cellule **campus** | Funnel du campus | hyperlink (POV campus) | 🔗 |
 
-**Ordre de dev conseillé Acte 1 :** T2 (P&L, le plus simple, FST natif) → T4 (Funnel & CAC) → T3 (Tendance) → T1 (Cockpit, qui référence les autres) → câblages C1..C5.
+**Ordre de dev conseillé Acte 1 :** T2 (P&L, le plus simple, FST natif) → T4 (Funnel & CAC) → T1 (Cockpit, graphe de tendance inclus) → câblages C1..C5.
+*(Le rapport Tendance n'est plus un objet séparé : son graphe vit dans le cockpit.)*
 
 ---
 

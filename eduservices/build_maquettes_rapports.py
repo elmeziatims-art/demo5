@@ -273,11 +273,23 @@ for k,c in enumerate(['B','C','D']):
     ck.cell(tr+2,2+k,f"={c}{first_kpi}/$B${first_kpi}*100").number_format='0.0'
     dep=[crmS(y,'H') for y in yrs]
     ck.cell(tr+3,2+k,f"=({dep[k]})/({dep[0]})*100").number_format='0.0'
-chart=LineChart(); chart.title="Activité vs Dépenses d'acquisition (base 100)"; chart.height=7; chart.width=13
+# --- 6 mini-graphes KPI (sparkline-style : une courbe 3 ans par tuile) ---
+ck.cell(hr,7,"GRAPHES KPI  (sparklines 3 ans)").font=F(9,True,TEALD)
+yearhdr=Reference(ck,min_col=2,max_col=4,min_row=hr,max_row=hr)
+for i,kp in enumerate(KPI):
+    row=first_kpi+i
+    mc=LineChart(); mc.title=kp[0]; mc.legend=None; mc.height=2.6; mc.width=6.6
+    mc.x_axis.delete=True; mc.y_axis.delete=True
+    d=Reference(ck,min_col=2,max_col=4,min_row=row,max_row=row)
+    mc.add_data(d,from_rows=True); mc.set_categories(yearhdr)
+    mc.series[0].smooth=False
+    ck.add_chart(mc,"G%d"%(hr+i*6))
+# --- graphe de tendance base 100 (2 courbes) ---
+chart=LineChart(); chart.title="Tendance base 100 : Activité (CA) vs Dépenses d'acquisition"; chart.height=7; chart.width=13
 data=Reference(ck,min_col=1,min_row=tr+2,max_row=tr+3,max_col=4)
 cats=Reference(ck,min_col=2,min_row=tr+1,max_col=4,max_row=tr+1)
 chart.add_data(data,titles_from_data=True,from_rows=True); chart.set_categories(cats)
-ck.add_chart(chart,"G10")
+ck.add_chart(chart,"N%d"%hr)
 for col,w in zip("ABCDE",[24,13,13,13,12]): ck.column_dimensions[col].width=w
 
 # =====================================================================
