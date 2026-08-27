@@ -79,6 +79,14 @@ table.mx{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;f
 .fn .st{display:flex;flex-direction:column;justify-content:center;align-items:center;background:var(--tealbg);color:var(--teald);border-radius:4px;font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;min-width:34px}
 .fn .st .lab{font-size:8.5px;color:var(--teal);opacity:.8}
 .fn .st.s1{background:#0d7a62;color:#fff}.fn .st.s2{background:#3fa389;color:#fff}.fn .st.s3{background:#8fc7b6;color:#0a3f31}.fn .st.s4{background:#c9e5dc;color:#0a3f31}
+.chart{width:100%;height:auto;display:block;margin:2px 0}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .gl{fill:var(--faint);font-family:"IBM Plex Mono",monospace;font-size:11px}
+.chart .xl{fill:var(--soft);font-family:"IBM Plex Sans",sans-serif;font-size:12.5px;font-weight:600}
+.chart .lbl{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:700}
+.leg2{display:flex;gap:20px;margin:2px 0 12px;font-size:13px;flex-wrap:wrap}
+.leg2 span{display:inline-flex;align-items:center;gap:8px;color:var(--soft)}
+.leg2 i{width:16px;height:3px;border-radius:2px;display:inline-block}
 @media(max-width:640px){.wf .row{grid-template-columns:96px 1fr 96px}.fn .frow{grid-template-columns:58px 1fr}}
 </style>
 
@@ -90,9 +98,35 @@ table.mx{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;f
     <p class="mnote">Chiffres réels · issus des datasets EDUSERVICES · à reproduire en matrices Tagetik</p>
   </header>
 
+  <!-- ===== Tendance ===== -->
+  <section class="report">
+    <div class="rhead"><span class="rnum">Rapport 01</span><h2>La tension, en un graphe</h2></div>
+    <p class="rsub">Indice base 100 en 2024. Les dépenses d'acquisition décrochent au-dessus de l'activité : c'est la dégradation du CAC, avant même de l'avoir nommée.</p>
+    <div class="pov"><span class="p act">Axe <b>Exercice</b></span><span class="p act">Séries <b>Activité · Dépenses</b></span><span class="p">Base <b>100 = 2024</b></span></div>
+    <div class="leg2"><span><i style="background:#16915f"></i>Activité (leads &amp; CA)</span><span><i style="background:#b3641c"></i>Dépenses d'acquisition</span></div>
+    <svg class="chart" viewBox="0 0 720 300" role="img" aria-label="Indice base 100 : dépenses d'acquisition +21% vs activité +12% entre 2024 et 2026">
+      <line class="grid" x1="100" y1="210" x2="672" y2="210"/><text class="gl" x="86" y="214" text-anchor="end">100</text>
+      <line class="grid" x1="100" y1="135" x2="672" y2="135"/><text class="gl" x="86" y="139" text-anchor="end">110</text>
+      <line class="grid" x1="100" y1="60" x2="672" y2="60"/><text class="gl" x="86" y="64" text-anchor="end">120</text>
+      <text class="xl" x="100" y="236" text-anchor="middle">2024</text>
+      <text class="xl" x="386" y="236" text-anchor="middle">2025</text>
+      <text class="xl" x="672" y="236" text-anchor="middle">2026</text>
+      <polyline points="100,210 386,165 672,117" fill="none" stroke="#16915f" stroke-width="2.5"/>
+      <polyline points="100,210 386,135 672,52" fill="none" stroke="#b3641c" stroke-width="3.2"/>
+      <circle cx="672" cy="117" r="5" fill="#16915f"/><circle cx="672" cy="52" r="5.5" fill="#b3641c"/>
+      <circle cx="100" cy="210" r="4" fill="#8695a1"/>
+      <text class="lbl" x="686" y="121" fill="#0f6e48">112</text>
+      <text class="lbl" x="686" y="56" fill="#8a4c14">121</text>
+      <line x1="702" y1="52" x2="702" y2="117" stroke="#b3641c" stroke-width="1.4"/>
+      <line x1="699" y1="52" x2="705" y2="52" stroke="#b3641c" stroke-width="1.4"/><line x1="699" y1="117" x2="705" y2="117" stroke="#b3641c" stroke-width="1.4"/>
+      <text x="710" y="88" fill="#b3641c" font-family="IBM Plex Mono,monospace" font-size="10.5" font-weight="600" transform="rotate(90 710 88)" text-anchor="middle">+9 pts · CAC ↑</text>
+    </svg>
+    <p class="insight warn">En trois ans, l'acquisition a coûté <b>+21 %</b> pour <b>+12 %</b> d'activité. L'écart de 9 points, c'est votre CAC qui se dégrade — la question ouverte que le Rapport 04 chiffre, et que la démo referme.</p>
+  </section>
+
   <!-- ===== 1. P&L comparatif ===== -->
   <section class="report">
-    <div class="rhead"><span class="rnum">Rapport 01</span><h2>P&amp;L comparatif — réel vs les 3 budgets</h2></div>
+    <div class="rhead"><span class="rnum">Rapport 02</span><h2>P&amp;L comparatif — réel vs les 3 budgets</h2></div>
     <p class="rsub">Le même compte de résultat, par nature, décliné sur le réel 2026 et les trois scénarios 2027 en colonnes. L'EBITDA se lit d'un coup d'œil.</p>
     <div class="pov"><span class="p act">Lignes <b>Nature</b></span><span class="p act">Colonnes <b>Scénario</b></span><span class="p">Exercice <b>2026–2027</b></span><span class="p">Groupe <b>consolidé</b></span></div>
     <div class="scroll"><table class="mx">
@@ -114,7 +148,7 @@ table.mx{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;f
 
   <!-- ===== 2. Bridge PVM ===== -->
   <section class="report">
-    <div class="rhead"><span class="rnum">Rapport 02</span><h2>Pont prix / volume / mix</h2></div>
+    <div class="rhead"><span class="rnum">Rapport 03</span><h2>Pont prix / volume / mix</h2></div>
     <p class="rsub">D'où viennent les +1,58 M€ de CA entre 2026 et le budget Cadrage ? Un waterfall répond, chiffré et réconcilié au centime.</p>
     <div class="pov"><span class="p act">Décomposition <b>P·V·M</b></span><span class="p">De <b>Réel 2026</b></span><span class="p">Vers <b>Cadrage 2027</b></span></div>
     <div class="wf">
@@ -129,7 +163,7 @@ table.mx{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;f
 
   <!-- ===== 3. Scorecard CAC ===== -->
   <section class="report">
-    <div class="rhead"><span class="rnum">Rapport 03</span><h2>Efficience d'acquisition — le CAC dérive</h2></div>
+    <div class="rhead"><span class="rnum">Rapport 04</span><h2>Efficience d'acquisition — le CAC dérive</h2></div>
     <p class="rsub">Coût d'acquisition par inscrit, par marque, sur trois ans. La heatmap fait ressortir qui coûte trop cher — et qui se dégrade.</p>
     <div class="pov"><span class="p act">Lignes <b>Marque</b></span><span class="p act">Colonnes <b>Exercice</b></span><span class="p">Mesure <b>CAC €/inscrit</b></span></div>
     <div class="scroll"><table class="mx">
@@ -147,7 +181,7 @@ table.mx{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;f
 
   <!-- ===== 4. Funnel ===== -->
   <section class="report">
-    <div class="rhead"><span class="rnum">Rapport 04</span><h2>Funnel de conversion 2026</h2></div>
+    <div class="rhead"><span class="rnum">Rapport 05</span><h2>Funnel de conversion 2026</h2></div>
     <p class="rsub">Lead → candidat → admis → inscrit, par marque. La croissance qu'on récupère sans dépenser un euro d'acquisition de plus.</p>
     <div class="pov"><span class="p act">Lignes <b>Marque</b></span><span class="p act">Étapes <b>funnel</b></span><span class="p">Exercice <b>2026</b></span></div>
     <div class="fn">
@@ -169,7 +203,7 @@ table.mx{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;f
 
   <!-- ===== 5. Cap arbitrage ===== -->
   <section class="report">
-    <div class="rhead"><span class="rnum">Rapport 05</span><h2>Arbitrage du budget d'acquisition</h2></div>
+    <div class="rhead"><span class="rnum">Rapport 06</span><h2>Arbitrage du budget d'acquisition</h2></div>
     <p class="rsub">Pour chaque campus, l'outil propose trois budgets selon trois logiques. Le DAF arbitre le <b>cap retenu</b> (colonne verte).</p>
     <div class="pov"><span class="p act">Lignes <b>Marque ▸ Campus</b></span><span class="p act">Colonnes <b>Logique de cap</b></span><span class="p">Mesure <b>Budget acq. €</b></span></div>
     <div class="scroll"><table class="mx">
@@ -191,7 +225,7 @@ table.mx{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;f
 
   <!-- ===== 6. Marge par classe ===== -->
   <section class="report">
-    <div class="rhead"><span class="rnum">Rapport 06</span><h2>Coût complet &amp; marge — jusqu'à la classe</h2></div>
+    <div class="rhead"><span class="rnum">Rapport 07</span><h2>Coût complet &amp; marge — jusqu'à la classe</h2></div>
     <p class="rsub">Le rapport phare. Les charges indirectes du groupe descendent en cascade jusqu'à la classe. La heatmap de marge révèle ce que le reporting ne montrait pas.</p>
     <div class="pov"><span class="p act">Lignes <b>Marque ▸ Campus ▸ Classe</b></span><span class="p">Colonnes <b>Coûts &amp; marge</b></span><span class="p act">Scénario <b>Cadrage</b></span><span class="p">Drill <b>4 niveaux</b></span></div>
     <div class="scroll"><table class="mx">
