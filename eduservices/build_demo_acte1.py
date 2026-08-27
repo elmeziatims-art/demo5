@@ -7,6 +7,7 @@ from openpyxl.styles import Font,PatternFill,Alignment,Border,Side
 from openpyxl.chart import LineChart,BarChart,Reference
 from openpyxl.chart.marker import DataPoint
 from openpyxl.chart.shapes import GraphicalProperties
+from openpyxl.chart.label import DataLabelList
 INK="152230"; TEAL="0D7A62"; TEALD="0A5A48"; TEALBG="E4F0EC"; CARD2="F5F7F9"; FAINT="7D8B98"
 WHITE="FFFFFF"; BLUE="0000FF"; OCHRE="B3641C"; OCHREBG="F7EAD9"; NAVY="3D4F8F"
 AR="Arial"
@@ -159,6 +160,10 @@ wf.set_categories(Reference(d,min_col=1,min_row=30,max_row=33))
 wf.series[0].graphicalProperties=GraphicalProperties(solidFill="FFFFFF")   # base invisible
 for idx,col in enumerate(["9AA7B0",OCHRE,TEAL,NAVY]):
     dp=DataPoint(idx=idx); dp.graphicalProperties=GraphicalProperties(solidFill=col); wf.series[1].data_points.append(dp)
+wf.gapWidth=45
+wf.y_axis.scaling.min=320; wf.y_axis.scaling.max=385   # axe tronqué -> les pas +34/-21 deviennent lisibles
+wf.y_axis.title="CAC (€)"
+wf.series[1].dLbls=DataLabelList(); wf.series[1].dLbls.showVal=True   # valeurs sur les barres
 d.add_chart(wf,"H29")
 d.cell(35,1,"Lecture : les dépenses poussent le CAC de +34 € ; le volume supplémentaire l'amortit de −21 € ; net +13 €. La tension = l'effet dépenses > l'effet volume.").font=F(8,True,OCHRE,True)
 for col,w in zip("ABCDEF",[22,13,11,15,15,11]): d.column_dimensions[col].width=w
