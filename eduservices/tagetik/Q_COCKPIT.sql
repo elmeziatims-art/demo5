@@ -2,7 +2,8 @@
 -- Q_COCKPIT — query pour DATASOURCE Tagetik (cockpit), forme "en ligne" FST-ready
 -- =============================================================================
 -- Datasource -> matrice multidim. Rien de pré-calculé : le FST calcule CA/EBITDA/marge.
---   Finance    = comptes P&L réels (dont 6231 = dépense acquisition)  -> FST (TEC_EBITDA / TEC_PL)
+--   Finance    = comptes P&L réels (dont 6231 = dépense acquisition) -> la hiérarchie
+--                Compte / FST 010 remonte CA (noeud Produits) et EBITDA. (Ne PAS utiliser TEC_*.)
 --   Commercial = comptes STATISTIQUES du référentiel : STA_LEAD, STA_CAND, STA_ADMIS,
 --                STA_NOUV (inscrits), STA_EFF.
 --   NB : STA_LEAD à créer dans la dim Compte (les autres existent déjà).
