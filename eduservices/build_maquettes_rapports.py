@@ -6,6 +6,7 @@ fidelement la vue SQL qui l'alimente. Formules partout (recalcul vivant)."""
 import openpyxl
 from openpyxl.styles import Font,PatternFill,Alignment,Border,Side
 from openpyxl.utils import get_column_letter
+from openpyxl.chart import LineChart,Reference,Series
 
 # ---------- palette demo ----------
 INK="152230"; TEAL="0D7A62"; TEALD="0A5A48"; TEALBG="E4F0EC"
@@ -220,16 +221,76 @@ for col,w in zip("ABCDEFGHIJK",[10,9,9,7,9,7,10,7,13,9,14]): fc.column_dimension
 fc.freeze_panes="B6"
 
 # =====================================================================
+# COCKPIT (écran post-chargement) — tuiles KPI 3 ans + réconciliation + tendance
+# =====================================================================
+ck=wb.create_sheet("Cockpit"); ck.sheet_view.showGridLines=False
+ck["A1"]="COCKPIT D'OUVERTURE  ·  seul écran affiché après le chargement"; ck["A1"].font=F(15,True,INK)
+ck["A2"]="Source : V_COCKPIT (cross-source CRM+compta), niveau Groupe. Tableau de bord (pas une matrice) : tuiles KPI + sparklines 3 ans + bandeau réconciliation."; ck["A2"].font=F(9,False,TEALD)
+# bandeau réconciliation
+ck["A5"]="RÉCONCILIATION  (le héros)"; ck["A5"].font=F(10,True,WHITE)
+for col in "ABCDE": ck[col+"5"].fill=fill(TEAL); ck[col+"5"].font=F(10,True,WHITE)
+ck["A6"]="CA CRM (socle)"; ck["A6"].font=F(9,False,FAINT)
+ck["C6"]="CA Compta (grand livre)"; ck["C6"].font=F(9,False,FAINT)
+ck["E6"]="Écart"; ck["E6"].font=F(9,False,FAINT)
+prodG=f"SUMIFS('Données P&L'!$G$5:$G${DPMAX},'Données P&L'!$C$5:$C${DPMAX},\"PRODUITS\")"
+ck["A7"]=f"={prodG}"; ck["C7"]=f"={prodG}"; ck["E7"]="=A7-C7"
+for cc,col in [("A7",INK),("C7",INK),("E7",TEALD)]:
+    ck[cc].font=F(14,True,col); ck[cc].number_format=EUR; ck[cc].alignment=LFT
+ck["A8"]="En réel les 2 côtés viennent de sources différentes ; écart 0 vérifié (groupe, marque, campus)."; ck["A8"].font=F(8,False,FAINT,True)
+# grille KPI 3 ans
+hr=10
+for j,h in enumerate(["KPI","2024","2025","2026","YoY 25→26"],1):
+    c=ck.cell(hr,j,h); c.font=F(9,True,WHITE); c.fill=fill(TEAL); c.alignment=CTR if j>1 else LFT
+def sif(n,col): return f"SUMIFS('Données P&L'!${col}$5:${col}${DPMAX},'Données P&L'!$C$5:$C${DPMAX},\"{n}\")"
+def caF(col): return sif("PRODUITS",col)
+def ebF(col): return f"({caF(col)}-{sif('COUTS_DIRECTS',col)}-{sif('PERSONNEL',col)}-{sif('STRUCTURE',col)}-{sif('IMPOTS_TAXES',col)})"
+def crmS(y,dc): a=crm_rows[(y,'MBWAY')]; b=crm_rows[(y,'TUNON')]; return f"SUM('Données CRM'!{dc}{a}:{dc}{b})"
+cols3=['E','F','G']; yrs=['2024','2025','2026']
+KPI=[("Chiffre d'affaires (€)",[caF(c) for c in cols3],EUR,False),
+     ("EBITDA (€)",[ebF(c) for c in cols3],EUR,False),
+     ("Marge EBITDA %",[f"{ebF(c)}/{caF(c)}" for c in cols3],PCT,False),
+     ("Leads",[crmS(y,'C') for y in yrs],NUM,False),
+     ("Inscrits",[crmS(y,'F') for y in yrs],NUM,False),
+     ("CAC (€/inscrit)",[f"{crmS(y,'H')}/{crmS(y,'F')}" for y in yrs],EURc,True)]
+r=hr+1; first_kpi=r
+for lab,series,fmt,ten in KPI:
+    ck.cell(r,1,lab).font=F(10,True,OCHRE if ten else INK); ck.cell(r,1).alignment=LFT
+    for k in range(3):
+        cc=ck.cell(r,2+k,f"={series[k]}"); cc.number_format=fmt; cc.alignment=RGT; cc.font=F(10,False,OCHRE if ten else INK)
+    d=ck.cell(r,5)
+    if fmt==PCT: d.value=f"=D{r}-C{r}"; d.number_format='0.0" pt"'
+    else: d.value=f"=IFERROR((D{r}-C{r})/C{r},0)"; d.number_format=PCT
+    d.font=F(9,False,OCHRE if ten else INK,True); d.alignment=RGT
+    r+=1
+ck.cell(r+1,1,"Sparkline à poser sur B:D de chaque ligne (série 3 ans). CAC = seul KPI en tension (défavorable quand il monte).").font=F(8,False,FAINT,True)
+# tendance base 100
+tr=r+3
+ck.cell(tr,1,"TENDANCE — base 100 en 2024 (source V_TENDANCE)").font=F(10,True,TEALD)
+for k,y in enumerate(yrs): ck.cell(tr+1,2+k,int(y)).font=F(9,True); ck.cell(tr+1,2+k).alignment=CTR
+ck.cell(tr+1,1,"Année").font=F(9,True)
+ck.cell(tr+2,1,"Activité (CA)").font=F(9); ck.cell(tr+3,1,"Dépenses acq.").font=F(9)
+for k,c in enumerate(['B','C','D']):
+    ck.cell(tr+2,2+k,f"={c}{first_kpi}/$B${first_kpi}*100").number_format='0.0'
+    dep=[crmS(y,'H') for y in yrs]
+    ck.cell(tr+3,2+k,f"=({dep[k]})/({dep[0]})*100").number_format='0.0'
+chart=LineChart(); chart.title="Activité vs Dépenses d'acquisition (base 100)"; chart.height=7; chart.width=13
+data=Reference(ck,min_col=1,min_row=tr+2,max_row=tr+3,max_col=4)
+cats=Reference(ck,min_col=2,min_row=tr+1,max_col=4,max_row=tr+1)
+chart.add_data(data,titles_from_data=True,from_rows=True); chart.set_categories(cats)
+ck.add_chart(chart,"G10")
+for col,w in zip("ABCDE",[24,13,13,13,12]): ck.column_dimensions[col].width=w
+
+# =====================================================================
 # LISEZ-MOI
 # =====================================================================
-lm=wb.create_sheet("Lisez-moi"); wb.move_sheet("Lisez-moi",-(len(wb.sheetnames)-1))
+lm=wb.create_sheet("Lisez-moi")
 lm.sheet_view.showGridLines=False
 lm["A1"]="MAQUETTES DE RAPPORTS  ·  Actes 1 & 2  ·  EDUSERVICES 2027"; lm["A1"].font=F(15,True,INK)
 lm["A2"]="Rendu cible pour la restitution Tagetik. Chaque rapport indique la vue qui l'alimente et ce qui reste à construire."; lm["A2"].font=F(10,False,TEALD)
 rows=[
  ("",""),
  ("RAPPORT","SOURCE / À CONSTRUIRE"),
- ("Cockpit d'ouverture","V_COCKPIT (cross-source CRM+compta) + 2 drill-through Constitution du CA. Maquette visuelle déjà livrée (artifact)."),
+ ("Cockpit  (feuille « Cockpit »)","SEUL écran après le chargement. V_COCKPIT (cross-source). Tuiles KPI 3 ans + sparklines + réconciliation + graphe tendance. Tuile CA → 2 drill-through Constitution du CA."),
  ("P&L ①  (feuille « P&L ① »)","FST natif 010-EBITDA sur V_PNL. Hiérarchie Compte fournie (MAPPING_COMPTES.csv). Colonne 2027 → P&L ②③④."),
  ("Funnel & CAC  (feuille)","Matrice multidim sur V_FUNNEL + V_CAC (refaites plates + additives). Un seul rapport. Rien de plus à construire côté SQL."),
  ("",""),
@@ -253,6 +314,10 @@ for a,b in rows:
     cb.alignment=Alignment(horizontal="left",vertical="top",wrap_text=True)
     r+=1
 lm.column_dimensions["A"].width=32; lm.column_dimensions["B"].width=88
+
+# ordre des feuilles : le récit d'abord, les données ensuite
+desired=["Lisez-moi","Cockpit","P&L ①","Funnel & CAC","Données P&L","Données CRM"]
+wb._sheets.sort(key=lambda s: desired.index(s.title))
 
 out="/home/user/demo5/eduservices/tagetik/MAQUETTES_RAPPORTS.xlsx"
 wb.save(out); print("SAVED",out)
