@@ -31,7 +31,7 @@ Les ratios (CAC, marge, taux) se calculent **dans la matrice**, jamais dans la v
 ### ① Vues SQL (briques de données) — toutes ✅ livrées
 | # | Vue | Grain / clés | Mesures (additives) | Statut |
 |---|---|---|---|---|
-| V1 | `V_COCKPIT` | ENTITY × EXERCICE | CA_CRM, CA_COMPTA, ECART_CA, EBITDA, LEADS, INSCRITS, DEPENSE_ACQ | ✅ |
+| V1 | `V_COCKPIT` | **tall (FST-ready)** : ENTITY×PROGRAMME×AN_ETUDE×MODALITE×ACCOUNT×EXERCICE×PERIOD | AMOUNT (finance = comptes réels → FST calcule CA/EBITDA ; commercial = comptes stat. STAT_LEAD/CAND/ADMIS/INSC/EFF) | ✅ |
 | V2 | `V_PNL` | ENTITY × ACCOUNT × EXERCICE × VERSION | AMOUNT (+ compte statistique EFFECTIF) | ✅ |
 | V3 | `V_TENDANCE` | EXERCICE × ENTITY × PROGRAMME × AN_ETUDE × MODALITE | LEADS, INSCRITS, CA, DEPENSE_ACQ, DEPENSE_MARQUE | ✅ |
 | V4 | `V_CAC` | idem V3 | DEPENSE_ACQ, LEADS_PAYANTS, LEADS, INSCRITS | ✅ |

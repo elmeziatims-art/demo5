@@ -1,59 +1,66 @@
 -- =============================================================================
--- V_COCKPIT — brique de données de l'ÉCRAN D'OUVERTURE (SAP HANA)
+-- V_COCKPIT — alimentation du cockpit, forme "en ligne" (FST-ready, maille fine)
 -- =============================================================================
--- Acte 1 de la démo. 1 ligne = ENTITY x EXERCICE (réel 2024-2026).
--- Grain campus -> la hiérarchie Tagetik agrège au GROUPE et laisse driller
--- vers marque puis campus (tuile cockpit -> P&L comparatif ①).
+-- Rien n'est pré-calculé ici. On sort la donnée BRUTE au grain le plus fin, et
+-- c'est TON FST qui calcule CA, EBITDA, Marge. Le cockpit lit des membres :
+--   CA      = noeud Produits (FST)
+--   EBITDA  = FST 010
+--   Marge % = EBITDA / CA           (membre calculé Tagetik)
+--   CAC     = compte 6231 / STAT_INSC (membre calculé Tagetik)
 --
--- MESURES ADDITIVES uniquement. Les ratios du cockpit se calculent DANS la
--- matrice Tagetik, jamais ici (on ne pré-agrège jamais un ratio) :
---     CAC     = SUM(DEPENSE_ACQ) / SUM(INSCRITS)
---     Marge % = SUM(EBITDA)      / SUM(CA_COMPTA)
+-- Deux familles dans la même dimension Compte :
+--   FINANCE    : les comptes P&L réels (dont 6231 = dépense acquisition)
+--                -> le FST remonte CA / EBITDA / marge.
+--   COMMERCIAL : comptes STATISTIQUES (non monétaires) à créer, hors hiérarchie
+--                P&L : STAT_LEAD, STAT_CAND, STAT_ADMIS, STAT_INSC, STAT_EFF.
 --
--- LE HÉROS DU COCKPIT — la réconciliation :
---     CA_CRM    = socle, effectifs x frais (VOL_EFF*REV_STUD + VOL_NEW*REV_FRAIS_INS)
---     CA_COMPTA = grand livre, comptes de produits 706 / 7062 / 708
---     ECART_CA  = CA_COMPTA - CA_CRM   -> attendu 0 € (deux chemins, un chiffre)
---
--- EBITDA cohérent avec Q_SCENARIOS et le P&L : produits (706/7062/708)
--- moins charges d'exploitation (6x hors 6811 amortissements).
+-- Maille la plus fine par source :
+--   FINANCE    = ENTITY × ACCOUNT × EXERCICE × PERIOD
+--   COMMERCIAL = ENTITY × PROGRAMME × AN_ETUDE × MODALITE × EXERCICE × PERIOD
+--   (les dimensions non applicables au financier = membre générique 'GEN')
+-- Réel/atterrissage : VERSION = 'ACT', EXERCICE 2024-2026.
 -- =============================================================================
 CREATE OR REPLACE VIEW V_COCKPIT AS
-WITH fin AS (                         -- ===== côté COMPTA (grand livre) =====
-    SELECT ENTITY, EXERCICE,
-        SUM(CASE WHEN ACCOUNT IN ('706','7062','708') THEN AMOUNT ELSE 0 END)
-            AS CA_COMPTA,
-        SUM(CASE WHEN ACCOUNT IN ('706','7062','708')            THEN  AMOUNT
-                 WHEN ACCOUNT LIKE '6%' AND ACCOUNT <> '6811'    THEN -AMOUNT
-                 ELSE 0 END)
-            AS EBITDA
-    FROM AW_002_000004_000001                     -- compta = réel pur (2024-2026)
-    GROUP BY ENTITY, EXERCICE
-),
-com AS (                              -- ===== côté CRM (socle) =====
-    SELECT ENTITY, EXERCICE,
-        SUM(VOL_EFF * REV_STUD + VOL_NEW * REV_FRAIS_INS)  AS CA_CRM,
-        SUM(VOL_LEAD_ORG + VOL_LEAD_PAY)                   AS LEADS,
-        SUM(VOL_NEW)                                       AS INSCRITS,
-        SUM(DEPENSE_ACQ)                                   AS DEPENSE_ACQ
-    FROM AW_002_000002_000001
-    GROUP BY ENTITY, EXERCICE
-)
+-- ===== FINANCE : tous les comptes P&L réels (le FST calcule CA, EBITDA, marge) =====
 SELECT
-    COALESCE(fin.ENTITY,   com.ENTITY)                     AS ENTITY,
-    SUBSTR_BEFORE(COALESCE(fin.ENTITY, com.ENTITY), '_')   AS MARQUE,
-    COALESCE(fin.EXERCICE, com.EXERCICE)                   AS EXERCICE,
-    -- réconciliation (le bandeau héros)
-    com.CA_CRM                                             AS CA_CRM,
-    fin.CA_COMPTA                                          AS CA_COMPTA,
-    fin.CA_COMPTA - com.CA_CRM                             AS ECART_CA,   -- = 0
-    -- finance
-    fin.EBITDA                                             AS EBITDA,
-    -- commercial
-    com.LEADS                                              AS LEADS,
-    com.INSCRITS                                           AS INSCRITS,
-    com.DEPENSE_ACQ                                        AS DEPENSE_ACQ
-FROM fin
-FULL OUTER JOIN com
-    ON  fin.ENTITY   = com.ENTITY
-    AND fin.EXERCICE = com.EXERCICE;
+    ENTITY,
+    'GEN'                        AS PROGRAMME,
+    'GEN'                        AS AN_ETUDE,
+    'GEN'                        AS MODALITE,
+    ACCOUNT,
+    EXERCICE,
+    CAST(PERIOD AS VARCHAR(10))  AS PERIOD,
+    'ACT'                        AS VERSION,
+    SUM(AMOUNT)                  AS AMOUNT
+FROM AW_002_000004_000001
+GROUP BY ENTITY, ACCOUNT, EXERCICE, CAST(PERIOD AS VARCHAR(10))
+
+UNION ALL   -- ===== COMMERCIAL : leads (statistique) =====
+SELECT ENTITY, PROGRAMME, AN_ETUDE, MODALITE, 'STAT_LEAD', EXERCICE,
+       CAST(PERIODE AS VARCHAR(10)), 'ACT', SUM(VOL_LEAD)
+FROM AW_002_000002_000001
+GROUP BY ENTITY, PROGRAMME, AN_ETUDE, MODALITE, EXERCICE, CAST(PERIODE AS VARCHAR(10))
+
+UNION ALL   -- candidatures
+SELECT ENTITY, PROGRAMME, AN_ETUDE, MODALITE, 'STAT_CAND', EXERCICE,
+       CAST(PERIODE AS VARCHAR(10)), 'ACT', SUM(VOL_CAND)
+FROM AW_002_000002_000001
+GROUP BY ENTITY, PROGRAMME, AN_ETUDE, MODALITE, EXERCICE, CAST(PERIODE AS VARCHAR(10))
+
+UNION ALL   -- admis
+SELECT ENTITY, PROGRAMME, AN_ETUDE, MODALITE, 'STAT_ADMIS', EXERCICE,
+       CAST(PERIODE AS VARCHAR(10)), 'ACT', SUM(VOL_ADMIS)
+FROM AW_002_000002_000001
+GROUP BY ENTITY, PROGRAMME, AN_ETUDE, MODALITE, EXERCICE, CAST(PERIODE AS VARCHAR(10))
+
+UNION ALL   -- inscrits (nouveaux)
+SELECT ENTITY, PROGRAMME, AN_ETUDE, MODALITE, 'STAT_INSC', EXERCICE,
+       CAST(PERIODE AS VARCHAR(10)), 'ACT', SUM(VOL_NEW)
+FROM AW_002_000002_000001
+GROUP BY ENTITY, PROGRAMME, AN_ETUDE, MODALITE, EXERCICE, CAST(PERIODE AS VARCHAR(10))
+
+UNION ALL   -- effectif
+SELECT ENTITY, PROGRAMME, AN_ETUDE, MODALITE, 'STAT_EFF', EXERCICE,
+       CAST(PERIODE AS VARCHAR(10)), 'ACT', SUM(VOL_EFF)
+FROM AW_002_000002_000001
+GROUP BY ENTITY, PROGRAMME, AN_ETUDE, MODALITE, EXERCICE, CAST(PERIODE AS VARCHAR(10));
