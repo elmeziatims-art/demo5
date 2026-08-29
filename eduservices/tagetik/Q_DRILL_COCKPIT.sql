@@ -10,15 +10,33 @@
 -- =============================================================================
 -- DRILL 1 — FINANCE : CA, EBITDA, blocs de charges -> détail compta
 -- Marche pour tous les items FST (le IN(...) reçoit leurs comptes).
+--
+-- 2 subtilités indispensables :
+--   1) SIGNE. La compta (AW_002_000004_000001) stocke TOUT en positif ; c'est
+--      le FST qui applique les signes. Un SUM(AMOUNT) nu sur l'EBITDA renvoie
+--      produits+charges (~41,8 M) au lieu du vrai EBITDA (3,29 M). On rétablit
+--      le signe : comptes 7% = produit (+), le reste = charge (-).
+--   2) LIBELLÉS. Jointures descriptives : conto (compte), azienda (entité),
+--      ED_EXERCICE (exercice). Pas de libellé période (non demandé).
 -- =============================================================================
-SELECT ACCOUNT AS "Compte", ENTITY AS "Entité", EXERCICE AS "Exercice",
-       PERIOD AS "Période", AMOUNT AS "Montant"
-FROM  AW_002_000004_000001
-WHERE ENTITY   IN (${$Entity.code})
-  AND EXERCICE IN (${$ANL_EXERCICE.code})
-  AND ACCOUNT  IN (${$Account.code})
+SELECT d.ACCOUNT              AS "Compte",
+       c.DESC_CONTO0          AS "Libellé compte",
+       d.ENTITY               AS "Entité",
+       a.DESC_AZIENDA0        AS "Libellé entité",
+       d.EXERCICE             AS "Exercice",
+       e.DESC0                AS "Libellé exercice",
+       d.PERIOD               AS "Période",
+       CASE WHEN d.ACCOUNT LIKE '7%' THEN d.AMOUNT ELSE -d.AMOUNT END AS "Montant"
+FROM  AW_002_000004_000001 d
+LEFT JOIN conto        c ON c.COD_CONTO   = d.ACCOUNT
+LEFT JOIN azienda      a ON a.COD_AZIENDA = d.ENTITY
+LEFT JOIN ED_EXERCICE  e ON e.COD         = d.EXERCICE
+WHERE d.ENTITY   IN (${$Entity.code})
+  AND d.EXERCICE IN (${$ANL_EXERCICE.code})
+  AND d.ACCOUNT  IN (${$Account.code})
 UNION ALL
-SELECT 'Total','','','', SUM(AMOUNT)
+SELECT 'Total','','','','','','',
+       SUM(CASE WHEN ACCOUNT LIKE '7%' THEN AMOUNT ELSE -AMOUNT END)
 FROM  AW_002_000004_000001
 WHERE ENTITY   IN (${$Entity.code})
   AND EXERCICE IN (${$ANL_EXERCICE.code})
