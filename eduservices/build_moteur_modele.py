@@ -53,33 +53,33 @@ put(7,1,"CA 1ʳᵉ année / inscrit",sz=10); IN(7,2,7608,EUR); put(7,3,"votre r�
 put(8,1,"Coût variable / élève",sz=10); IN(8,2,300,EUR); put(8,3,"marginal, classe existante",sz=8,col=FAINT,it=True)
 DE="$B$6"; RV="$B$7"; CV="$B$8"
 
-# ============================== ① ÉLASTICITÉ → CA (par campus) ==============================
+# ============================== ① ÉLASTICITÉ (3 ANS) → CA (par campus) ==============================
 put(10,1,"①  De l'élasticité au CA — par campus (piloté par Δ)",sz=12,b=True,col=TEALD)
-put(11,1,"Élasticité = LN(leads pay.26 ÷ leads pay.24) ÷ LN(budget26 ÷ budget24). Puis : leads gagnés → inscrits → CA, pour le Δ ci-dessus.",sz=9,b=True,col=OCHRE,it=True)
+put(11,1,"Élasticité = pente de régression de ln(leads payants) sur ln(budget acq), sur les 3 années 2024·2025·2026 (=SLOPE(LN;LN)) — pas seulement 2 bouts.",sz=9,b=True,col=OCHRE,it=True)
 hr=13
-head(hr,["Campus","L.pay24","L.pay26","Bud.24","Bud.26","Élasticité","Leads 2026","Inscrits 2026","Conv.",
+head(hr,["Campus","L.pay24","L.pay25","L.pay26","Bud.24","Bud.25","Bud.26","Élasticité 3 ans","Leads 2026","Inscrits 2026","Conv.",
          "Leads gagnés","Inscrits gagnés","CA gagné (+Δ)"])
 r=hr+1; e1=r
 for d in CAMP:
     put(r,1,NAME[d['campus']],sz=9)
-    put(r,2,d['p24'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put(r,3,d['p26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)
-    put(r,4,d['s24'],sz=9,al=RGT,fmt=EUR,bg=INPUTBG); put(r,5,d['s26'],sz=9,al=RGT,fmt=EUR,bg=INPUTBG)
-    put(r,6,f"=LN(C{r}/B{r})/LN(E{r}/D{r})",sz=9,b=True,col=TEALD,al=RGT,fmt=DEC3)   # F élast
+    put(r,2,d['p24'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put(r,3,d['p25'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put(r,4,d['p26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)
+    put(r,5,d['s24'],sz=9,al=RGT,fmt=EUR,bg=INPUTBG); put(r,6,d['s25'],sz=9,al=RGT,fmt=EUR,bg=INPUTBG); put(r,7,d['s26'],sz=9,al=RGT,fmt=EUR,bg=INPUTBG)
+    put(r,8,f"=SLOPE(LN(B{r}:D{r}),LN(E{r}:G{r}))",sz=9,b=True,col=TEALD,al=RGT,fmt=DEC3)   # H élast 3 ans
     lead26=d['p26']+d['o26']
-    put(r,7,lead26,sz=9,al=RGT,fmt=NUM,bg=INPUTBG)                                    # G leads26 (actual)
-    put(r,8,d['n26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)                                  # H inscrits26 (actual)
-    put(r,9,f"=H{r}/G{r}",sz=9,col=SOFT,al=RGT,fmt=PCT)                               # I conv
-    put(r,10,f"=C{r}*((1+{DE})^F{r}-1)",sz=9,al=RGT,fmt=NUM)                          # J leads gagnés (sur payants)
-    put(r,11,f"=J{r}*I{r}",sz=9,al=RGT,fmt=NUM)                                       # K inscrits gagnés
-    put(r,12,f"=K{r}*{RV}",sz=9,b=True,col=TEALD,al=RGT,fmt=EUR)                      # L CA gagné
-    for j in range(1,13): ws.cell(r,j).border=Border(bottom=thin)
+    put(r,9,lead26,sz=9,al=RGT,fmt=NUM,bg=INPUTBG)                                    # I leads26
+    put(r,10,d['n26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)                                 # J inscrits26
+    put(r,11,f"=J{r}/I{r}",sz=9,col=SOFT,al=RGT,fmt=PCT)                              # K conv
+    put(r,12,f"=D{r}*((1+{DE})^H{r}-1)",sz=9,al=RGT,fmt=NUM)                          # L leads gagnés (D=paid26)
+    put(r,13,f"=L{r}*K{r}",sz=9,al=RGT,fmt=NUM)                                       # M inscrits gagnés
+    put(r,14,f"=M{r}*{RV}",sz=9,b=True,col=TEALD,al=RGT,fmt=EUR)                      # N CA gagné
+    for j in range(1,15): ws.cell(r,j).border=Border(bottom=thin)
     r+=1
 l1=r-1
 put(r,1,"GROUPE",sz=9,b=True,col=TEALD)
-for cc,fm in [(10,NUM),(11,NUM),(12,EUR)]:
+for cc,fm in [(12,NUM),(13,NUM),(14,EUR)]:
     L=chr(64+cc); ws.cell(r,cc,f"=SUM({L}{e1}:{L}{l1})").number_format=fm; ws.cell(r,cc).font=F(9,True,TEALD); ws.cell(r,cc).alignment=RGT
-for j in range(1,13): ws.cell(r,j).fill=fill(GREENBG); ws.cell(r,j).border=Border(top=med,bottom=med)
-put(r+1,1,"Cliquez « Élasticité » : =LN(…)/LN(…) sur les chiffres réels. Cliquez « CA gagné » : la chaîne complète jusqu'au CA.",sz=8,col=FAINT,it=True)
+for j in range(1,15): ws.cell(r,j).fill=fill(GREENBG); ws.cell(r,j).border=Border(top=med,bottom=med)
+put(r+1,1,"Élasticité = régression sur 3 ans (robuste au bruit). Sur ces données 2025 est pile sur la droite → identique aux 2 bouts. Cliquez « CA gagné » : la chaîne jusqu'au CA.",sz=8,col=FAINT,it=True)
 r+=3
 
 # ============================== ② BACK-TEST (paid + org prédits → inscrits) ==============================
@@ -118,30 +118,30 @@ r+=3
 put(r,1,"③  L'effet d'un +Δ% d'acquisition — la décision, par marque",sz=12,b=True,col=TEALD); r+=1
 put(r,1,"Même Δ que là-haut. On va jusqu'à l'EBITDA et au CAC marginal : la marque au CAC marginal le plus BAS mérite l'euro suivant (→ le cap).",sz=9,col=SOFT,it=True); r+=2
 hr=r
-head(hr,["Marque","L.pay24","L.pay26","Bud.24","Bud.26","Élasticité","Leads 2026","Inscrits 2026","Conv.",
+head(hr,["Marque","L.pay24","L.pay25","L.pay26","Bud.24","Bud.25","Bud.26","Élasticité 3 ans","Leads 2026","Inscrits 2026","Conv.",
          "Δ budget","Inscrits gagnés","CA gagné","EBITDA gagné","CAC marg."])
 r=hr+1; e3=r
 for b in BRAND:
     put(r,1,b['marque'],sz=9,b=True)
-    put(r,2,b['p24'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put(r,3,b['p26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)
-    put(r,4,b['s24'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put(r,5,b['s26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)
-    put(r,6,f"=LN(C{r}/B{r})/LN(E{r}/D{r})",sz=9,b=True,col=TEALD,al=RGT,fmt=DEC3)   # F élast
-    put(r,7,b['lead26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)                               # G leads26
-    put(r,8,b['new26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)                                # H inscrits26
-    put(r,9,f"=H{r}/G{r}",sz=9,col=SOFT,al=RGT,fmt=PCT)                               # I conv
-    put(r,10,f"=E{r}*{DE}",sz=9,col=OCHRED,al=RGT,fmt=EUR)                            # J Δbudget
-    put(r,11,f"=C{r}*((1+{DE})^F{r}-1)*I{r}",sz=9,al=RGT,fmt=NUM)                     # K inscrits gagnés
-    put(r,12,f"=K{r}*{RV}",sz=9,col=TEALD,al=RGT,fmt=EUR)                             # L CA gagné
-    put(r,13,f"=L{r}-J{r}-K{r}*{CV}",sz=9,b=True,col=GREEN,al=RGT,fmt=EUR)            # M EBITDA
-    put(r,14,f"=J{r}/K{r}",sz=9,col=NAVY,al=RGT,fmt=EUR)                              # N CAC marg
-    for j in range(1,15): ws.cell(r,j).border=Border(bottom=thin)
+    put(r,2,b['p24'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put(r,3,b['p25'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put(r,4,b['p26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)
+    put(r,5,b['s24'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put(r,6,b['s25'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put(r,7,b['s26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)
+    put(r,8,f"=SLOPE(LN(B{r}:D{r}),LN(E{r}:G{r}))",sz=9,b=True,col=TEALD,al=RGT,fmt=DEC3)   # H élast 3 ans
+    put(r,9,b['lead26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)                               # I leads26
+    put(r,10,b['new26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)                               # J inscrits26
+    put(r,11,f"=J{r}/I{r}",sz=9,col=SOFT,al=RGT,fmt=PCT)                              # K conv
+    put(r,12,f"=G{r}*{DE}",sz=9,col=OCHRED,al=RGT,fmt=EUR)                            # L Δbudget (G=bud26)
+    put(r,13,f"=D{r}*((1+{DE})^H{r}-1)*K{r}",sz=9,al=RGT,fmt=NUM)                     # M inscrits gagnés (D=paid26)
+    put(r,14,f"=M{r}*{RV}",sz=9,col=TEALD,al=RGT,fmt=EUR)                             # N CA gagné
+    put(r,15,f"=N{r}-L{r}-M{r}*{CV}",sz=9,b=True,col=GREEN,al=RGT,fmt=EUR)            # O EBITDA
+    put(r,16,f"=L{r}/M{r}",sz=9,col=NAVY,al=RGT,fmt=EUR)                              # P CAC marg
+    for j in range(1,17): ws.cell(r,j).border=Border(bottom=thin)
     r+=1
 l3=r-1
 put(r,1,"GROUPE",sz=10,b=True,col=TEALD)
-for cc,fm in [(10,EUR),(11,NUM),(12,EUR),(13,EUR)]:
+for cc,fm in [(12,EUR),(13,NUM),(14,EUR),(15,EUR)]:
     L=chr(64+cc); ws.cell(r,cc,f"=SUM({L}{e3}:{L}{l3})").number_format=fm; ws.cell(r,cc).font=F(10,True,TEALD); ws.cell(r,cc).alignment=RGT
-ws.cell(r,14,f"=J{r}/K{r}").number_format=EUR; ws.cell(r,14).font=F(10,True,NAVY); ws.cell(r,14).alignment=RGT
-for j in range(1,15): ws.cell(r,j).fill=fill(GREENBG); ws.cell(r,j).border=Border(top=med,bottom=med)
+ws.cell(r,16,f"=L{r}/M{r}").number_format=EUR; ws.cell(r,16).font=F(10,True,NAVY); ws.cell(r,16).alignment=RGT
+for j in range(1,17): ws.cell(r,j).fill=fill(GREENBG); ws.cell(r,j).border=Border(top=med,bottom=med)
 put(r+2,1,"Le CAC marginal diverge d'une marque à l'autre → c'est ce qui ouvre l'arbitrage du cap (réallouer vers les CAC marginaux les plus bas).",sz=9,b=True,col=OCHRE)
 
 ws.column_dimensions['A'].width=22
@@ -174,23 +174,23 @@ put2(6,3,"organique = jeu plus lent, effet plus faible",sz=8,col=FAINT,it=True)
 DM="$B$6"
 # BLOC A : élasticité marque + org gagnés
 put2(8,1,"①  L'élasticité de marque — et ce qu'un +Δ% de budget de marque rapporte en leads",sz=12,b=True,col=TEALD)
-put2(9,1,"Élasticité marque = LN(organiques 2026 ÷ organiques 2024) ÷ LN(budget marque 2026 ÷ budget marque 2024)",sz=9,b=True,col=OCHRE,it=True)
+put2(9,1,"Élasticité marque = pente de régression de ln(organiques) sur ln(budget marque), sur 2024·2025·2026 (=SLOPE(LN;LN)).",sz=9,b=True,col=OCHRE,it=True)
 hr=11
-head2(hr,["Campus","Bud. marque 24","Bud. marque 26","Organiques 24","Organiques 26","Élasticité marque","Org. gagnés (+Δ)"])
+head2(hr,["Campus","Bud.mq 24","Bud.mq 25","Bud.mq 26","Organiques 24","Organiques 25","Organiques 26","Élasticité marque 3 ans","Org. gagnés (+Δ)"])
 r=hr+1; ea=r
 for d in ORG:
     put2(r,1,NAME[d['campus']],sz=9)
-    put2(r,2,d['b24'],sz=9,al=RGT,fmt=EUR,bg=INPUTBG); put2(r,3,d['b26'],sz=9,al=RGT,fmt=EUR,bg=INPUTBG)
-    put2(r,4,d['o24'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put2(r,5,d['o26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)
-    put2(r,6,f"=LN(E{r}/D{r})/LN(C{r}/B{r})",sz=9,b=True,col=TEALD,al=RGT,fmt=DEC3)
-    put2(r,7,f"=E{r}*((1+{DM})^F{r}-1)",sz=9,al=RGT,fmt=NUM)
-    for j in range(1,8): w2.cell(r,j).border=Border(bottom=thin)
+    put2(r,2,d['b24'],sz=9,al=RGT,fmt=EUR,bg=INPUTBG); put2(r,3,d['b25'],sz=9,al=RGT,fmt=EUR,bg=INPUTBG); put2(r,4,d['b26'],sz=9,al=RGT,fmt=EUR,bg=INPUTBG)
+    put2(r,5,d['o24'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put2(r,6,d['o25'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put2(r,7,d['o26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)
+    put2(r,8,f"=SLOPE(LN(E{r}:G{r}),LN(B{r}:D{r}))",sz=9,b=True,col=TEALD,al=RGT,fmt=DEC3)
+    put2(r,9,f"=G{r}*((1+{DM})^H{r}-1)",sz=9,al=RGT,fmt=NUM)
+    for j in range(1,10): w2.cell(r,j).border=Border(bottom=thin)
     r+=1
 la=r-1
 put2(r,1,"GROUPE",sz=9,b=True,col=TEALD)
-w2.cell(r,7,f"=SUM(G{ea}:G{la})").number_format=NUM; w2.cell(r,7).font=F(9,True,TEALD); w2.cell(r,7).alignment=RGT
-for j in range(1,8): w2.cell(r,j).fill=fill(GREENBG); w2.cell(r,j).border=Border(top=med,bottom=med)
-put2(r+1,1,"Élasticité ~0,3 (vs ~0,5 pour l'acquisition) : le budget de marque agit, mais moins directement.",sz=8,col=FAINT,it=True)
+w2.cell(r,9,f"=SUM(I{ea}:I{la})").number_format=NUM; w2.cell(r,9).font=F(9,True,TEALD); w2.cell(r,9).alignment=RGT
+for j in range(1,10): w2.cell(r,j).fill=fill(GREENBG); w2.cell(r,j).border=Border(top=med,bottom=med)
+put2(r+1,1,"Élasticité ~0,3 (vs ~0,5 pour l'acquisition) : le budget de marque agit, mais moins directement. Régression sur 3 ans.",sz=8,col=FAINT,it=True)
 r+=3
 # BLOC B : back-test organique
 put2(r,1,"②  La preuve — back-test organique (calibré 24→25, prédit 26)",sz=12,b=True,col=TEALD); r+=1
