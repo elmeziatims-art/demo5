@@ -135,13 +135,21 @@ FROM (
                 GROUP BY p.EXERCICE, p.VERSION
             ) sieg ON sieg.EXERCICE = w.EXERCICE AND sieg.VERSION = w.VERSION
             CROSS JOIN (
+                -- Clés d'allocation = TEXTE (REV_CA/VOL_EFF/VOL_CLASS). La base étant
+                -- incrémentale, un changement de clé AJOUTE une ligne : on ne peut ni
+                -- sommer (texte) ni prendre MAX (donnerait le nom alphabétiquement le
+                -- plus grand). Sémantique correcte : la DERNIÈRE clé saisie (DATEUPD max).
                 SELECT
                     MAX(CASE WHEN PARAMETRE='ALLOC_GRP_HOLDING' THEN KEY_ALLOC END) AS K1,
-                    MAX(CASE WHEN PARAMETRE='ALLOC_BRAND_CAMP' THEN KEY_ALLOC END) AS K2,
-                    MAX(CASE WHEN PARAMETRE='ALLOC_CAMP_CLASS' THEN KEY_ALLOC END) AS K3,
-                    MAX(CASE WHEN PARAMETRE='ALLOC_GRP_MARQUE' THEN KEY_ALLOC END) AS K4
-                FROM AW_002_000001_000001
-                WHERE PARAMETRE IN ('ALLOC_GRP_HOLDING','ALLOC_BRAND_CAMP','ALLOC_CAMP_CLASS','ALLOC_GRP_MARQUE')
+                    MAX(CASE WHEN PARAMETRE='ALLOC_BRAND_CAMP'  THEN KEY_ALLOC END) AS K2,
+                    MAX(CASE WHEN PARAMETRE='ALLOC_CAMP_CLASS'  THEN KEY_ALLOC END) AS K3,
+                    MAX(CASE WHEN PARAMETRE='ALLOC_GRP_MARQUE'  THEN KEY_ALLOC END) AS K4
+                FROM (
+                    SELECT PARAMETRE, KEY_ALLOC,
+                           ROW_NUMBER() OVER (PARTITION BY PARAMETRE ORDER BY DATEUPD DESC) AS RN
+                    FROM AW_002_000001_000001
+                    WHERE PARAMETRE IN ('ALLOC_GRP_HOLDING','ALLOC_BRAND_CAMP','ALLOC_CAMP_CLASS','ALLOC_GRP_MARQUE')
+                ) WHERE RN = 1   -- ne garde que la dernière ligne par paramètre
             ) k
         ) b
     ) s
