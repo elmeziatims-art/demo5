@@ -48,18 +48,25 @@ WHERE ENTITY   IN (${$Entity.code})
 -- Source socle. Filtré par Entity + Exercice (le compte STA_* n'est pas requis :
 -- on montre tout le funnel à la maille fine).
 -- =============================================================================
-SELECT ENTITY AS "Campus", PROGRAMME AS "Programme", AN_ETUDE AS "Année", MODALITE AS "Modalité",
-       SUM(VOL_LEAD)  AS "Leads",
-       SUM(VOL_CAND)  AS "Candidatures",
-       SUM(VOL_ADMIS) AS "Admis",
-       SUM(VOL_NEW)   AS "Inscrits",
-       SUM(VOL_EFF)   AS "Effectif",
-       SUM(DEPENSE_ACQ) AS "Dépense acq."
-FROM  AW_002_000002_000001
-WHERE ENTITY   IN (${$Entity.code})
-  AND EXERCICE IN (${$ANL_EXERCICE.code})
-GROUP BY ENTITY, PROGRAMME, AN_ETUDE, MODALITE
-ORDER BY PROGRAMME, AN_ETUDE, MODALITE;
+-- Libellés dispo côté CRM : azienda (campus), ED_EXERCICE (exercice).
+-- Programme / Année / Modalité restent en code (leurs tables de dim ne sont
+-- pas encore câblées ; il suffira d'ajouter les LEFT JOIN quand tu me les donnes).
+SELECT d.ENTITY   AS "Campus",   a.DESC_AZIENDA0 AS "Libellé campus",
+       d.EXERCICE AS "Exercice", e.DESC0         AS "Libellé exercice",
+       d.PROGRAMME AS "Programme", d.AN_ETUDE AS "Année", d.MODALITE AS "Modalité",
+       SUM(d.VOL_LEAD)  AS "Leads",
+       SUM(d.VOL_CAND)  AS "Candidatures",
+       SUM(d.VOL_ADMIS) AS "Admis",
+       SUM(d.VOL_NEW)   AS "Inscrits",
+       SUM(d.VOL_EFF)   AS "Effectif",
+       SUM(d.DEPENSE_ACQ) AS "Dépense acq."
+FROM  AW_002_000002_000001 d
+LEFT JOIN azienda     a ON a.COD_AZIENDA = d.ENTITY
+LEFT JOIN ED_EXERCICE e ON e.COD         = d.EXERCICE
+WHERE d.ENTITY   IN (${$Entity.code})
+  AND d.EXERCICE IN (${$ANL_EXERCICE.code})
+GROUP BY d.ENTITY, a.DESC_AZIENDA0, d.EXERCICE, e.DESC0, d.PROGRAMME, d.AN_ETUDE, d.MODALITE
+ORDER BY d.PROGRAMME, d.AN_ETUDE, d.MODALITE;
 
 
 -- =============================================================================
