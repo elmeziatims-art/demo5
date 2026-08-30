@@ -48,12 +48,14 @@ WHERE ENTITY   IN (${$Entity.code})
 -- Source socle. Filtré par Entity + Exercice (le compte STA_* n'est pas requis :
 -- on montre tout le funnel à la maille fine).
 -- =============================================================================
--- Libellés dispo côté CRM : azienda (campus), ED_EXERCICE (exercice).
--- Programme / Année / Modalité restent en code (leurs tables de dim ne sont
--- pas encore câblées ; il suffira d'ajouter les LEFT JOIN quand tu me les donnes).
-SELECT d.ENTITY   AS "Campus",   a.DESC_AZIENDA0 AS "Libellé campus",
-       d.EXERCICE AS "Exercice", e.DESC0         AS "Libellé exercice",
-       d.PROGRAMME AS "Programme", d.AN_ETUDE AS "Année", d.MODALITE AS "Modalité",
+-- Libellés côté CRM : azienda (campus), ED_EXERCICE (exercice),
+-- ED_PROGRAMME (programme), ED_MODALITE (modalité) — famille ED_* en COD/DESC0.
+-- Seule "Année d'études" reste en code (sa table de dim n'est pas encore câblée).
+SELECT d.ENTITY    AS "Campus",    a.DESC_AZIENDA0 AS "Libellé campus",
+       d.EXERCICE  AS "Exercice",  e.DESC0         AS "Libellé exercice",
+       d.PROGRAMME AS "Programme", p.DESC0         AS "Libellé programme",
+       d.MODALITE  AS "Modalité",  m.DESC0         AS "Libellé modalité",
+       d.AN_ETUDE  AS "Année",
        SUM(d.VOL_LEAD)  AS "Leads",
        SUM(d.VOL_CAND)  AS "Candidatures",
        SUM(d.VOL_ADMIS) AS "Admis",
@@ -61,11 +63,14 @@ SELECT d.ENTITY   AS "Campus",   a.DESC_AZIENDA0 AS "Libellé campus",
        SUM(d.VOL_EFF)   AS "Effectif",
        SUM(d.DEPENSE_ACQ) AS "Dépense acq."
 FROM  AW_002_000002_000001 d
-LEFT JOIN azienda     a ON a.COD_AZIENDA = d.ENTITY
-LEFT JOIN ED_EXERCICE e ON e.COD         = d.EXERCICE
+LEFT JOIN azienda      a ON a.COD_AZIENDA = d.ENTITY
+LEFT JOIN ED_EXERCICE  e ON e.COD         = d.EXERCICE
+LEFT JOIN ED_PROGRAMME p ON p.COD         = d.PROGRAMME
+LEFT JOIN ED_MODALITE  m ON m.COD         = d.MODALITE
 WHERE d.ENTITY   IN (${$Entity.code})
   AND d.EXERCICE IN (${$ANL_EXERCICE.code})
-GROUP BY d.ENTITY, a.DESC_AZIENDA0, d.EXERCICE, e.DESC0, d.PROGRAMME, d.AN_ETUDE, d.MODALITE
+GROUP BY d.ENTITY, a.DESC_AZIENDA0, d.EXERCICE, e.DESC0,
+         d.PROGRAMME, p.DESC0, d.MODALITE, m.DESC0, d.AN_ETUDE
 ORDER BY d.PROGRAMME, d.AN_ETUDE, d.MODALITE;
 
 
