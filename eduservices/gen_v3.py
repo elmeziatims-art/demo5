@@ -30,7 +30,7 @@ PROGS={
           ("Mastère Communication","MAST",[("M1","ALT"),("M2","ALT")])],
  "Ipac Bachelor Factory":[("Bachelor Commerce","BAC",[("B1","ALT"),("B2","ALT"),("B3","ALT")])],
  "Pigier":[("BTS Gestion","BTS",[("1","ALT"),("2","ALT")]),
-           ("Bachelor RH","BAC",[("B1","ALT"),("B3","ALT")])],
+           ("Bachelor RH","BAC",[("B1","ALT"),("B2","ALT"),("B3","ALT")])],
  "Tunon":[("Bachelor Tourisme","BAC",[("B1","ALT"),("B2","ALT"),("B3","ALT")])],
 }
 ENTRY={"B1","M1","1"}
