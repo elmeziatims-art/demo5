@@ -177,9 +177,34 @@ la=r-1
 p2(r,1,"GROUPE",sz=9,b=True,col=TEALD)
 w2.cell(r,9,f"=SUM(I{ea}:I{la})").number_format=NUM; w2.cell(r,9).font=F(9,True,TEALD); w2.cell(r,9).alignment=RGT
 for j in range(1,10): w2.cell(r,j).fill=fill(GREENBG); w2.cell(r,j).border=Border(top=med,bottom=med)
-p2(r+2,1,"Les deux leviers (acquisition + marque) alimentent le MÊME funnel → candidatures → inscrits → CA.",sz=9,b=True,col=OCHRE)
+r+=3
+
+# --- BLOC B : back-test organique (même méthode que l'acquisition) ---
+p2(r,1,"②  La preuve — back-test organique (calibré 24→25, prédit 2026)",sz=12,b=True,col=TEALD); r+=1
+p2(r,1,"Élasticité marque calculée sur 2024→2025 seulement, puis : organiques 2026 prédits = org.25 × (budget marque 26 ÷ budget marque 25) ^ élasticité(24→25).",sz=8,col=SOFT,it=True); r+=2
+hr=r
+h2(hr,["Campus","Org.24","Org.25","Bud.mq24","Bud.mq25","Bud.mq26","Élast 24→25","Org.26 prédit","Org.26 réel","Écart"])
+r=hr+1; eb=r
+for d in ORG:
+    p2(r,1,MQ[d['campus'].split('_')[0]]+" "+NAME_ORG[d['campus']],sz=9)
+    p2(r,2,d['o24'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); p2(r,3,d['o25'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)
+    p2(r,4,d['b24'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); p2(r,5,d['b25'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); p2(r,6,d['b26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)
+    p2(r,7,f"=LN(C{r}/B{r})/LN(E{r}/D{r})",sz=9,col=SOFT,al=RGT,fmt=DEC3)   # G élast 24->25
+    p2(r,8,f"=C{r}*(F{r}/E{r})^G{r}",sz=9,b=True,col=NAVY,al=RGT,fmt=NUM)   # H org26 prédit
+    p2(r,9,d['o26'],sz=9,al=RGT,fmt=NUM)                                    # I org26 réel
+    p2(r,10,f"=H{r}/I{r}-1",sz=9,b=True,col=GREEN,al=RGT,fmt=SPCT)          # J écart
+    for j in range(1,11): w2.cell(r,j).border=Border(bottom=thin)
+    r+=1
+lb=r-1
+p2(r,1,"GROUPE",sz=9,b=True,col=TEALD)
+w2.cell(r,8,f"=SUM(H{eb}:H{lb})").number_format=NUM; w2.cell(r,8).font=F(9,True,TEALD); w2.cell(r,8).alignment=RGT
+w2.cell(r,9,f"=SUM(I{eb}:I{lb})").number_format=NUM; w2.cell(r,9).font=F(9,True,TEALD); w2.cell(r,9).alignment=RGT
+w2.cell(r,10,f"=H{r}/I{r}-1").number_format=SPCT; w2.cell(r,10).font=F(9,True,GREEN); w2.cell(r,10).alignment=RGT
+for j in range(1,11): w2.cell(r,j).fill=fill(GREENBG); w2.cell(r,j).border=Border(top=med,bottom=med)
+r+=2
+p2(r,1,"Le moteur retrouve aussi les organiques 2026 sans les avoir vus. Les deux leviers (acquisition + marque) alimentent le MÊME funnel → inscrits → CA.",sz=9,b=True,col=OCHRE)
 w2.column_dimensions['A'].width=22
-for col in "BCDEFGHI": w2.column_dimensions[col].width=12
+for col in "BCDEFGHIJ": w2.column_dimensions[col].width=12
 w2.freeze_panes="B4"
 
 wb.calculation.fullCalcOnLoad=True
