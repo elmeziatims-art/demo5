@@ -1,0 +1,49 @@
+-- =============================================================================
+-- INSERT — complète la cohorte Pigier Bachelor RH avec le niveau B2
+-- Table socle CRM : AW_002_000002_000001
+-- Campus : PIGIER_BOR, PIGIER_LYO   ·   Exercices : 2024, 2025, 2026
+--
+-- B2 = année de POURSUITE (comme B3) : aucun recrutement ni marketing.
+--   VOL_NEW = VOL_LEAD = VOL_CAND = VOL_ADMIS = 0
+--   VOL_LEAD_ORG = VOL_LEAD_PAY = DEPENSE_ACQ = DEPENSE_MARQUE = 0
+--   VOL_REINS = VOL_EFF   (l'effectif est intégralement réinscrit)
+--   VOL_EFF   = round(effectif B1 × 0,97)   (rétention intra-cycle, PASS['B2'])
+--   VOL_EFF_INF = effectif B1 (niveau inférieur)   ·   VOL_CLASS = 2
+--   REV_STUD = tarif ALT du campus (BOR 6790 / LYO 7350)   ·   REV_FRAIS_INS = 90
+--
+-- Valeurs issues du modèle régénéré gen_v3.py (chaîne B1→B2→B3 cohérente).
+-- =============================================================================
+INSERT INTO AW_002_000002_000001
+ (SCENARIO, PERIODE, ENTITY, PROGRAMME, AN_ETUDE, MODALITE, EXERCICE,
+  VOL_LEAD, VOL_CAND, VOL_ADMIS, VOL_NEW, VOL_REINS, VOL_EFF, VOL_EFF_INF, VOL_CLASS,
+  REV_STUD, REV_FRAIS_INS, VOL_LEAD_ORG, VOL_LEAD_PAY, DEPENSE_ACQ, DEPENSE_MARQUE,
+  USERUPD, DATEUPD, PROVENIENZA)
+VALUES
+ ('2027BUD_V1', 12, 'PIGIER_BOR', 'BAC_RH', 'B2', 'ALT', '2024',
+   0, 0, 0, 0, 31, 31, 32, 2, 6790, 90, 0, 0, 0, 0, 'CCH', CURRENT_TIMESTAMP, 'QDL'),
+ ('2027BUD_V1', 12, 'PIGIER_BOR', 'BAC_RH', 'B2', 'ALT', '2025',
+   0, 0, 0, 0, 33, 33, 34, 2, 6790, 90, 0, 0, 0, 0, 'CCH', CURRENT_TIMESTAMP, 'QDL'),
+ ('2027BUD_V1', 12, 'PIGIER_BOR', 'BAC_RH', 'B2', 'ALT', '2026',
+   0, 0, 0, 0, 35, 35, 36, 2, 6790, 90, 0, 0, 0, 0, 'CCH', CURRENT_TIMESTAMP, 'QDL'),
+ ('2027BUD_V1', 12, 'PIGIER_LYO', 'BAC_RH', 'B2', 'ALT', '2024',
+   0, 0, 0, 0, 40, 40, 41, 2, 7350, 90, 0, 0, 0, 0, 'CCH', CURRENT_TIMESTAMP, 'QDL'),
+ ('2027BUD_V1', 12, 'PIGIER_LYO', 'BAC_RH', 'B2', 'ALT', '2025',
+   0, 0, 0, 0, 42, 42, 43, 2, 7350, 90, 0, 0, 0, 0, 'CCH', CURRENT_TIMESTAMP, 'QDL'),
+ ('2027BUD_V1', 12, 'PIGIER_LYO', 'BAC_RH', 'B2', 'ALT', '2026',
+   0, 0, 0, 0, 45, 45, 46, 2, 7350, 90, 0, 0, 0, 0, 'CCH', CURRENT_TIMESTAMP, 'QDL');
+
+-- ── OPTIONNEL — pour coller EXACTEMENT au modèle régénéré (chaîne 36→35→34) ──
+-- Sans ça : B3 retient encore depuis B1 (B1=36, B2=35, B3=35, cohérent mais plat).
+-- Avec ça : B3 retient depuis B2 → B1=36, B2=35, B3=34 (identique à gen_v3).
+-- UPDATE AW_002_000002_000001 SET VOL_EFF=30, VOL_REINS=30, VOL_EFF_INF=31
+--   WHERE ENTITY='PIGIER_BOR' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2024';
+-- UPDATE AW_002_000002_000001 SET VOL_EFF=32, VOL_REINS=32, VOL_EFF_INF=33
+--   WHERE ENTITY='PIGIER_BOR' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2025';
+-- UPDATE AW_002_000002_000001 SET VOL_EFF=34, VOL_REINS=34, VOL_EFF_INF=35
+--   WHERE ENTITY='PIGIER_BOR' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2026';
+-- UPDATE AW_002_000002_000001 SET VOL_EFF=39, VOL_REINS=39, VOL_EFF_INF=40
+--   WHERE ENTITY='PIGIER_LYO' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2024';
+-- UPDATE AW_002_000002_000001 SET VOL_EFF=41, VOL_REINS=41, VOL_EFF_INF=42
+--   WHERE ENTITY='PIGIER_LYO' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2025';
+-- UPDATE AW_002_000002_000001 SET VOL_EFF=44, VOL_REINS=44, VOL_EFF_INF=45
+--   WHERE ENTITY='PIGIER_LYO' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2026';
