@@ -1,19 +1,19 @@
 -- =============================================================================
--- INSERT — complète la cohorte Pigier Bachelor RH avec le niveau B2
--- Table socle CRM : AW_002_000002_000001
+-- PIGIER Bachelor RH — complète la cohorte B2 (socle CRM + compensation compta)
 -- Campus : PIGIER_BOR, PIGIER_LYO   ·   Exercices : 2024, 2025, 2026
 --
--- ⚠ SAP HANA n'accepte PAS le multi-lignes VALUES (…),(…) : un INSERT par ligne.
+-- ⚠ SAP HANA : pas de multi-lignes VALUES (…),(…) → un INSERT/UPDATE par ligne.
+-- ⚠ Les 3 sections forment un TOUT cohérent : à passer ENSEMBLE (les deltas de
+--   CA de la section C intègrent le réenchaînement du B3 de la section B).
 --
--- B2 = année de POURSUITE (comme B3) : aucun recrutement ni marketing.
---   VOL_NEW = VOL_LEAD = VOL_CAND = VOL_ADMIS = 0
---   VOL_LEAD_ORG = VOL_LEAD_PAY = DEPENSE_ACQ = DEPENSE_MARQUE = 0
---   VOL_REINS = VOL_EFF   (l'effectif est intégralement réinscrit)
---   VOL_EFF   = round(effectif B1 × 0,97)   ·   VOL_EFF_INF = effectif B1   ·   VOL_CLASS = 2
---   REV_STUD = tarif ALT du campus (BOR 6790 / LYO 7350)   ·   REV_FRAIS_INS = 90
--- Valeurs issues du modèle régénéré gen_v3.py (chaîne B1→B2→B3 cohérente).
+-- Alternative « propre » : recharger le modèle complet régénéré
+-- (EDUSERVICES_Modele_CA_v3.xlsx) dans Tagetik — socle ET compta bougent alors
+-- ensemble sur TOUS les comptes/campus. Ce script est le patch SQL équivalent,
+-- ciblé sur Pigier (revenu 7062 ajusté ; charges laissées inchangées → la
+-- nouvelle cohorte est absorbée par la structure existante, footing préservé).
 -- =============================================================================
 
+-- ── A) SOCLE — insère le niveau B2 (année de poursuite : marketing = 0, VOL_REINS = VOL_EFF) ──
 INSERT INTO AW_002_000002_000001
  (SCENARIO, PERIODE, ENTITY, PROGRAMME, AN_ETUDE, MODALITE, EXERCICE,
   VOL_LEAD, VOL_CAND, VOL_ADMIS, VOL_NEW, VOL_REINS, VOL_EFF, VOL_EFF_INF, VOL_CLASS,
@@ -62,18 +62,46 @@ INSERT INTO AW_002_000002_000001
  VALUES ('2027BUD_V1', 12, 'PIGIER_LYO', 'BAC_RH', 'B2', 'ALT', '2026',
          0, 0, 0, 0, 45, 45, 46, 2, 7350, 90, 0, 0, 0, 0, 'CCH', CURRENT_TIMESTAMP, 'QDL');
 
--- ── OPTIONNEL — pour coller EXACTEMENT au modèle régénéré (chaîne 36→35→34) ──
--- Sans ça : B3 retient encore depuis B1 (B1=36, B2=35, B3=35, cohérent mais plat).
--- Avec ça : B3 retient depuis B2 → B1=36, B2=35, B3=34 (identique à gen_v3).
--- UPDATE AW_002_000002_000001 SET VOL_EFF=30, VOL_REINS=30, VOL_EFF_INF=31
---   WHERE ENTITY='PIGIER_BOR' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2024';
--- UPDATE AW_002_000002_000001 SET VOL_EFF=32, VOL_REINS=32, VOL_EFF_INF=33
---   WHERE ENTITY='PIGIER_BOR' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2025';
--- UPDATE AW_002_000002_000001 SET VOL_EFF=34, VOL_REINS=34, VOL_EFF_INF=35
---   WHERE ENTITY='PIGIER_BOR' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2026';
--- UPDATE AW_002_000002_000001 SET VOL_EFF=39, VOL_REINS=39, VOL_EFF_INF=40
---   WHERE ENTITY='PIGIER_LYO' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2024';
--- UPDATE AW_002_000002_000001 SET VOL_EFF=41, VOL_REINS=41, VOL_EFF_INF=42
---   WHERE ENTITY='PIGIER_LYO' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2025';
--- UPDATE AW_002_000002_000001 SET VOL_EFF=44, VOL_REINS=44, VOL_EFF_INF=45
---   WHERE ENTITY='PIGIER_LYO' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2026';
+-- ── B) SOCLE — réenchaîne le B3 (retient depuis B2 → chaîne 36→35→34, = gen_v3) ──
+UPDATE AW_002_000002_000001 SET VOL_EFF=30, VOL_REINS=30, VOL_EFF_INF=31
+  WHERE ENTITY='PIGIER_BOR' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2024';
+UPDATE AW_002_000002_000001 SET VOL_EFF=32, VOL_REINS=32, VOL_EFF_INF=33
+  WHERE ENTITY='PIGIER_BOR' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2025';
+UPDATE AW_002_000002_000001 SET VOL_EFF=34, VOL_REINS=34, VOL_EFF_INF=35
+  WHERE ENTITY='PIGIER_BOR' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2026';
+UPDATE AW_002_000002_000001 SET VOL_EFF=39, VOL_REINS=39, VOL_EFF_INF=40
+  WHERE ENTITY='PIGIER_LYO' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2024';
+UPDATE AW_002_000002_000001 SET VOL_EFF=41, VOL_REINS=41, VOL_EFF_INF=42
+  WHERE ENTITY='PIGIER_LYO' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2025';
+UPDATE AW_002_000002_000001 SET VOL_EFF=44, VOL_REINS=44, VOL_EFF_INF=45
+  WHERE ENTITY='PIGIER_LYO' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2026';
+
+-- ── C) COMPTA — aligne le revenu 7062 sur le nouveau CA socle (Δ = CA régénéré − CA actuel) ──
+--   Réconciliation : CA socle (VOL_EFF×REV_STUD) == 7062 + 708 par campus×exercice.
+--   Charges (621/6411/…) laissées inchangées : total campus constant → footing préservé.
+UPDATE AW_002_000004_000001 SET AMOUNT = AMOUNT + 203700
+  WHERE ENTITY='PIGIER_BOR' AND ACCOUNT='7062' AND EXERCICE='2024';
+UPDATE AW_002_000004_000001 SET AMOUNT = AMOUNT + 217280
+  WHERE ENTITY='PIGIER_BOR' AND ACCOUNT='7062' AND EXERCICE='2025';
+UPDATE AW_002_000004_000001 SET AMOUNT = AMOUNT + 230860
+  WHERE ENTITY='PIGIER_BOR' AND ACCOUNT='7062' AND EXERCICE='2026';
+UPDATE AW_002_000004_000001 SET AMOUNT = AMOUNT + 286650
+  WHERE ENTITY='PIGIER_LYO' AND ACCOUNT='7062' AND EXERCICE='2024';
+UPDATE AW_002_000004_000001 SET AMOUNT = AMOUNT + 308700
+  WHERE ENTITY='PIGIER_LYO' AND ACCOUNT='7062' AND EXERCICE='2025';
+UPDATE AW_002_000004_000001 SET AMOUNT = AMOUNT + 323400
+  WHERE ENTITY='PIGIER_LYO' AND ACCOUNT='7062' AND EXERCICE='2026';
+
+-- =============================================================================
+-- Contrôle post-exécution (doit renvoyer 0 ligne = CA socle == compta revenu) :
+--   SELECT s.ENTITY, s.EXERCICE,
+--          SUM(s.VOL_EFF*s.REV_STUD + s.VOL_NEW*s.REV_FRAIS_INS)      AS CA_SOCLE,
+--          (SELECT SUM(c.AMOUNT) FROM AW_002_000004_000001 c
+--            WHERE c.ENTITY=s.ENTITY AND c.EXERCICE=s.EXERCICE AND c.ACCOUNT IN ('706','7062','708')) AS CA_COMPTA
+--   FROM AW_002_000002_000001 s
+--   WHERE s.ENTITY IN ('PIGIER_BOR','PIGIER_LYO')
+--   GROUP BY s.ENTITY, s.EXERCICE
+--   HAVING ABS(SUM(s.VOL_EFF*s.REV_STUD + s.VOL_NEW*s.REV_FRAIS_INS)
+--          - (SELECT SUM(c.AMOUNT) FROM AW_002_000004_000001 c
+--              WHERE c.ENTITY=s.ENTITY AND c.EXERCICE=s.EXERCICE AND c.ACCOUNT IN ('706','7062','708'))) > 1;
+-- =============================================================================
