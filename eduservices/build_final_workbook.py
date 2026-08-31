@@ -10,7 +10,14 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 INK="152230"; TEAL="0D7A62"; TEALD="0A5A48"; TEALBG="E2EFEB"; WHITE="FFFFFF"; RULE="C8D2DA"
-SOFT="51606D"; OCHRE="B3641C"; OCHRED="8A4A12"; GREEN="1E7A55"; FAINT="7D8B98"; L0BG="DCE7EE"; L1BG="EAF0F4"; SPECBG="FBF4E6"
+SOFT="51606D"; OCHRE="B3641C"; OCHRED="8A4A12"; GREEN="1E7A55"; FAINT="7D8B98"; L0BG="DCE7EE"; L1BG="EAF0F4"; SPECBG="FBF4E6"; NAVY="3D4F8F"
+# Membres des dimensions du modèle (pour construire les matrices Tagetik)
+DIM_MARQUE   = "MBWAY · ISCOM · IPAC · PIGIER · TUNON"
+DIM_CAMPUS   = "MBWAY_BOR/LYO/NAN/PAR · ISCOM_LIL/PAR/TLS · IPAC_MTP/NAN/REN · PIGIER_BOR/LYO · TUNON_LYO/PAR   (14 campus)"
+DIM_PROG     = "BAC_CCE · BAC_COM · BAC_MGT · BAC_RH · BAC_TOU · BTS_GES · MAS_COM · MAS_MGT"
+DIM_AN       = "B1 · B2 · B3 · BTS1 · BTS2 · M1 · M2"
+DIM_MOD      = "INIT (Initial) · ALT (Alternance)"
+DIM_EX_REEL  = "2024 · 2025 · 2026   (réel ; le budget = 2027)"
 AR="Arial"
 def F(sz=10,b=False,c=INK,it=False): return Font(name=AR,size=sz,bold=b,color=c,italic=it)
 def fill(c): return PatternFill("solid",fgColor=c)
@@ -96,15 +103,31 @@ def agg(node):
             return
         for v in n.values(): rec(v)
     rec(node); return t
-def spec(ws,r,title,source,dims,elems):
+def spec(ws,r,title,source,dims,members,elems):
     ws.sheet_view.showGridLines=False
     ws.cell(r,1,title).font=F(14,True,INK); r+=1
     ws.cell(r,1,"Source (vue)").font=F(9,True,OCHRED); ws.cell(r,2,source).font=F(9,False,INK); r+=1
     ws.cell(r,1,"Dimensions").font=F(9,True,OCHRED); ws.cell(r,2,dims).font=F(9,False,INK); r+=1
-    ws.cell(r,1,"Éléments").font=F(9,True,OCHRED); r+=1
+    ws.cell(r,1,"Membres des dimensions (matrice Tagetik)").font=F(9,True,NAVY); r+=1
+    for dim,mem in members:
+        ws.cell(r,1,"   "+dim).font=F(8.5,True,NAVY); ws.cell(r,2,mem).font=F(8.5,False,SOFT); r+=1
+    ws.cell(r,1,"Mesures / comptes").font=F(9,True,OCHRED); r+=1
     for lab,comp in elems:
         ws.cell(r,1,"   "+lab).font=F(8.5,True,TEALD); ws.cell(r,2,comp).font=F(8.5,False,SOFT); r+=1
     for j in range(1,9): ws.cell(r,j).fill=fill(SPECBG); ws.cell(r,j).border=Border(bottom=med)
+    return r+1
+def livespec(ws,r0,source,dims,members,fields):
+    """Panneau de spécification (vue + dimensions + membres) sous le contenu vivant."""
+    ws.cell(r0,1,"◆ SPÉCIFICATION — pour reconstruire via une matrice Tagetik").font=F(12,True,INK); r=r0+1
+    ws.cell(r,1,"Source (vue)").font=F(9,True,OCHRED); ws.cell(r,2,source).font=F(9,False,INK); r+=1
+    ws.cell(r,1,"Dimensions").font=F(9,True,OCHRED); ws.cell(r,2,dims).font=F(9,False,INK); r+=1
+    ws.cell(r,1,"Membres des dimensions").font=F(9,True,NAVY); r+=1
+    for dim,mem in members:
+        ws.cell(r,1,"   "+dim).font=F(8.5,True,NAVY); ws.cell(r,2,mem).font=F(8.5,False,SOFT); r+=1
+    ws.cell(r,1,"Champs de la vue").font=F(9,True,OCHRED); r+=1
+    for lab,comp in fields:
+        ws.cell(r,1,"   "+lab).font=F(8.5,True,TEALD); ws.cell(r,2,comp).font=F(8.5,False,SOFT); r+=1
+    for j in range(1,3): ws.cell(r,j).border=Border(bottom=med)
     return r+1
 def hdr(ws,r,cols):
     for j,h in enumerate(cols,1):
@@ -114,10 +137,32 @@ def hdr(ws,r,cols):
 wb=openpyxl.load_workbook("/home/user/demo5/eduservices/tagetik/LE_MOTEUR_MODELE.xlsx")
 print("onglets vivants repris :",wb.sheetnames)
 
+# ---- spec sous le contenu vivant (sans toucher aux formules au-dessus) ----
+wm=wb["Le moteur (modèle)"]
+livespec(wm,58,
+    "V_CAMPAGNES (calibration : élasticité acquisition, conversion, réfs)  +  socle AW_002_000002_000001 (CA/inscrit réel)",
+    "ENTITY (campus) ▸ groupé par MARQUE   —   l'élasticité vit au campus, la marque = sous-total",
+    [("MARQUE",DIM_MARQUE),("CAMPUS (ENTITY)",DIM_CAMPUS)],
+    [("Leads payants (L.pay 24/25/26)","PAID_REF / LEAD_REF  (V_CAMPAGNES)"),
+     ("Budget acquisition (Bud.24/25/26)","SPEND_ACQ_REF  (compte 6231, V_CAMPAGNES)"),
+     ("Élasticité","REND_ACQ = régression 3 ans  =SLOPE(LN(leads);LN(budget))"),
+     ("Conversion","CONVERSION = inscrits ÷ leads  (V_CAMPAGNES)"),
+     ("CA / inscrit","(VOL_NEW·REV_STUD + VOL_NEW·REV_FRAIS_INS) ÷ VOL_NEW  par campus (socle 2026)")])
+wo=wb["Budget de marque (organique)"]
+livespec(wo,48,
+    "V_CAMPAGNES (élasticité marque, réfs organiques)  +  socle AW_002_000002_000001",
+    "ENTITY (campus) ▸ groupé par MARQUE",
+    [("MARQUE",DIM_MARQUE),("CAMPUS (ENTITY)",DIM_CAMPUS)],
+    [("Budget de marque (Bud.mq 24/25/26)","SPEND_BRAND_REF  (compte 6236, V_CAMPAGNES)"),
+     ("Leads organiques (Org.24/25/26)","ORG_REF  (V_CAMPAGNES)"),
+     ("Élasticité marque","REND_BRAND = régression 3 ans  =SLOPE(LN(organiques);LN(budget marque))")])
+
 # ---- ajoute Alloué ----
 wa=wb.create_sheet("Alloué 2026"); wa.sheet_properties.outlinePr.summaryBelow=False
 r=spec(wa,1,"RESTITUTION — P&L chargé 2026 (avant / après allocation)","V_ALLOCATION  (Q_RAPPORT_ALLOUE)",
-    "Marque ▸ Campus ▸ Programme ▸ Année ▸ Modalité",
+    "Marque ▸ Campus ▸ Programme ▸ Année ▸ Modalité   ·   EXERCICE = 2026",
+    [("MARQUE",DIM_MARQUE),("CAMPUS (ENTITY)",DIM_CAMPUS),("PROGRAMME",DIM_PROG),
+     ("AN_ETUDE",DIM_AN),("MODALITE",DIM_MOD),("EXERCICE","2026")],
     [("Effectif / CA","VOL_EFF / (706+7062+708)"),
      ("EBITDA propre","CA − (621+6411 + 604/6063/6231 + 6413/645/613/615/616/625/63511)"),
      ("Quote-part siège","6236 + 6414/6226/626/6281/6331/6333  (= COST_SIEGE)"),
@@ -159,8 +204,10 @@ for col,w in zip("BCDEFG",[10,13,13,12,13,9]): wa.column_dimensions[col].width=w
 # ---- ajoute Évolution ----
 we=wb.create_sheet("Évolution 24-26"); we.sheet_properties.outlinePr.summaryBelow=False
 DPCT='+0.0%;-0.0%;0.0%'
-r=spec(we,1,"RESTITUTION — Évolution CA · Charges · Marge 2024→2026","V_ALLOCATION  (Q_RAPPORT_EVOLUTION, VERSION='ACT')",
-    "Marque ▸ Campus ▸ Programme ▸ Année ▸ Modalité",
+r=spec(we,1,"RESTITUTION — Évolution CA · Charges · Marge 2024→2026","V_ALLOCATION  (Q_RAPPORT_EVOLUTION)",
+    "Marque ▸ Campus ▸ Programme ▸ Année ▸ Modalité   ·   EXERCICE en colonnes",
+    [("MARQUE",DIM_MARQUE),("CAMPUS (ENTITY)",DIM_CAMPUS),("PROGRAMME",DIM_PROG),
+     ("AN_ETUDE",DIM_AN),("MODALITE",DIM_MOD),("EXERCICE",DIM_EX_REEL)],
     [("CA","706 + 7062 + 708  (valeur par exercice)"),
      ("Charges","CA − EBITDA net  (coût complet chargé, = MARGE_COMPLETE retranchée)"),
      ("Marge","= CA − Charges  (formule)"),
