@@ -72,7 +72,13 @@ for m in ORDER:
     sub=r
     first=r+1; last=r+len(ds)
     put(sub,1,MQ[m],sz=10,b=True,col=TEALD,al=LI(0))
-    put(sub,8,"—",sz=9,col=FAINT,al=RGT)                                     # élasticité : n/a marque
+    # volumes historiques = somme des campus (additifs)
+    for cc,fm in ((2,NUM),(3,NUM),(4,NUM),(5,EUR),(6,EUR),(7,EUR)):
+        L=chr(64+cc); c=ws.cell(sub,cc,f"=SUM({L}{first}:{L}{last})"); c.number_format=fm; c.font=F(9,False,SOFT); c.alignment=RGT
+    put(sub,8,"—",sz=9,col=FAINT,al=RGT)                                     # élasticité : n/a marque (seul trou volontaire)
+    # conversion marque = moyenne pondérée réelle (Σ inscrits ÷ Σ leads du campus)
+    tn=sum(d['n26'] for d in ds); tl=sum(d['p26']+d['o26'] for d in ds)
+    c=ws.cell(sub,9, tn/tl if tl else 0); c.number_format=PCT; c.font=F(9,False,SOFT); c.alignment=RGT
     # CA/inscrit marque = CA gagné ÷ inscrits gagnés (moyenne pondérée RÉELLE)
     c=ws.cell(sub,10,f"=M{sub}/L{sub}"); c.number_format=EUR; c.font=F(10,False,SOFT); c.alignment=RGT
     for cc in (11,12,13,14):                                                 # effet = SUM
@@ -100,9 +106,12 @@ for m in ORDER:
 # GROUPE
 put(r,1,"GROUPE",sz=11,b=True,col=TEAL,al=LI(0))
 allc=[cr for (f,l) in gtot_rows for cr in range(f,l+1)]
-for cc in (11,12,13,14):
+for cc in (2,3,4,5,6,7,11,12,13,14):
     L=chr(64+cc); rng="+".join(f"{L}{cr}" for cr in allc)
-    c=ws.cell(r,cc,f"={rng}"); c.number_format=(EUR if cc in(11,13,14) else NUM); c.font=F(11,True,TEAL); c.alignment=RGT
+    c=ws.cell(r,cc,f"={rng}"); c.number_format=(EUR if cc in(5,6,7,11,13,14) else NUM); c.font=F(11,True if cc>=11 else False,TEAL if cc>=11 else SOFT); c.alignment=RGT
+put(r,8,"—",sz=11,col=FAINT,al=RGT)                                                              # élasticité : n/a
+_tn=sum(d['n26'] for d in CAMP); _tl=sum(d['p26']+d['o26'] for d in CAMP)
+c=ws.cell(r,9,_tn/_tl if _tl else 0); c.number_format=PCT; c.font=F(11,False,SOFT); c.alignment=RGT   # conv pondérée
 c=ws.cell(r,10,f"=M{r}/L{r}"); c.number_format=EUR; c.font=F(11,False,SOFT); c.alignment=RGT      # CA/inscrit moyen réel
 c=ws.cell(r,15,f"=K{r}/L{r}"); c.number_format=EUR; c.font=F(11,True,NAVY); c.alignment=RGT
 for j in range(1,16): ws.cell(r,j).fill=fill(GREENBG); ws.cell(r,j).border=Border(top=med,bottom=med)
