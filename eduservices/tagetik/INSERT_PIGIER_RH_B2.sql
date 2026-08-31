@@ -1,19 +1,20 @@
--- =============================================================================
--- PIGIER Bachelor RH — complète la cohorte B2 (socle CRM + compensation compta)
--- Campus : PIGIER_BOR, PIGIER_LYO   ·   Exercices : 2024, 2025, 2026
+-- ===========================================================================
+-- PIGIER Bachelor RH -- ajoute la cohorte B2 (socle CRM + compensation compta)
+-- Campus: PIGIER_BOR, PIGIER_LYO   Exercices: 2024, 2025, 2026
 --
--- ⚠ SAP HANA : pas de multi-lignes VALUES (…),(…) → un INSERT/UPDATE par ligne.
--- ⚠ Les 3 sections forment un TOUT cohérent : à passer ENSEMBLE (les deltas de
---   CA de la section C intègrent le réenchaînement du B3 de la section B).
+-- HANA: pas de multi-lignes VALUES (...),(...) -> un ordre par ligne.
+-- Fichier volontairement 100% ASCII (aucun accent/caractere special) pour
+-- eviter les erreurs d'encodage cote client (ex. "unexpected char 0x0").
+-- Les 3 sections forment un tout coherent: a passer ENSEMBLE (les deltas de CA
+-- de la section C integrent le reenchainement du B3 de la section B).
 --
--- Alternative « propre » : recharger le modèle complet régénéré
--- (EDUSERVICES_Modele_CA_v3.xlsx) dans Tagetik — socle ET compta bougent alors
--- ensemble sur TOUS les comptes/campus. Ce script est le patch SQL équivalent,
--- ciblé sur Pigier (revenu 7062 ajusté ; charges laissées inchangées → la
--- nouvelle cohorte est absorbée par la structure existante, footing préservé).
--- =============================================================================
+-- Alternative propre: recharger le modele complet regenere
+-- (EDUSERVICES_Modele_CA_v3.xlsx) dans Tagetik -- socle ET compta bougent alors
+-- ensemble sur tous les comptes/campus. Ce script est le patch SQL cible Pigier
+-- (revenu 7062 ajuste; charges inchangees -> footing des couts preserve).
+-- ===========================================================================
 
--- ── A) SOCLE — insère le niveau B2 (année de poursuite : marketing = 0, VOL_REINS = VOL_EFF) ──
+-- A) SOCLE -- insere le niveau B2 (annee de poursuite: marketing=0, VOL_REINS=VOL_EFF)
 INSERT INTO AW_002_000002_000001
  (SCENARIO, PERIODE, ENTITY, PROGRAMME, AN_ETUDE, MODALITE, EXERCICE,
   VOL_LEAD, VOL_CAND, VOL_ADMIS, VOL_NEW, VOL_REINS, VOL_EFF, VOL_EFF_INF, VOL_CLASS,
@@ -62,7 +63,7 @@ INSERT INTO AW_002_000002_000001
  VALUES ('2027BUD_V1', 12, 'PIGIER_LYO', 'BAC_RH', 'B2', 'ALT', '2026',
          0, 0, 0, 0, 45, 45, 46, 2, 7350, 90, 0, 0, 0, 0, 'CCH', CURRENT_TIMESTAMP, 'QDL');
 
--- ── B) SOCLE — réenchaîne le B3 (retient depuis B2 → chaîne 36→35→34, = gen_v3) ──
+-- B) SOCLE -- reenchaine le B3 (retient depuis B2 -> chaine 36->35->34, = gen_v3)
 UPDATE AW_002_000002_000001 SET VOL_EFF=30, VOL_REINS=30, VOL_EFF_INF=31
   WHERE ENTITY='PIGIER_BOR' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2024';
 UPDATE AW_002_000002_000001 SET VOL_EFF=32, VOL_REINS=32, VOL_EFF_INF=33
@@ -76,9 +77,9 @@ UPDATE AW_002_000002_000001 SET VOL_EFF=41, VOL_REINS=41, VOL_EFF_INF=42
 UPDATE AW_002_000002_000001 SET VOL_EFF=44, VOL_REINS=44, VOL_EFF_INF=45
   WHERE ENTITY='PIGIER_LYO' AND PROGRAMME='BAC_RH' AND AN_ETUDE='B3' AND EXERCICE='2026';
 
--- ── C) COMPTA — aligne le revenu 7062 sur le nouveau CA socle (Δ = CA régénéré − CA actuel) ──
---   Réconciliation : CA socle (VOL_EFF×REV_STUD) == 7062 + 708 par campus×exercice.
---   Charges (621/6411/…) laissées inchangées : total campus constant → footing préservé.
+-- C) COMPTA -- aligne le revenu 7062 sur le nouveau CA socle (delta = CA regen - CA actuel)
+--   Reconciliation: CA socle (VOL_EFF*REV_STUD) == 7062 + 708 par campus x exercice.
+--   Charges (621/6411/...) inchangees: total campus constant -> footing preserve.
 UPDATE AW_002_000004_000001 SET AMOUNT = AMOUNT + 203700
   WHERE ENTITY='PIGIER_BOR' AND ACCOUNT='7062' AND EXERCICE='2024';
 UPDATE AW_002_000004_000001 SET AMOUNT = AMOUNT + 217280
@@ -91,17 +92,3 @@ UPDATE AW_002_000004_000001 SET AMOUNT = AMOUNT + 308700
   WHERE ENTITY='PIGIER_LYO' AND ACCOUNT='7062' AND EXERCICE='2025';
 UPDATE AW_002_000004_000001 SET AMOUNT = AMOUNT + 323400
   WHERE ENTITY='PIGIER_LYO' AND ACCOUNT='7062' AND EXERCICE='2026';
-
--- =============================================================================
--- Contrôle post-exécution (doit renvoyer 0 ligne = CA socle == compta revenu) :
---   SELECT s.ENTITY, s.EXERCICE,
---          SUM(s.VOL_EFF*s.REV_STUD + s.VOL_NEW*s.REV_FRAIS_INS)      AS CA_SOCLE,
---          (SELECT SUM(c.AMOUNT) FROM AW_002_000004_000001 c
---            WHERE c.ENTITY=s.ENTITY AND c.EXERCICE=s.EXERCICE AND c.ACCOUNT IN ('706','7062','708')) AS CA_COMPTA
---   FROM AW_002_000002_000001 s
---   WHERE s.ENTITY IN ('PIGIER_BOR','PIGIER_LYO')
---   GROUP BY s.ENTITY, s.EXERCICE
---   HAVING ABS(SUM(s.VOL_EFF*s.REV_STUD + s.VOL_NEW*s.REV_FRAIS_INS)
---          - (SELECT SUM(c.AMOUNT) FROM AW_002_000004_000001 c
---              WHERE c.ENTITY=s.ENTITY AND c.EXERCICE=s.EXERCICE AND c.ACCOUNT IN ('706','7062','708'))) > 1;
--- =============================================================================
