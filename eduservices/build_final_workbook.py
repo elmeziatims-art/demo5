@@ -140,22 +140,22 @@ print("onglets vivants repris :",wb.sheetnames)
 # ---- spec sous le contenu vivant (sans toucher aux formules au-dessus) ----
 wm=wb["Le moteur (modèle)"]
 livespec(wm,58,
-    "V_CAMPAGNES (calibration : élasticité acquisition, conversion, réfs)  +  socle AW_002_000002_000001 (CA/inscrit réel)",
-    "ENTITY (campus) ▸ groupé par MARQUE   —   l'élasticité vit au campus, la marque = sous-total",
-    [("MARQUE",DIM_MARQUE),("CAMPUS (ENTITY)",DIM_CAMPUS)],
-    [("Leads payants (L.pay 24/25/26)","PAID_REF / LEAD_REF  (V_CAMPAGNES)"),
-     ("Budget acquisition (Bud.24/25/26)","SPEND_ACQ_REF  (compte 6231, V_CAMPAGNES)"),
-     ("Élasticité","REND_ACQ = régression 3 ans  =SLOPE(LN(leads);LN(budget))"),
-     ("Conversion","CONVERSION = inscrits ÷ leads  (V_CAMPAGNES)"),
-     ("CA / inscrit","(VOL_NEW·REV_STUD + VOL_NEW·REV_FRAIS_INS) ÷ VOL_NEW  par campus (socle 2026)")])
+    "V_MOTEUR_CAL  (source unique : séries annuelles par campus × exercice)",
+    "ENTITY (campus) ▸ groupé par MARQUE   en lignes   ·   EXERCICE (2024·2025·2026) en colonnes",
+    [("MARQUE",DIM_MARQUE),("CAMPUS (ENTITY)",DIM_CAMPUS),("EXERCICE",DIM_EX_REEL)],
+    [("Leads payants (L.pay 24/25/26)","LEAD_PAY  (par EXERCICE)"),
+     ("Budget acquisition (Bud.24/25/26)","SPEND_ACQ  (compte 6231, par EXERCICE)"),
+     ("Élasticité","MEMBRE CALCULÉ = LN(LEAD_PAY[2026]/LEAD_PAY[2024]) ÷ LN(SPEND_ACQ[2026]/SPEND_ACQ[2024])"),
+     ("Conversion","CONVERSION = INSCRITS ÷ LEAD_TOT  (par EXERCICE)"),
+     ("CA / inscrit","CA_PAR_INSCRIT  (par campus × EXERCICE, vrai chiffre)")])
 wo=wb["Budget de marque (organique)"]
 livespec(wo,48,
-    "V_CAMPAGNES (élasticité marque, réfs organiques)  +  socle AW_002_000002_000001",
-    "ENTITY (campus) ▸ groupé par MARQUE",
-    [("MARQUE",DIM_MARQUE),("CAMPUS (ENTITY)",DIM_CAMPUS)],
-    [("Budget de marque (Bud.mq 24/25/26)","SPEND_BRAND_REF  (compte 6236, V_CAMPAGNES)"),
-     ("Leads organiques (Org.24/25/26)","ORG_REF  (V_CAMPAGNES)"),
-     ("Élasticité marque","REND_BRAND = régression 3 ans  =SLOPE(LN(organiques);LN(budget marque))")])
+    "V_MOTEUR_CAL  (source unique : séries annuelles par campus × exercice)",
+    "ENTITY (campus) ▸ groupé par MARQUE   en lignes   ·   EXERCICE (2024·2025·2026) en colonnes",
+    [("MARQUE",DIM_MARQUE),("CAMPUS (ENTITY)",DIM_CAMPUS),("EXERCICE",DIM_EX_REEL)],
+    [("Budget de marque (Bud.mq 24/25/26)","SPEND_BRAND  (compte 6236, par EXERCICE)"),
+     ("Leads organiques (Org.24/25/26)","LEAD_ORG  (par EXERCICE)"),
+     ("Élasticité marque","MEMBRE CALCULÉ = LN(LEAD_ORG[2026]/LEAD_ORG[2024]) ÷ LN(SPEND_BRAND[2026]/SPEND_BRAND[2024])")])
 
 # ---- ajoute Alloué ----
 wa=wb.create_sheet("Alloué 2026"); wa.sheet_properties.outlinePr.summaryBelow=False
