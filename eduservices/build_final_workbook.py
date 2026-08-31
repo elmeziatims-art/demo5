@@ -158,11 +158,25 @@ for col,w in zip("BCDEFG",[10,13,13,12,13,9]): wa.column_dimensions[col].width=w
 
 # ---- ajoute Évolution ----
 we=wb.create_sheet("Évolution 24-26"); we.sheet_properties.outlinePr.summaryBelow=False
-r=spec(we,1,"RESTITUTION — Évolution de la marge chargée 2024→2026","V_ALLOCATION  (Q_RAPPORT_EVOLUTION, VERSION='ACT')",
-    "Marque ▸ Campus ▸ Programme ▸ Année ▸ Modalité  ·  EXERCICE en colonnes",
-    [("CA","706 + 7062 + 708"),("EBITDA net","MARGE_COMPLETE (coût complet chargé)"),
-     ("Marge nette %","EBITDA net ÷ CA par exercice"),("Δ (points)","Marge 2026 − Marge 2024")])
-hdr(we,r,["Marque ▸ Campus ▸ Programme ▸ Année ▸ Modalité","CA 2026","Marge 2024","Marge 2025","Marge 2026","Δ 26/24 (pt)"]); r+=1
+DPCT='+0.0%;-0.0%;0.0%'
+r=spec(we,1,"RESTITUTION — Évolution CA · Charges · Marge 2024→2026","V_ALLOCATION  (Q_RAPPORT_EVOLUTION, VERSION='ACT')",
+    "Marque ▸ Campus ▸ Programme ▸ Année ▸ Modalité",
+    [("CA","706 + 7062 + 708  (valeur par exercice)"),
+     ("Charges","CA − EBITDA net  (coût complet chargé, = MARGE_COMPLETE retranchée)"),
+     ("Marge","= CA − Charges  (formule)"),
+     ("Écart (€)","= valeur 2026 − valeur 2024  (formule)"),
+     ("Évolution (%)","= valeur 2026 ÷ valeur 2024 − 1  (formule)"),
+     ("Marge %","= Marge ÷ CA  (formule)")])
+# en-têtes sur 2 lignes : groupe puis année
+gh=r
+for c0,lab in ((2,"CHIFFRE D'AFFAIRES"),(7,"CHARGES (chargées)"),(12,"MARGE")):
+    cc=we.cell(gh,c0,lab); cc.font=F(8.5,True,WHITE); cc.fill=fill(TEALD); cc.alignment=CTR
+    we.merge_cells(start_row=gh,start_column=c0,end_row=gh,end_column=c0+4)
+hdr(we,gh+1,["Marque ▸ Campus ▸ Programme ▸ Année ▸ Modalité",
+    "CA 2024","CA 2025","CA 2026","Écart €","Évol %",
+    "Ch. 2024","Ch. 2025","Ch. 2026","Écart €","Évol %",
+    "Mg 2024","Mg 2025","Mg 2026","Écart €","Marge % 26"])
+r=gh+2
 data={y:compute(y) for y in ('2024','2025','2026')}
 def key(x): return (x['mq'],x['campus'],x['prog'],x['an'],x['mod'])
 idx={y:{key(x):x for x in data[y]} for y in data}
@@ -175,23 +189,32 @@ def ckeys(node):
     rec(node); return ks
 def emitE(r,label,node,lvl):
     ks=ckeys(node) if not('net' in node and 'prog' in node) else [key(node)]
-    def mg(y):
-        ca=sum(idx[y][k]['ca'] for k in ks if k in idx[y]); net=sum(idx[y][k]['net'] for k in ks if k in idx[y])
-        return net/ca if ca else None
-    m24,m25,m26=mg('2024'),mg('2025'),mg('2026'); ca26=sum(idx['2026'][k]['ca'] for k in ks if k in idx['2026'])
+    def ca(y): return sum(idx[y][k]['ca'] for k in ks if k in idx[y])
+    def net(y): return sum(idx[y][k]['net'] for k in ks if k in idx[y])
     we.cell(r,1,label).font=F(9 if lvl<=1 else 8.5,lvl<=1); we.cell(r,1).alignment=LI(lvl)
-    we.cell(r,2,round(ca26)).number_format=EUR; we.cell(r,2).alignment=RGT
-    for j,mv in zip((3,4,5),(m24,m25,m26)):
-        if mv is not None:
-            c=we.cell(r,j,mv); c.number_format=PCT; c.alignment=RGT; c.font=F(9 if lvl<=1 else 8.5,lvl<=1 and j==5,OCHRED if mv<0.05 else (TEALD if j==5 else SOFT))
-    if m24 is not None and m26 is not None:
-        c=we.cell(r,6,(m26-m24)*100); c.number_format=DPT; c.alignment=RGT; c.font=F(8.5,False,TEALD if m26>=m24 else OCHRE)
+    # valeurs : CA (B,C,D) et Charges (G,H,I) ; le reste = FORMULES
+    for j,y in ((2,'2024'),(3,'2025'),(4,'2026')): we.cell(r,j,round(ca(y))).number_format=EUR
+    for j,y in ((7,'2024'),(8,'2025'),(9,'2026')): we.cell(r,j,round(ca(y)-net(y))).number_format=EUR
+    we.cell(r,5,f"=D{r}-B{r}").number_format=EUR            # écart CA €
+    we.cell(r,6,f"=IFERROR(D{r}/B{r}-1,0)").number_format=DPCT
+    we.cell(r,10,f"=I{r}-G{r}").number_format=EUR           # écart charges €
+    we.cell(r,11,f"=IFERROR(I{r}/G{r}-1,0)").number_format=DPCT
+    we.cell(r,12,f"=B{r}-G{r}").number_format=EUR           # marge = CA − charges (formule)
+    we.cell(r,13,f"=C{r}-H{r}").number_format=EUR
+    we.cell(r,14,f"=D{r}-I{r}").number_format=EUR
+    we.cell(r,15,f"=N{r}-L{r}").number_format=EUR           # écart marge €
+    we.cell(r,16,f"=IFERROR(N{r}/D{r},0)").number_format=PCT  # marge % 2026
+    for j in range(2,17): we.cell(r,j).alignment=RGT
+    # couleurs marge% et évol
+    mg26=(net('2026')/ca('2026')) if ca('2026') else 0
+    we.cell(r,16).font=F(9 if lvl<=1 else 8.5,lvl<=1,OCHRED if mg26<0.05 else TEALD)
+    we.cell(r,14).font=F(9 if lvl<=1 else 8.5,lvl<=1,INK)
     if lvl==0:
-        for j in range(1,7): we.cell(r,j).fill=fill(L0BG); we.cell(r,j).border=Border(top=med,bottom=thin)
+        for j in range(1,17): we.cell(r,j).fill=fill(L0BG); we.cell(r,j).border=Border(top=med,bottom=thin)
     elif lvl==1:
-        for j in range(1,7): we.cell(r,j).fill=fill(L1BG)
+        for j in range(1,17): we.cell(r,j).fill=fill(L1BG)
     else:
-        for j in range(1,7): we.cell(r,j).border=Border(bottom=thin)
+        for j in range(1,17): we.cell(r,j).border=Border(bottom=thin)
     if lvl>0:
         we.row_dimensions[r].outline_level=min(lvl,4)
         if lvl>=2: we.row_dimensions[r].hidden=True
@@ -201,8 +224,29 @@ def walkE(r,node,lvl):
         if not('net' in child and 'prog' in child): r=walkE(r,child,lvl+1)
     return r
 r=walkE(r,T26,0)
-we.column_dimensions['A'].width=44
-for col,w in zip("BCDEF",[13,11,11,11,12]): we.column_dimensions[col].width=w
+we.column_dimensions['A'].width=40
+for col in "BCDEFGHIJKLMNOP": we.column_dimensions[col].width=10
+
+# ---- graphe : trajectoire de la marge nette % par marque (courbes) ----
+from openpyxl.chart import LineChart, Reference
+we.cell(gh,18,"Marge nette %").font=F(9,True,TEALD)
+we.cell(gh+1,18,""); we.cell(gh+1,19,2024); we.cell(gh+1,20,2025); we.cell(gh+1,21,2026)
+for c in (19,20,21): we.cell(gh+1,c).font=F(8.5,True,SOFT); we.cell(gh+1,c).alignment=CTR
+rr=gh+2
+for m in ORDER:
+    mm=MQ[m]; ks=[key(x) for x in data['2026'] if x['mq']==mm]
+    we.cell(rr,18,mm).font=F(9)
+    for c,y in ((19,'2024'),(20,'2025'),(21,'2026')):
+        ca=sum(idx[y][k]['ca'] for k in ks if k in idx[y]); net=sum(idx[y][k]['net'] for k in ks if k in idx[y])
+        we.cell(rr,c, net/ca if ca else 0).number_format=PCT
+    rr+=1
+ch=LineChart(); ch.title="Marge nette chargée par marque — 2024 → 2026"; ch.style=12; ch.height=8; ch.width=17
+ch.y_axis.numFmt='0%'; ch.y_axis.majorGridlines=None; ch.x_axis.delete=False; ch.y_axis.delete=False
+dat=Reference(we,min_col=18,max_col=21,min_row=gh+2,max_row=rr-1)
+ch.add_data(dat,from_rows=True,titles_from_data=True)
+ch.set_categories(Reference(we,min_col=19,max_col=21,min_row=gh+1,max_row=gh+1))
+we.add_chart(ch,"R"+str(gh+9))
+we.freeze_panes="B"+str(gh+2)
 
 out="/home/user/demo5/eduservices/tagetik/RESTITUTIONS_EDUSERVICES.xlsx"
 wb.save(out)
