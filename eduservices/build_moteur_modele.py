@@ -55,60 +55,57 @@ put(3,1,"L'élasticité vit au campus (le moteur en a 14, pas 5). La marque = so
 # --- PARAMÈTRES ---
 put(5,1,"PARAMÈTRES",sz=11,b=True,col=OCHRED)
 put(6,1,"Δ budget d'acquisition",sz=10); IN(6,2,0.08,PCT); put(6,3,"le geste testé — passez 8→12 %",sz=8,col=FAINT,it=True)
-put(7,1,"CA 1ʳᵉ année / inscrit",sz=10); IN(7,2,7608,EUR)
-put(8,1,"Coût variable / élève",sz=10); IN(8,2,300,EUR)
-DE="$B$6"; RV="$B$7"; CV="$B$8"
+put(7,1,"Coût variable / élève",sz=10); IN(7,2,300,EUR); put(7,3,"CA/inscrit = colonne RÉELLE par campus (plus de moyenne)",sz=8,col=FAINT,it=True)
+DE="$B$6"; CV="$B$7"
 
 # --- TABLE : calibration + effet, campus groupé marque ---
-put(10,1,"①  Calibration & effet d'un +Δ% — campus groupé par marque",sz=12,b=True,col=TEALD)
-put(11,1,"Élasticité = régression 3 ans =SLOPE(LN(leads);LN(budget)) — la même que la vue V_CAMPAGNES. La marque n'a pas d'élasticité propre (sous-total à blanc).",sz=8,col=FAINT,it=True)
-hr=13
-head(hr,["Marque ▸ Campus","L.pay24","L.pay25","L.pay26","Bud.24","Bud.25","Bud.26","Élasticité","Conv.",
+put(9,1,"①  Calibration & effet d'un +Δ% — campus groupé par marque",sz=12,b=True,col=TEALD)
+put(10,1,"Élasticité = régression 3 ans =SLOPE(LN(leads);LN(budget)) (= V_CAMPAGNES). CA/inscrit = vrai chiffre du campus (dispersion ±33 %), pas une moyenne.",sz=8,col=FAINT,it=True)
+hr=12
+head(hr,["Marque ▸ Campus","L.pay24","L.pay25","L.pay26","Bud.24","Bud.25","Bud.26","Élasticité","Conv.","CA/inscrit",
          "Δ budget","Inscrits gagnés","CA gagné","EBITDA gagné","CAC marg."])
 r=hr+1
 groups={m:[d for d in CAMP if d['campus'].split('_')[0]==m] for m in ORDER}
 gtot_rows=[]
 for m in ORDER:
     ds=groups[m]
-    sub=r                      # ligne sous-total marque (au-dessus du détail)
+    sub=r
     first=r+1; last=r+len(ds)
-    # sous-total marque (formules SUM sur le détail en dessous)
     put(sub,1,MQ[m],sz=10,b=True,col=TEALD,al=LI(0))
-    put(sub,8,"—",sz=9,col=FAINT,al=RGT)                                     # élasticité : n/a au niveau marque
-    ws.cell(sub,9,f"=K{sub}/J{sub}") if False else None
-    put(sub,9,f"=SUM(K{first}:K{last})/SUM(J{first}:J{last})" if False else "",)
-    # colonnes effet = SUM ; conv marque = inscrits/leads agrégés (via somme)
-    for cc in (10,11,12,13):
-        L=chr(64+cc); c=ws.cell(sub,cc,f"=SUM({L}{first}:{L}{last})"); c.number_format=(EUR if cc in(10,12,13) else NUM); c.font=F(10,True,TEALD); c.alignment=RGT
-    c=ws.cell(sub,14,f"=J{sub}/K{sub}"); c.number_format=EUR; c.font=F(10,True,NAVY); c.alignment=RGT  # CAC marg agrégé
-    for j in range(1,15): ws.cell(sub,j).fill=fill(MQBG); ws.cell(sub,j).border=Border(top=med,bottom=thin)
+    put(sub,8,"—",sz=9,col=FAINT,al=RGT)                                     # élasticité : n/a marque
+    # CA/inscrit marque = CA gagné ÷ inscrits gagnés (moyenne pondérée RÉELLE)
+    c=ws.cell(sub,10,f"=M{sub}/L{sub}"); c.number_format=EUR; c.font=F(10,False,SOFT); c.alignment=RGT
+    for cc in (11,12,13,14):                                                 # effet = SUM
+        L=chr(64+cc); c=ws.cell(sub,cc,f"=SUM({L}{first}:{L}{last})"); c.number_format=(EUR if cc in(11,13,14) else NUM); c.font=F(10,True,TEALD); c.alignment=RGT
+    c=ws.cell(sub,15,f"=K{sub}/L{sub}"); c.number_format=EUR; c.font=F(10,True,NAVY); c.alignment=RGT  # CAC marg
+    for j in range(1,16): ws.cell(sub,j).fill=fill(MQBG); ws.cell(sub,j).border=Border(top=med,bottom=thin)
     gtot_rows.append((first,last))
     r=first
     for d in ds:
         put(r,1,NAME[d['campus']],sz=9,al=LI(1))
         put(r,2,d['p24'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put(r,3,d['p25'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put(r,4,d['p26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)
         put(r,5,d['s24'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put(r,6,d['s25'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG); put(r,7,d['s26'],sz=9,al=RGT,fmt=NUM,bg=INPUTBG)
-        put(r,8,f"=SLOPE(LN(B{r}:D{r}),LN(E{r}:G{r}))",sz=9,b=True,col=TEALD,al=RGT,fmt=DEC3)   # H élast 3 ans
+        put(r,8,f"=SLOPE(LN(B{r}:D{r}),LN(E{r}:G{r}))",sz=9,b=True,col=TEALD,al=RGT,fmt=DEC3)   # H élast
         lead26=d['p26']+d['o26']
-        put(r,9,f"={d['n26']}/{lead26}",sz=9,col=SOFT,al=RGT,fmt=PCT)                            # I conv = new26/leads26
-        put(r,10,f"=G{r}*{DE}",sz=9,col=OCHRED,al=RGT,fmt=EUR)                                   # J Δbudget
-        put(r,11,f"=D{r}*((1+{DE})^H{r}-1)*I{r}",sz=9,al=RGT,fmt=NUM)                            # K inscrits gagnés
-        put(r,12,f"=K{r}*{RV}",sz=9,col=TEALD,al=RGT,fmt=EUR)                                    # L CA gagné
-        put(r,13,f"=L{r}-J{r}-K{r}*{CV}",sz=9,b=True,col=GREEN,al=RGT,fmt=EUR)                   # M EBITDA
-        put(r,14,f"=J{r}/K{r}",sz=9,col=NAVY,al=RGT,fmt=EUR)                                     # N CAC marg
-        for j in range(1,15): ws.cell(r,j).border=Border(bottom=thin)
-        ws.row_dimensions[r].outline_level=1; ws.row_dimensions[r].hidden=True   # replié par défaut
+        put(r,9,f"={d['n26']}/{lead26}",sz=9,col=SOFT,al=RGT,fmt=PCT)                            # I conv
+        put(r,10,d['ca_pnew'],sz=9,al=RGT,fmt=EUR,bg=INPUTBG)                                    # J CA/inscrit RÉEL
+        put(r,11,f"=G{r}*{DE}",sz=9,col=OCHRED,al=RGT,fmt=EUR)                                   # K Δbudget
+        put(r,12,f"=D{r}*((1+{DE})^H{r}-1)*I{r}",sz=9,al=RGT,fmt=NUM)                            # L inscrits gagnés
+        put(r,13,f"=L{r}*J{r}",sz=9,col=TEALD,al=RGT,fmt=EUR)                                    # M CA gagné = inscrits × CA/inscrit réel
+        put(r,14,f"=M{r}-K{r}-L{r}*{CV}",sz=9,b=True,col=GREEN,al=RGT,fmt=EUR)                   # N EBITDA
+        put(r,15,f"=K{r}/L{r}",sz=9,col=NAVY,al=RGT,fmt=EUR)                                     # O CAC marg
+        for j in range(1,16): ws.cell(r,j).border=Border(bottom=thin)
+        ws.row_dimensions[r].outline_level=1; ws.row_dimensions[r].hidden=True
         r+=1
 # GROUPE
 put(r,1,"GROUPE",sz=11,b=True,col=TEAL,al=LI(0))
-subs=[c for c in range(hr+1, r) if ws.row_dimensions[c].outline_level!=1]  # lignes sous-total marque
-# somme sur toutes les lignes campus
 allc=[cr for (f,l) in gtot_rows for cr in range(f,l+1)]
-for cc in (10,11,12,13):
+for cc in (11,12,13,14):
     L=chr(64+cc); rng="+".join(f"{L}{cr}" for cr in allc)
-    c=ws.cell(r,cc,f"={rng}"); c.number_format=(EUR if cc in(10,12,13) else NUM); c.font=F(11,True,TEAL); c.alignment=RGT
-c=ws.cell(r,14,f"=J{r}/K{r}"); c.number_format=EUR; c.font=F(11,True,NAVY); c.alignment=RGT
-for j in range(1,15): ws.cell(r,j).fill=fill(GREENBG); ws.cell(r,j).border=Border(top=med,bottom=med)
+    c=ws.cell(r,cc,f"={rng}"); c.number_format=(EUR if cc in(11,13,14) else NUM); c.font=F(11,True,TEAL); c.alignment=RGT
+c=ws.cell(r,10,f"=M{r}/L{r}"); c.number_format=EUR; c.font=F(11,False,SOFT); c.alignment=RGT      # CA/inscrit moyen réel
+c=ws.cell(r,15,f"=K{r}/L{r}"); c.number_format=EUR; c.font=F(11,True,NAVY); c.alignment=RGT
+for j in range(1,16): ws.cell(r,j).fill=fill(GREENBG); ws.cell(r,j).border=Border(top=med,bottom=med)
 r+=2
 put(r,1,"Déplie une marque (le +) : chaque campus a SA vraie élasticité (=SLOPE, comme le moteur). Le CAC marginal marque = Σbudget ÷ Σinscrits (agrégat réel).",sz=8,col=OCHRE,it=True)
 r+=3
