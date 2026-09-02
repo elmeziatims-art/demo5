@@ -103,8 +103,8 @@ w2.cell(5,5,"=D5/C5-1").number_format='"▲ "0.0%;"▼ "0.0%'; w2.cell(5,6,'=D5/
 w2.cell(6,1,"Marge EBITDA %").font=F(10,True)
 for j,r in ((2,4),(3,4),(4,4)): pass
 w2.cell(6,2,"=B5/B4").number_format='0.0%'; w2.cell(6,3,"=C5/C4").number_format='0.0%'; w2.cell(6,4,"=D5/D4").number_format='0.0%'
-c=w2.cell(6,5,"=D6-C6"); c.number_format='"+ "0.0" pt";"− "0.0" pt"'; c.font=F(10,True,OK)
-w2.cell(6,6,'=D6-C6   ← EN POINTS (16,6% − 16,0% = +0,6 pt)').font=F(8.5,True,OCHRE)
+c=w2.cell(6,5,"=(D6-C6)*100"); c.number_format='"+ "0.0" pt";"− "0.0" pt"'; c.font=F(10,True,OK)
+w2.cell(6,6,'=(D6-C6)*100   ← ×100 car la marge est une FRACTION (0,166) → +0,6 pt').font=F(8.5,True,OCHRE)
 for r in range(4,7):
     for j in range(2,5):
         if not w2.cell(r,j).number_format or w2.cell(r,j).number_format=='General':
@@ -115,7 +115,8 @@ for r in range(4,7):
 w2.merge_cells("A8:F10")
 w2.cell(8,1,"Pourquoi : une marge est déjà un %. Sa variation « en % » (16,6/16,0−1 = +4,0 %) est trompeuse — "
             "on croit +4 points. La bonne lecture = la DIFFÉRENCE de points : 16,6 % − 16,0 % = +0,6 pt. "
-            "Formule : =D6-C6, format personnalisé \"+ \"0.0\" pt\".").font=F(9,c=SOFT)
+            "ATTENTION : la marge est stockée en FRACTION (0,166), donc =D6-C6 vaut 0,0065 → le format afficherait « 0,0 pt ». "
+            "Il faut ×100 : =(D6-C6)*100 = 0,65 → format \"+ \"0.0\" pt\" → + 0,6 pt.").font=F(9,c=SOFT)
 w2.cell(8,1).alignment=Alignment("left",vertical="top",wrap_text=True)
 # repère cellule jaune sur la formule clé
 w2.cell(6,5).fill=fill(YEL)
