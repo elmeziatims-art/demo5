@@ -196,9 +196,10 @@ for i,(cat,so,an,ha,ba) in enumerate(WF):
 for col in "KLMNO": w2.column_dimensions[col].hidden=True
 ch=BarChart(); ch.type="col"; ch.grouping="stacked"; ch.overlap=100; ch.gapWidth=45
 ch.height=8.6; ch.width=19; ch.legend=None; ch.y_axis.numFmt='#,##0 "€"'
-ch.y_axis.scaling.min=80000; ch.y_axis.scaling.max=150000; ch.y_axis.majorUnit=10000
+ch.visible_cells_only=False          # sinon rien ne s'affiche : les series sont en colonnes masquees
+ch.y_axis.scaling.min=90000; ch.y_axis.scaling.max=145000; ch.y_axis.majorUnit=10000
 ch.x_axis.delete=False; ch.y_axis.delete=False
-ch.title="Pourquoi l'EBITDA de TUNON_PAR recule de 10 500 € : la croissance existe, les coûts fixes la mangent"
+ch.title="EBITDA TUNON_PAR  ·  2025 → 2026"
 for col in (12,13,14,15):
     ch.add_data(Reference(w2,min_col=col,max_col=col,min_row=11,max_row=16),titles_from_data=False)
 s_so,s_an,s_ha,s_ba=ch.series
