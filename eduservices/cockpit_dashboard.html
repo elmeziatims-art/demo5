@@ -51,10 +51,10 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .f.on b{color:var(--blue)}
 
 /* ---------- KPI ---------- */
-.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:10px}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-bottom:10px}
 .kpi{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:11px 13px 12px;box-shadow:var(--shadow)}
 .kpi .k{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
-.kpi .v{font-size:26px;font-weight:600;letter-spacing:-.02em;margin:5px 0 3px;line-height:1}
+.kpi .v{font-size:22px;font-weight:600;letter-spacing:-.02em;margin:5px 0 3px;line-height:1}
 .kpi .d{font-size:11.5px;font-weight:500;display:flex;align-items:center;gap:5px;color:var(--ink-2)}
 .up{color:var(--good)} .dn{color:var(--crit)} .fl{color:var(--ink-3)}
 .kpi.alert{border-color:var(--warn);box-shadow:inset 3px 0 0 var(--warn),var(--shadow)}
@@ -108,7 +108,7 @@ tr.lvl2 td{color:var(--ink-2)}
     <div class="mark">E</div>
     <div>
       <h1>Cockpit de performance — EDUSERVICES GROUP</h1>
-      <p class="sub">Constat 2024 → 2026 · socle CRM &amp; comptabilité rapprochés · base du cadrage 2027</p>
+      <p class="sub">Constat 2024 → 2026 · 14 campus · 5 marques · socle CRM &amp; comptabilité rapprochés</p>
     </div>
     <div class="right"><span class="tag">Réel</span><span class="tag">Clôture 2026</span></div>
   </div>
@@ -133,7 +133,9 @@ tr.lvl2 td{color:var(--ink-2)}
     <div class="kpi"><div class="k">Inscrits (nouveaux)</div><div class="v num">1 229</div>
       <div class="d"><span class="up">▲ +6,0 %</span><span>+70 vs 2025</span></div></div>
     <div class="kpi alert"><div class="k">Coût d'acquisition</div><div class="v num">353 €</div>
-      <div class="d"><span class="dn">▲ +3,7 %</span><span>point de vigilance</span></div></div>
+      <div class="d"><span class="dn">▲ +3,7 %</span><span>vigilance</span></div></div>
+    <div class="kpi"><div class="k">Remplissage</div><div class="v num">75 %</div>
+      <div class="d"><span class="fl">1 032</span><span>places libres</span></div></div>
   </div>
 
   <div class="grid">
@@ -182,7 +184,7 @@ tr.lvl2 td{color:var(--ink-2)}
     <section class="p s4">
       <header><h2>Marge EBITDA par marque</h2><span class="hint">2024 · 2025 · 2026</span></header>
       <div class="body">
-        <svg viewBox="0 0 380 200" role="img" aria-label="Marge EBITDA par marque sur trois ans. MBway passe de 16,2 a 17,4 pour cent, Iscom de 15,8 a 16,4, Pigier de 18,9 a 20,2, tandis que Tunon recule de 5,8 a 4,0 pour cent.">
+        <svg viewBox="0 0 380 200" role="img" aria-label="Marge EBITDA par marque sur trois ans, cinq marques. MBway passe de 16,5 a 18,2 pour cent, Iscom de 15,8 a 17,2, Ipac de 11,8 a 14,1, Pigier de 19,7 a 21,2, tandis que Tunon recule de 6,1 a 4,2 pour cent.">
           <g font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--ink-3)" text-anchor="end">
             <text x="46" y="168">0</text><text x="46" y="136.2">5</text><text x="46" y="104.4">10</text>
             <text x="46" y="72.5">15</text><text x="46" y="40.7">20</text>
@@ -191,37 +193,41 @@ tr.lvl2 td{color:var(--ink-2)}
             <line x1="54" y1="133.2" x2="368" y2="133.2"/><line x1="54" y1="101.4" x2="368" y2="101.4"/>
             <line x1="54" y1="69.5" x2="368" y2="69.5"/><line x1="54" y1="37.7" x2="368" y2="37.7"/>
           </g>
-
           <g>
-            <rect x="56" y="65.7" width="19" height="99.3" rx="4" fill="var(--blue-3)"/>
-            <rect x="77" y="60.6" width="19" height="104.4" rx="4" fill="var(--blue-2)"/>
-            <rect x="98" y="54.1" width="19" height="110.9" rx="4" fill="var(--blue)"/>
-            <rect x="139" y="69.5" width="19" height="95.5" rx="4" fill="var(--blue-3)"/>
-            <rect x="160" y="62.9" width="19" height="102.1" rx="4" fill="var(--blue-2)"/>
-            <rect x="181" y="60.7" width="19" height="104.3" rx="4" fill="var(--blue)"/>
-            <rect x="222" y="46.1" width="19" height="118.9" rx="4" fill="var(--blue-3)"/>
-            <rect x="243" y="41.7" width="19" height="123.3" rx="4" fill="var(--blue-2)"/>
-            <rect x="264" y="36.5" width="19" height="128.5" rx="4" fill="var(--blue)"/>
-            <rect x="305" y="128.2" width="19" height="36.8" rx="4" fill="var(--blue-3)"/>
-            <rect x="326" y="132.0" width="19" height="33.0" rx="4" fill="var(--blue-2)"/>
-            <rect x="347" y="139.5" width="19" height="25.5" rx="4" fill="var(--blue)"/>
+            <rect x="54.0" y="60.3" width="16" height="104.7" rx="3" fill="var(--blue-3)"/>
+            <rect x="71.0" y="55.5" width="16" height="109.5" rx="3" fill="var(--blue-2)"/>
+            <rect x="88.0" y="48.9" width="16" height="116.1" rx="3" fill="var(--blue)"/>
+            <rect x="119.6" y="64.2" width="16" height="100.8" rx="3" fill="var(--blue-3)"/>
+            <rect x="136.6" y="57.8" width="16" height="107.2" rx="3" fill="var(--blue-2)"/>
+            <rect x="153.6" y="55.8" width="16" height="109.2" rx="3" fill="var(--blue)"/>
+            <rect x="185.2" y="89.8" width="16" height="75.2" rx="3" fill="var(--blue-3)"/>
+            <rect x="202.2" y="82.2" width="16" height="82.8" rx="3" fill="var(--blue-2)"/>
+            <rect x="219.2" y="75.0" width="16" height="90.0" rx="3" fill="var(--blue)"/>
+            <rect x="250.8" y="39.6" width="16" height="125.4" rx="3" fill="var(--blue-3)"/>
+            <rect x="267.8" y="35.6" width="16" height="129.4" rx="3" fill="var(--blue-2)"/>
+            <rect x="284.8" y="30.4" width="16" height="134.6" rx="3" fill="var(--blue)"/>
+            <rect x="316.4" y="126.2" width="16" height="38.8" rx="3" fill="var(--blue-3)"/>
+            <rect x="333.4" y="130.3" width="16" height="34.7" rx="3" fill="var(--blue-2)"/>
+            <rect x="350.4" y="138.3" width="16" height="26.7" rx="3" fill="var(--blue)"/>
           </g>
           <line x1="54" y1="165" x2="368" y2="165" stroke="var(--line)" stroke-width="1"/>
-
           <line x1="54" y1="59.1" x2="368" y2="59.1" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="3 3"/>
           <text x="368" y="55" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--ink-3)" text-anchor="end">groupe 16,6 %</text>
-
-          <g font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" text-anchor="middle">
-            <text x="107.5" y="50.1" fill="var(--ink)">17,4</text>
-            <text x="190.5" y="56.7" fill="var(--ink)">16,4</text>
-            <text x="273.5" y="32.5" fill="var(--ink)">20,2</text>
-            <text x="356.5" y="135.0" fill="var(--crit)">4,0</text>
+          <g font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="600" text-anchor="middle">
+            <text x="96.0" y="44.9" fill="var(--ink)">18,2</text>
+            <text x="161.6" y="51.8" fill="var(--ink)">17,2</text>
+            <text x="227.2" y="71.0" fill="var(--ink)">14,1</text>
+            <text x="292.8" y="26.4" fill="var(--ink)">21,1</text>
+            <text x="358.4" y="134.3" fill="var(--crit)">4,2</text>
           </g>
           <g font-family="IBM Plex Sans, sans-serif" font-size="9.5" fill="var(--ink-2)" text-anchor="middle">
-            <text x="86.5"  y="180">MBway</text><text x="169.5" y="180">Iscom</text>
-            <text x="252.5" y="180">Pigier</text><text x="335.5" y="180">Tunon</text>
+            <text x="79.0" y="180">MBway</text>
+            <text x="144.6" y="180">Iscom</text>
+            <text x="210.2" y="180">Ipac</text>
+            <text x="275.8" y="180">Pigier</text>
+            <text x="341.4" y="180">Tunon</text>
           </g>
-          <text x="54" y="196" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--ink-3)">trois marques progressent, une decroche depuis deux ans</text>
+          <text x="54" y="196" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--ink-3)">quatre marques progressent, une seule decroche</text>
         </svg>
         <div class="leg"><span><i style="background:var(--blue-3)"></i>2024</span><span><i style="background:var(--blue-2)"></i>2025</span><span><i style="background:var(--blue)"></i>2026</span></div>
       </div>
@@ -274,58 +280,73 @@ tr.lvl2 td{color:var(--ink-2)}
               <td class="num">23 098 985</td><td class="num up">+6,1 %</td>
               <td class="num">3 845 790</td><td class="num up">+10,4 %</td>
               <td class="num">100,0 %</td>
-              <td><span class="bar-cell"><span class="num">16,6 %</span><span class="track"><span class="fillb" style="width:82%"></span></span></span></td>
-              <td class="num up">↗ +0,6 pt</td><td class="num">1 229</td><td class="num">85 %</td><td class="num">75 %</td></tr>
-
-            <tr class="lvl1"><td><span class="tw">−</span>MBway</td>
-              <td class="num">9 700 000</td><td class="num up">+7,2 %</td>
-              <td class="num">1 690 000</td><td class="num up">+13,9 %</td>
-              <td class="num">43,9 %</td>
-              <td><span class="bar-cell"><span class="num">17,4 %</span><span class="track"><span class="fillb" style="width:86%"></span></span></span></td>
-              <td class="num up">↗ +1,0 pt</td><td class="num">512</td><td class="num">88 %</td><td class="num">78 %</td></tr>
-            <tr class="lvl2"><td>MBWAY_PAR</td><td class="num">4 250 000</td><td class="num up">+8,4 %</td>
-              <td class="num">812 000</td><td class="num up">+19,6 %</td><td class="num">21,1 %</td>
-              <td><span class="bar-cell"><span class="num">19,1 %</span><span class="track"><span class="fillb" style="width:95%"></span></span></span></td>
-              <td class="num up">↗ +1,8 pt</td><td class="num">224</td><td class="num">94 %</td><td class="num">81 %</td></tr>
-            <tr class="lvl2"><td>MBWAY_LYO</td><td class="num">3 180 000</td><td class="num up">+6,9 %</td>
-              <td class="num">528 000</td><td class="num up">+10,2 %</td><td class="num">13,7 %</td>
-              <td><span class="bar-cell"><span class="num">16,6 %</span><span class="track"><span class="fillb" style="width:82%"></span></span></span></td>
-              <td class="num up">↗ +0,5 pt</td><td class="num">168</td><td class="num">86 %</td><td class="num">77 %</td></tr>
-            <tr class="lvl2"><td>MBWAY_BOR</td><td class="num">2 270 000</td><td class="num up">+5,6 %</td>
-              <td class="num">350 000</td><td class="num up">+7,4 %</td><td class="num">9,1 %</td>
-              <td><span class="bar-cell"><span class="num">15,4 %</span><span class="track"><span class="fillb" style="width:76%"></span></span></span></td>
-              <td class="num fl">→ +0,3 pt</td><td class="num">120</td><td class="num">81 %</td><td class="num">74 %</td></tr>
-
+              <td><span class="bar-cell"><span class="num">16,6 %</span><span class="track"><span class="fillb" style="width:75%"></span></span></span></td>
+              <td class="num up">↗ +0,6 pt</td><td class="num">1 229</td><td class="num">75 %</td><td class="num">86 %</td></tr>
+            <tr class="lvl1"><td><span class="tw">+</span>MBway</td>
+              <td class="num">9 602 316</td><td class="num up">+7,8 %</td>
+              <td class="num">1 751 510</td><td class="num up">+14,2 %</td>
+              <td class="num">45,5 %</td>
+              <td><span class="bar-cell"><span class="num">18,2 %</span><span class="track"><span class="fillb" style="width:83%"></span></span></span></td>
+              <td class="num up">↗ +1,0 pt</td><td class="num">511</td><td class="num">82 %</td><td class="num">80 %</td></tr>
             <tr class="lvl1"><td><span class="tw">+</span>Iscom</td>
-              <td class="num">6 601 085</td><td class="num up">+5,1 %</td>
-              <td class="num">1 081 990</td><td class="num up">+7,3 %</td><td class="num">28,1 %</td>
-              <td><span class="bar-cell"><span class="num">16,4 %</span><span class="track"><span class="fillb" style="width:81%"></span></span></span></td>
-              <td class="num up">↗ +0,3 pt</td><td class="num">341</td><td class="num">85 %</td><td class="num">65 %</td></tr>
-
+              <td class="num">6 259 023</td><td class="num up">+3,7 %</td>
+              <td class="num">1 074 172</td><td class="num up">+5,7 %</td>
+              <td class="num">27,9 %</td>
+              <td><span class="bar-cell"><span class="num">17,2 %</span><span class="track"><span class="fillb" style="width:78%"></span></span></span></td>
+              <td class="num up">↗ +0,3 pt</td><td class="num">336</td><td class="num">80 %</td><td class="num">80 %</td></tr>
+            <tr class="lvl1"><td><span class="tw">−</span>Ipac</td>
+              <td class="num">2 596 631</td><td class="num up">+9,8 %</td>
+              <td class="num">367 056</td><td class="num up">+19,3 %</td>
+              <td class="num">9,5 %</td>
+              <td><span class="bar-cell"><span class="num">14,1 %</span><span class="track"><span class="fillb" style="width:64%"></span></span></span></td>
+              <td class="num up">↗ +1,1 pt</td><td class="num">130</td><td class="num">66 %</td><td class="num">100 %</td></tr>
+            <tr class="lvl2"><td>IPAC_NAN</td>
+              <td class="num">1 030 409</td><td class="num up">+9,8 %</td>
+              <td class="num">151 056</td><td class="num up">+18,9 %</td>
+              <td class="num">3,9 %</td>
+              <td><span class="bar-cell"><span class="num">14,7 %</span><span class="track"><span class="fillb" style="width:67%"></span></span></span></td>
+              <td class="num up">↗ +1,1 pt</td><td class="num">50</td><td class="num">76 %</td><td class="num">100 %</td></tr>
+            <tr class="lvl2"><td>IPAC_REN</td>
+              <td class="num">783 111</td><td class="num up">+9,8 %</td>
+              <td class="num">108 000</td><td class="num up">+19,5 %</td>
+              <td class="num">2,8 %</td>
+              <td><span class="bar-cell"><span class="num">13,8 %</span><span class="track"><span class="fillb" style="width:63%"></span></span></span></td>
+              <td class="num up">↗ +1,1 pt</td><td class="num">40</td><td class="num">61 %</td><td class="num">100 %</td></tr>
+            <tr class="lvl2"><td>IPAC_MTP</td>
+              <td class="num">783 111</td><td class="num up">+9,8 %</td>
+              <td class="num">108 000</td><td class="num up">+19,5 %</td>
+              <td class="num">2,8 %</td>
+              <td><span class="bar-cell"><span class="num">13,8 %</span><span class="track"><span class="fillb" style="width:63%"></span></span></span></td>
+              <td class="num up">↗ +1,1 pt</td><td class="num">40</td><td class="num">61 %</td><td class="num">100 %</td></tr>
             <tr class="lvl1"><td><span class="tw">+</span>Pigier</td>
-              <td class="num">4 950 000</td><td class="num up">+6,8 %</td>
-              <td class="num">999 900</td><td class="num up">+11,3 %</td><td class="num">26,0 %</td>
-              <td><span class="bar-cell"><span class="num">20,2 %</span><span class="track"><span class="fillb" style="width:100%"></span></span></span></td>
-              <td class="num up">↗ +0,8 pt</td><td class="num">268</td><td class="num">83 %</td><td class="num">82 %</td></tr>
-
+              <td class="num">2 703 929</td><td class="num up">+4,7 %</td>
+              <td class="num">571 920</td><td class="num up">+8,9 %</td>
+              <td class="num">14,9 %</td>
+              <td><span class="bar-cell"><span class="num">21,2 %</span><span class="track"><span class="fillb" style="width:96%"></span></span></span></td>
+              <td class="num up">↗ +0,8 pt</td><td class="num">164</td><td class="num">64 %</td><td class="num">100 %</td></tr>
             <tr class="lvl1"><td><span class="tw">−</span>Tunon <span class="pill">Fragile</span></td>
-              <td class="num">1 847 900</td><td class="num up">+1,9 %</td>
-              <td class="num">73 900</td><td class="num dn">−21,4 %</td><td class="num">1,9 %</td>
-              <td><span class="bar-cell"><span class="num">4,0 %</span><span class="track"><span class="fillb bad" style="width:20%"></span></span></span></td>
-              <td class="num dn">↘ −1,2 pt</td><td class="num">108</td><td class="num">74 %</td><td class="num">70 %</td></tr>
-            <tr class="lvl2"><td>TUNON_PAR</td><td class="num">1 102 400</td><td class="num up">+3,1 %</td>
-              <td class="num">96 300</td><td class="num dn">−9,8 %</td><td class="num">2,5 %</td>
-              <td><span class="bar-cell"><span class="num">8,7 %</span><span class="track"><span class="fillb bad" style="width:43%"></span></span></span></td>
-              <td class="num dn">↘ −1,3 pt</td><td class="num">64</td><td class="num">79 %</td><td class="num">72 %</td></tr>
-            <tr class="lvl2"><td>TUNON_LYO</td><td class="num">745 500</td><td class="num fl">+0,2 %</td>
-              <td class="num dn">−22 400</td><td class="num dn">n/s</td><td class="num">−0,6 %</td>
-              <td><span class="bar-cell"><span class="num">−3,0 %</span><span class="track"><span class="fillb bad" style="width:0%"></span></span></span></td>
-              <td class="num dn">↘ −1,3 pt</td><td class="num">44</td><td class="num">67 %</td><td class="num">66 %</td></tr>
+              <td class="num">1 937 086</td><td class="num up">+2,7 %</td>
+              <td class="num">81 133</td><td class="num dn">-21,0 %</td>
+              <td class="num">2,1 %</td>
+              <td><span class="bar-cell"><span class="num">4,2 %</span><span class="track"><span class="fillb bad" style="width:19%"></span></span></span></td>
+              <td class="num dn">↘ -1,2 pt</td><td class="num">87</td><td class="num">66 %</td><td class="num">100 %</td></tr>
+            <tr class="lvl2"><td>TUNON_PAR</td>
+              <td class="num">1 080 198</td><td class="num up">+2,7 %</td>
+              <td class="num">48 547</td><td class="num dn">-19,9 %</td>
+              <td class="num">1,3 %</td>
+              <td><span class="bar-cell"><span class="num">4,5 %</span><span class="track"><span class="fillb bad" style="width:20%"></span></span></span></td>
+              <td class="num dn">↘ -1,3 pt</td><td class="num">47</td><td class="num">71 %</td><td class="num">100 %</td></tr>
+            <tr class="lvl2"><td>TUNON_LYO</td>
+              <td class="num">856 888</td><td class="num up">+2,7 %</td>
+              <td class="num">32 586</td><td class="num dn">-22,5 %</td>
+              <td class="num">0,8 %</td>
+              <td><span class="bar-cell"><span class="num">3,8 %</span><span class="track"><span class="fillb bad" style="width:17%"></span></span></span></td>
+              <td class="num dn">↘ -1,2 pt</td><td class="num">40</td><td class="num">60 %</td><td class="num">100 %</td></tr>
           </tbody>
         </table>
 
         <div class="callout">
-          <div><p><b>Le signal du cockpit.</b> Tunon pèse <b>8,0 % du CA</b> mais seulement <b>1,9 % de l'EBITDA</b> — et son campus de Lyon est en marge négative à 67 % de remplissage. À l'inverse, Pigier est la plus petite des trois autres marques et la plus rentable (20,2 %). Le cadrage 2027 ne peut pas être un « + x % » uniforme : c'est là que s'ouvre la discussion EBITDA par marque.</p></div>
+          <div><p><b>Le signal du cockpit.</b> <b>Tunon</b> pèse 8,4 % du CA pour <b>2,1 % de l'EBITDA</b>, et recule de 21 % — la seule marque qui décroche. <b>Ipac</b> est l'inverse exact : le réseau le plus jeune croît le plus vite (+9,8 % de CA, +19,3 % d'EBITDA) mais reste sous-rentable à 14,1 %, Rennes et Montpellier encore à 61 % de remplissage — une montée en charge, pas un problème. Et le groupe n'occupe que <b>75 % de ses places</b> : 1 032 places ouvertes et vides, le gisement de croissance le moins cher qui existe. Le cadrage 2027 ne peut pas être un « + x % » uniforme.</p></div>
         </div>
       </div>
     </section>
