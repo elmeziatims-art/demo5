@@ -18,7 +18,7 @@ SELECT
     SUM(m.NOUVEAUX)              AS "Nouveaux inscrits",
     SUM(m.EFFECTIF)             AS "Effectifs",
     SUM(m.CA)                  AS "CA 2027",
-    SUM(m.CA) / NULLIF(SUM(m.EFFECTIF),0) AS "CA / élève"
+    1.0 * SUM(m.CA) / NULLIF(SUM(m.EFFECTIF),0) AS "CA / élève"
 FROM V_MOTEUR m
 GROUP BY m.VERSION, m.MARQUE
 ORDER BY m.VERSION, m.MARQUE;

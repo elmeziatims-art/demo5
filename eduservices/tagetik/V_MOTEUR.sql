@@ -1,5 +1,5 @@
 -- =============================================================================
--- V_MOTEUR — CA construit 2027 (projection 2026 -> 2027), TOUTES versions — SAP HANA
+-- V_MOTEUR — CA construit 2027 (projection 2026 -> 2027), TOUTES versions — SQL Server
 -- Appelle : V_CAMPAGNES (rendement, part org, volumes réf) · V_CAP (cap -> budget rejoué)
 --           · V_CADRAGE_LEVIERS (leviers par version) · AW cadrage (coeff prix marque)
 -- Logique : projette l'atterrissage 2026 avec les leviers de CHAQUE version (V01/V02/V03).
@@ -8,7 +8,7 @@
 --   Prix = REV_STUD × (1 + Δprix × coeff_marque) ; CA = effectif×prix + nouveaux×frais
 -- Vérifié : V01 24 120 315 (+7,0%) · V02 26 307 244 (+16,7%) · V03 22 701 560 (+0,7%).
 -- =============================================================================
-CREATE OR REPLACE VIEW V_MOTEUR AS
+CREATE OR ALTER VIEW V_MOTEUR AS
 WITH
 lev AS (
     SELECT VERSION,
@@ -25,10 +25,10 @@ cell AS (
     SELECT s.SCENARIO, s.PERIODE, s.ENTITY, SUBSTR_BEFORE(s.ENTITY,'_') AS MARQUE,
         s.PROGRAMME, s.AN_ETUDE, s.MODALITE, s.VOL_LEAD, s.VOL_EFF_INF, s.REV_STUD,
         CASE WHEN s.AN_ETUDE IN ('B1','M1','BTS1') THEN 1 ELSE 0 END        AS IS_ENTRY,
-        COALESCE(s.VOL_CAND  / NULLIF(s.VOL_LEAD,   0), 0)                   AS RLC,
-        COALESCE(s.VOL_ADMIS / NULLIF(s.VOL_CAND,   0), 0)                   AS RCA,
-        COALESCE(s.VOL_NEW   / NULLIF(s.VOL_ADMIS,  0), 0)                   AS YLD,
-        COALESCE(s.VOL_EFF   / NULLIF(s.VOL_EFF_INF,0), 0)                   AS PASSAGE
+        COALESCE(1.0 * s.VOL_CAND / NULLIF(s.VOL_LEAD,   0), 0)                   AS RLC,
+        COALESCE(1.0 * s.VOL_ADMIS / NULLIF(s.VOL_CAND,   0), 0)                   AS RCA,
+        COALESCE(1.0 * s.VOL_NEW / NULLIF(s.VOL_ADMIS,  0), 0)                   AS YLD,
+        COALESCE(1.0 * s.VOL_EFF / NULLIF(s.VOL_EFF_INF,0), 0)                   AS PASSAGE
     FROM AW_002_000002_000001 s WHERE s.EXERCICE = '2026'
 )
 SELECT
@@ -47,13 +47,13 @@ FROM (
             c.VOL_EFF_INF, c.REV_STUD, c.IS_ENTRY, c.PASSAGE, l.PRICE, l.PASS, l.FEE,
             COALESCE(pc.PRICE_COEF, 1) AS PRICE_COEF,
             ( ( cm.ORG_REF  * POWER(1 + l.BRAND, cm.REND_BRAND)
-              + cm.PAID_REF * POWER( (cap.BUDGET_ACQ_REJOUE / NULLIF(cap.BUDGET_ACQ_REF,0)) * (1 + l.ACQ), cm.REND_ACQ) )
-              * (c.VOL_LEAD / NULLIF(cm.LEAD_REF, 0)) )
+              + cm.PAID_REF * POWER( (1.0 * cap.BUDGET_ACQ_REJOUE / NULLIF(cap.BUDGET_ACQ_REF,0)) * (1 + l.ACQ), cm.REND_ACQ) )
+              * (1.0 * c.VOL_LEAD / NULLIF(cm.LEAD_REF, 0)) )
               * (c.RLC + l.GLC) * c.RCA * (c.YLD + l.GCV)                          AS NOUV_CALC
         FROM cell c
         CROSS JOIN lev l
         LEFT JOIN V_CAMPAGNES cm ON cm.ENTITY = c.ENTITY
         LEFT JOIN V_CAP       cap ON cap.ENTITY = c.ENTITY
-        LEFT JOIN pcoef       pc  ON pc.ENTITY = c.MARQUE || '_REF'
+        LEFT JOIN pcoef       pc  ON pc.ENTITY = c.MARQUE + '_REF'
     ) e
 ) f

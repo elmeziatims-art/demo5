@@ -5,7 +5,7 @@ SELECT
     SUM(m.CA)                                                 AS "CA 2027",
     SUM(m.EFFECTIF)                                           AS "Effectif",
     e.EBITDA                                                  AS "EBITDA",
-    e.EBITDA / NULLIF(SUM(m.CA),0)                            AS "Marge %"
+    1.0 * e.EBITDA / NULLIF(SUM(m.CA),0)                            AS "Marge %"
 FROM V_MOTEUR m
 JOIN (
     SELECT VERSION,

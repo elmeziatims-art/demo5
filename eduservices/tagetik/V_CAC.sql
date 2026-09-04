@@ -9,7 +9,7 @@
 --   CAC = SUM(DEPENSE_ACQ) / SUM(INSCRITS)
 -- Aucun ratio pré-agrégé, aucune maille écrasée.
 -- =============================================================================
-CREATE OR REPLACE VIEW V_CAC AS
+CREATE OR ALTER VIEW V_CAC AS
 SELECT
     EXERCICE,
     ENTITY,                         -- campus (roule vers marque via la dim Entity)

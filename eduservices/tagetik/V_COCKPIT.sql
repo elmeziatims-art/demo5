@@ -12,7 +12,7 @@
 --               commercial = + PROGRAMME×AN_ETUDE×MODALITE. Non applicable = 'GEN'.
 -- Pas de colonne VERSION. Années telles quelles (réalisé/atterrissage = description).
 -- =============================================================================
-CREATE OR REPLACE VIEW V_COCKPIT AS
+CREATE OR ALTER VIEW V_COCKPIT AS
 SELECT ENTITY, 'GEN' AS PROGRAMME, 'GEN' AS AN_ETUDE, 'GEN' AS MODALITE,
        ACCOUNT, EXERCICE, CAST(PERIOD AS VARCHAR(10)) AS PERIOD,
        SUM(AMOUNT) AS AMOUNT

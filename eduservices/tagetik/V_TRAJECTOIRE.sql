@@ -1,5 +1,5 @@
 -- =============================================================================
--- V_TRAJECTOIRE — trajectoire historique CA / EBITDA / Effectif 2024 -> 2026 (SAP HANA)
+-- V_TRAJECTOIRE — trajectoire historique CA / EBITDA / Effectif 2024 -> 2026 (SQL Server / T-SQL)
 -- Source : V_PNL (réel 'ACT'). 1 ligne par EXERCICE.
 --   • CA      = Σ comptes classe 7 (produits)
 --   • EBITDA  = Σ7 − Σ6 (hors 6811 : amortissements exclus de l'EBITDA)
@@ -9,7 +9,7 @@
 --      (à partir du moteur), en complément de cette restitution, pour un effet
 --      instantané quand on bouge les leviers.
 -- =============================================================================
-CREATE OR REPLACE VIEW V_TRAJECTOIRE AS
+CREATE OR ALTER VIEW V_TRAJECTOIRE AS
 SELECT
     p.EXERCICE,
     SUM(CASE WHEN p.ACCOUNT LIKE '7%' THEN p.AMOUNT ELSE 0 END)                    AS CA,

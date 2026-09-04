@@ -1,5 +1,5 @@
 -- =============================================================================
--- VUE P&L UNIFIÉE — EDUSERVICES, AU GRAIN COMPTE  (SAP HANA)
+-- VUE P&L UNIFIÉE — EDUSERVICES, AU GRAIN COMPTE  (SQL Server / T-SQL)
 -- 1 ligne = ENTITY x ACCOUNT x EXERCICE x VERSION, 1 mesure AMOUNT.
 --   • RÉEL   2024-2026 ← compta AW_002_000004_000001            (VERSION = 'ACT')
 --   • BUDGET 2027      ← V_BUDGET (compta 2026 projetée)         (VERSION = V01/V02/V03)
@@ -10,7 +10,7 @@
 -- EBITDA/étudiant calculés dans la matrice Tagetik.
 -- PERIOD = dimension caractère. Un seul SCENARIO (2027BUD_V1), plusieurs EXERCICE.
 -- =============================================================================
-CREATE OR REPLACE VIEW V_PNL AS
+CREATE OR ALTER VIEW V_PNL AS
 -- ===== RÉEL 2024-2026 : compta (comptes financiers) =====
 SELECT ENTITY, ACCOUNT, EXERCICE, 'ACT' AS VERSION, SCENARIO,
        CAST(PERIOD AS VARCHAR(10)) AS PERIOD, AMOUNT

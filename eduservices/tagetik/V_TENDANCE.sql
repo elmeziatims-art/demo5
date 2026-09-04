@@ -7,7 +7,7 @@
 -- et tout suivi pluriannuel. L'indexation base 100 et le CAC se calculent dans
 -- la matrice / le graphe Tagetik, à n'importe quelle maille.
 -- =============================================================================
-CREATE OR REPLACE VIEW V_TENDANCE AS
+CREATE OR ALTER VIEW V_TENDANCE AS
 SELECT
     EXERCICE,
     ENTITY,                         -- campus (roule vers marque via la dim Entity)

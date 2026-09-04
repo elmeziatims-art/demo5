@@ -12,7 +12,7 @@
 -- Point mort (élèves) = coût complet d'UNE classe ÷ marge variable par élève
 --   = seuil de « bonne santé » (couvrir le coût complet chargé).
 -- =============================================================================
-CREATE OR REPLACE VIEW V_CAMPUS_CLASSE AS
+CREATE OR ALTER VIEW V_CAMPUS_CLASSE AS
 SELECT
     a.SCENARIO, a.VERSION, a.PERIODE, a.EXERCICE,
     a.ENTITY, a.MARQUE, a.PROGRAMME, a.AN_ETUDE, a.MODALITE,
@@ -26,8 +26,7 @@ SELECT
     a.VOL_CLASS * CASE WHEN a.PROGRAMME LIKE 'BAC%' THEN 32
                        WHEN a.PROGRAMME LIKE 'MAS%' THEN 26
                        ELSE 30 END                                      AS PLACES,
-    a.VOL_EFF
-      / NULLIF(a.VOL_CLASS * CASE WHEN a.PROGRAMME LIKE 'BAC%' THEN 32
+    1.0 * a.VOL_EFF / NULLIF(a.VOL_CLASS * CASE WHEN a.PROGRAMME LIKE 'BAC%' THEN 32
                                   WHEN a.PROGRAMME LIKE 'MAS%' THEN 26
                                   ELSE 30 END, 0)                       AS REMPLISSAGE,
     a.COST_VARIABLE,
@@ -36,7 +35,6 @@ SELECT
     a.MARGE_COMPLETE,
     a.COST_SIEGE,
     -- point mort (élèves) = coût complet d'une classe / marge variable par élève
-    (a.COST_COMPLET / NULLIF(a.VOL_CLASS, 0))
-      / NULLIF((a.CA - a.COST_VARIABLE) / NULLIF(a.VOL_EFF, 0), 0)      AS POINT_MORT
+    1.0 * (1.0 * a.COST_COMPLET / NULLIF(a.VOL_CLASS, 0)) / NULLIF((a.CA - a.COST_VARIABLE) / NULLIF(a.VOL_EFF, 0), 0)      AS POINT_MORT
 FROM V_ALLOCATION a
 ;

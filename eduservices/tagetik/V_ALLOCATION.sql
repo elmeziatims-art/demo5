@@ -1,5 +1,5 @@
 -- =============================================================================
--- V_ALLOCATION — coût complet par CLASSE, DYNAMIQUE sur les clés d'allocation — SAP HANA
+-- V_ALLOCATION — coût complet par CLASSE, DYNAMIQUE sur les clés d'allocation — SQL Server
 -- RESTITUE 2 MILLÉSIMES par UNION des sources, puis UNE SEULE cascade au-dessus :
 --   • 2026 réel   (VERSION='ACT') : volumes = Socle AW_002_000002_000001
 --                                   charges = Compta AW_002_000004_000001
@@ -19,7 +19,7 @@
 -- Contrôle 2026 réel : marge complète 3 291 530 (inchangée par le split).
 -- Le millésime restitué se filtre sur EXERCICE / VERSION (côté masque ou rapport).
 -- =============================================================================
-CREATE OR REPLACE VIEW V_ALLOCATION AS
+CREATE OR ALTER VIEW V_ALLOCATION AS
 SELECT
     c.SCENARIO, c.VERSION, c.PERIODE, c.EXERCICE, c.ENTITY, c.MARQUE, c.PROGRAMME, c.AN_ETUDE, c.MODALITE,
     c.VOL_EFF, c.VOL_CLASS, c.CA,
@@ -39,14 +39,14 @@ FROM (
         -- Pools bruts exposes pour alimenter l'instantane Excel (masque autonome) :
         s.VAC AS POOL_VAC, s.PERM AS POOL_PERM, s.ODIR_EFF AS POOL_ODIR, s.MKT AS POOL_MKT,
         s.STRUCT_CAMP AS POOL_STRUCT, s.HOLDING_TOT AS POOL_HOLDING, s.MARQUE_TOT AS POOL_FRAIS_MARQUE,
-        s.VAC  * (s.HRS / NULLIF(s.E_HRS,0))                                AS COST_VAC,
-        s.PERM * (s.HRS / NULLIF(s.E_HRS,0))                                AS COST_PERM,
-        s.ODIR_EFF * (s.VOL_EFF / NULLIF(s.E_EFF,0)) + s.MKT * (s.VOL_NEW / NULLIF(s.E_NEW,0)) AS COST_ODIR,
-        s.STRUCT_CAMP * (s.D3C / NULLIF(s.D3E,0))                           AS COST_STRUCT,
+        s.VAC  * (1.0 * s.HRS / NULLIF(s.E_HRS,0))                                AS COST_VAC,
+        s.PERM * (1.0 * s.HRS / NULLIF(s.E_HRS,0))                                AS COST_PERM,
+        s.ODIR_EFF * (1.0 * s.VOL_EFF / NULLIF(s.E_EFF,0)) + s.MKT * (1.0 * s.VOL_NEW / NULLIF(s.E_NEW,0)) AS COST_ODIR,
+        s.STRUCT_CAMP * (1.0 * s.D3C / NULLIF(s.D3E,0))                           AS COST_STRUCT,
         -- FRAIS DE MARQUE (6236) : cascade K4 (groupe->marque) puis K2, K3
-        s.MARQUE_TOT  * (s.D1M4 / NULLIF(s.D1G4,0)) * (s.D2E / NULLIF(s.D2M,0)) * (s.D3C / NULLIF(s.D3E,0)) AS COST_MARQUE,
+        s.MARQUE_TOT  * (1.0 * s.D1M4 / NULLIF(s.D1G4,0)) * (1.0 * s.D2E / NULLIF(s.D2M,0)) * (1.0 * s.D3C / NULLIF(s.D3E,0)) AS COST_MARQUE,
         -- HOLDING : cascade K1 (groupe->marque) puis K2, K3
-        s.HOLDING_TOT * (s.D1M  / NULLIF(s.D1G,0))  * (s.D2E / NULLIF(s.D2M,0)) * (s.D3C / NULLIF(s.D3E,0)) AS COST_HOLDING
+        s.HOLDING_TOT * (1.0 * s.D1M / NULLIF(s.D1G,0))  * (1.0 * s.D2E / NULLIF(s.D2M,0)) * (1.0 * s.D3C / NULLIF(s.D3E,0)) AS COST_HOLDING
     FROM (
         SELECT b.*,
             CASE b.K3 WHEN 'REV_CA' THEN b.CA   WHEN 'VOL_EFF' THEN b.VOL_EFF ELSE b.VOL_CLASS END AS D3C,

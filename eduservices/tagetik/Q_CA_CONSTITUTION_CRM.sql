@@ -21,8 +21,7 @@ SELECT
     AN_ETUDE                                              AS "Année d'étude",
     MODALITE                                              AS "Modalité",
     SUM(VOL_EFF)                                          AS "Effectifs",
-    SUM(VOL_EFF * REV_STUD)
-        / NULLIF(SUM(VOL_EFF), 0)                         AS "Tarif moyen",
+    1.0 * SUM(VOL_EFF * REV_STUD) / NULLIF(SUM(VOL_EFF), 0)                         AS "Tarif moyen",
     SUM(VOL_EFF * REV_STUD)                               AS "CA scolarité",
     SUM(VOL_NEW)                                          AS "Nouveaux inscrits",
     SUM(VOL_NEW * REV_FRAIS_INS)                          AS "CA frais d'inscription",

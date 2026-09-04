@@ -1,5 +1,5 @@
 -- =============================================================================
--- VUE V_BUDGET — BUDGET 2027 CONSTRUIT, AU GRAIN COMPTE  (SAP HANA)
+-- VUE V_BUDGET — BUDGET 2027 CONSTRUIT, AU GRAIN COMPTE  (SQL Server / T-SQL)
 -- Sortie : 1 ligne par ENTITY x ACCOUNT x VERSION (EXERCICE='2027'), 1 mesure AMOUNT.
 -- => MÊME forme que la compta (AW_002_000004_000001). C'est la hiérarchie de la
 --    dimension Compte, DANS TAGETIK, qui agrège Produits -> Marge -> EBITDA -> EBIT.
@@ -16,7 +16,7 @@
 -- Montants POSITIFS (comme la compta ; le sens produit/charge est porté par le compte).
 -- Tie-out V01 (Σ) : Produits 24 120 981 · EBITDA 3 875 895 (16,1%).
 -- =============================================================================
-CREATE OR REPLACE VIEW V_BUDGET AS
+CREATE OR ALTER VIEW V_BUDGET AS
 WITH
 lev AS (
     SELECT VERSION,
@@ -34,7 +34,7 @@ cpt AS (   -- compta 2026 au grain compte
     GROUP BY ENTITY, ACCOUNT
 ),
 caf AS (   -- facteur volume groupe par version = Σ CA moteur / Σ produits 2026
-    SELECT mv.VERSION, mv.CA_2027 / NULLIF(gp.TOT_PROD,0) AS CAF
+    SELECT mv.VERSION, 1.0 * mv.CA_2027 / NULLIF(gp.TOT_PROD,0) AS CAF
     FROM (SELECT VERSION, SUM(CA) AS CA_2027 FROM V_MOTEUR GROUP BY VERSION) mv
     CROSS JOIN (
         SELECT SUM(AMOUNT) AS TOT_PROD FROM AW_002_000004_000001

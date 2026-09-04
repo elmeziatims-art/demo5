@@ -20,13 +20,12 @@ SELECT
       - ( cp.PAID_REF * (POWER(1.08, cp.REND_ACQ) - 1)
         + cp.ORG_REF  * (POWER(1.10, cp.REND_BRAND) - 1) ) * cp.CONVERSION * 300   AS EBITDA_1RE_ANNEE,
     -- CAC marginal = budget dépensé ÷ inscrits gagnés
-    ( cp.SPEND_ACQ_REF * 0.08 )
-      / NULLIF(( cp.PAID_REF * (POWER(1.08, cp.REND_ACQ) - 1)
+    1.0 * ( cp.SPEND_ACQ_REF * 0.08 ) / NULLIF(( cp.PAID_REF * (POWER(1.08, cp.REND_ACQ) - 1)
                + cp.ORG_REF  * (POWER(1.10, cp.REND_BRAND) - 1) ) * cp.CONVERSION, 0)           AS CAC_MARGINAL_GESTE
 FROM V_CAMPAGNES cp
 JOIN (
     SELECT ENTITY,
-           SUM(VOL_NEW * REV_STUD + VOL_NEW * REV_FRAIS_INS) / NULLIF(SUM(VOL_NEW),0) AS CA_PAR_INSCRIT
+           1.0 * SUM(VOL_NEW * REV_STUD + VOL_NEW * REV_FRAIS_INS) / NULLIF(SUM(VOL_NEW),0) AS CA_PAR_INSCRIT
     FROM AW_002_000002_000001
     WHERE EXERCICE = '2026'
     GROUP BY ENTITY

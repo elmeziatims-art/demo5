@@ -18,7 +18,7 @@
 --   - Écart = membres calculés (FST) :  706-9706, 7062-97062, 708-9708, total.
 -- Alignement vérifié au centime en 2026 (14 campus) : 706=9706, 7062=97062, 708=9708.
 -- =============================================================================
-CREATE OR REPLACE VIEW V_RECONCILIATION AS
+CREATE OR ALTER VIEW V_RECONCILIATION AS
 -- ===== COMPTA réelle (produits) =====
 SELECT ENTITY, ACCOUNT, EXERCICE, SUM(AMOUNT) AS AMOUNT
 FROM AW_002_000004_000001

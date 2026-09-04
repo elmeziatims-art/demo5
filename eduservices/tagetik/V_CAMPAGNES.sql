@@ -1,5 +1,5 @@
 -- =============================================================================
--- VUE CAMPAGNES — moteur d'acquisition par campus  (SAP HANA)
+-- VUE CAMPAGNES — moteur d'acquisition par campus  (SQL Server / T-SQL)
 -- Source : AW_002_000002_000001 (socle enrichi marketing)
 -- Sort : CPL, rendement (élasticité), part organique, conversion lead->inscrit,
 --        CAC MARGINAL (= coût du prochain inscrit). Grain = ENTITY (campus).
@@ -17,15 +17,15 @@ SELECT
     m.ORG_REF, m.PAID_REF, (m.ORG_REF + m.PAID_REF) AS LEAD_REF,
     m.SPEND_ACQ_REF, m.SPEND_BRAND_REF,
     m.PART_ORG, m.CPL, m.REND_ACQ, m.CONVERSION, m.REND_BRAND,
-    m.CPL / NULLIF(m.REND_ACQ * m.CONVERSION, 0) AS CAC_MARGINAL
+    1.0 * m.CPL / NULLIF(m.REND_ACQ * m.CONVERSION, 0) AS CAC_MARGINAL
 FROM (
     SELECT
         g.SCENARIO, g.PERIODE, g.ENTITY,
         g.ORG_26 AS ORG_REF, g.PAID_26 AS PAID_REF,
         g.SACQ_26 AS SPEND_ACQ_REF, g.SBR_26 AS SPEND_BRAND_REF,
-        COALESCE(g.ORG_26 / NULLIF(g.ORG_26 + g.PAID_26, 0), 0) AS PART_ORG,
-        COALESCE(g.SACQ_26 / NULLIF(g.PAID_26, 0), 0)          AS CPL,
-        COALESCE(g.NEW_26  / NULLIF(g.LEAD_26, 0), 0)          AS CONVERSION,
+        COALESCE(1.0 * g.ORG_26 / NULLIF(g.ORG_26 + g.PAID_26, 0), 0) AS PART_ORG,
+        COALESCE(1.0 * g.SACQ_26 / NULLIF(g.PAID_26, 0), 0)          AS CPL,
+        COALESCE(1.0 * g.NEW_26 / NULLIF(g.LEAD_26, 0), 0)          AS CONVERSION,
         -- élasticité acquisition = pente régression ln(paid) sur ln(spend acq), 3 ans
         CASE WHEN g.DEN_A > 0 THEN g.NUM_A / g.DEN_A ELSE 0.5  END AS REND_ACQ,
         -- élasticité marque = pente régression ln(org) sur ln(spend marque), 3 ans

@@ -43,7 +43,7 @@ WITH base AS (
       AND a.VERSION  = :VERSION
       AND a.PERIODE  = :PERIODE
       AND a.ENTITY   = :ENTITY
-      AND a.EXERCICE IN (:EXERCICE, TO_VARCHAR(TO_INT(:EXERCICE) - 1))
+      AND CAST(a.EXERCICE AS INTEGER) IN (CAST(:EXERCICE AS INTEGER), CAST(:EXERCICE AS INTEGER) - 1)
     GROUP BY a.EXERCICE
 ),
 k AS (
@@ -52,16 +52,16 @@ k AS (
         p.CA  AS CA_P,  n.CA  AS CA_N,
         p.CA - p.CVAR - p.CDIR                AS EB_P,
         n.CA - n.CVAR - n.CDIR                AS EB_N,
-        p.CA   / NULLIF(p.EFF, 0)             AS CAE_P,
-        n.CA   / NULLIF(n.EFF, 0)             AS CAE_N,
-        p.CVAR / NULLIF(p.EFF, 0)             AS CVE_P,
-        n.CVAR / NULLIF(n.EFF, 0)             AS CVE_N,
+        1.0 * p.CA / NULLIF(p.EFF, 0)             AS CAE_P,
+        1.0 * n.CA / NULLIF(n.EFF, 0)             AS CAE_N,
+        1.0 * p.CVAR / NULLIF(p.EFF, 0)             AS CVE_P,
+        1.0 * n.CVAR / NULLIF(n.EFF, 0)             AS CVE_N,
         p.CDIR AS CDIR_P, n.CDIR AS CDIR_N
     FROM      (SELECT * FROM base WHERE EXERCICE = :EXERCICE) n
-    CROSS JOIN(SELECT * FROM base WHERE EXERCICE = TO_VARCHAR(TO_INT(:EXERCICE) - 1)) p
+    CROSS JOIN(SELECT * FROM base WHERE CAST(EXERCICE AS INTEGER) = CAST(:EXERCICE AS INTEGER) - 1) p
 )
 SELECT 1 AS ORDRE,
-       'EBITDA ' || TO_VARCHAR(TO_INT(:EXERCICE) - 1) AS ETAPE,
+       'EBITDA ' + CAST(CAST(:EXERCICE AS INTEGER) - 1 AS VARCHAR(20)) AS ETAPE,
        ROUND(EB_P)                                    AS MONTANT,
        NULL                                           AS DETAIL,
        'point de depart'                              AS LECTURE
@@ -69,31 +69,31 @@ FROM k
 UNION ALL
 SELECT 2, 'Effet effectifs',
        ROUND((EFF_N - EFF_P) * (CAE_P - CVE_P)),
-       TO_VARCHAR(EFF_P) || ' -> ' || TO_VARCHAR(EFF_N) || ' eleves',
-       'volume, valorise a la marge variable ' || TO_VARCHAR(TO_INT(:EXERCICE) - 1)
+       CAST(EFF_P AS VARCHAR(20)) + ' -> ' + CAST(EFF_N AS VARCHAR(20)) + ' eleves',
+       'volume, valorise a la marge variable ' + CAST(CAST(:EXERCICE AS INTEGER) - 1 AS VARCHAR(20))
 FROM k
 UNION ALL
 SELECT 3, 'Effet prix / mix',
        ROUND((CAE_N - CAE_P) * EFF_N),
-       TO_VARCHAR(ROUND(CAE_P)) || ' -> ' || TO_VARCHAR(ROUND(CAE_N)) || ' EUR / eleve',
+       CAST(ROUND(CAE_P) AS VARCHAR(20)) + ' -> ' + CAST(ROUND(CAE_N) AS VARCHAR(20)) + ' EUR / eleve',
        'CA par eleve : tarif, mix initiale/alternance, mix programmes'
 FROM k
 UNION ALL
 SELECT 4, 'Effet cout variable unitaire',
        ROUND(-(CVE_N - CVE_P) * EFF_N),
-       TO_VARCHAR(ROUND(CVE_P)) || ' -> ' || TO_VARCHAR(ROUND(CVE_N)) || ' EUR / eleve',
+       CAST(ROUND(CVE_P) AS VARCHAR(20)) + ' -> ' + CAST(ROUND(CVE_N) AS VARCHAR(20)) + ' EUR / eleve',
        'vacataires et achats directs, par eleve'
 FROM k
 UNION ALL
 SELECT 5, 'Effet couts directs',
        ROUND(-(CDIR_N - CDIR_P)),
-       TO_VARCHAR(ROUND(CDIR_P)) || ' -> ' || TO_VARCHAR(ROUND(CDIR_N)) || ' EUR',
+       CAST(ROUND(CDIR_P) AS VARCHAR(20)) + ' -> ' + CAST(ROUND(CDIR_N) AS VARCHAR(20)) + ' EUR',
        'permanents et structure du campus : ne suivent pas l activite'
 FROM k
 UNION ALL
-SELECT 6, 'EBITDA ' || :EXERCICE,
+SELECT 6, 'EBITDA ' + :EXERCICE,
        ROUND(EB_N),
-       'marge ' || TO_VARCHAR(ROUND(100 * EB_N / NULLIF(CA_N, 0), 1)) || ' %',
+       'marge ' + CAST(ROUND(100 * 1.0 * EB_N / NULLIF(CA_N, 0), 1) AS VARCHAR(20)) + ' %',
        'doit egaler la cellule cliquee'
 FROM k
 ORDER BY ORDRE

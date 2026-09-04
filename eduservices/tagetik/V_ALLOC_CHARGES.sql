@@ -10,7 +10,7 @@
 -- Un montant par EXERCICE x VERSION : 2026 reel (Compta, VERSION='ACT')
 -- et 2027 budget (V_BUDGET, V01/V02/V03). Meme sources que V_ALLOCATION.
 -- =============================================================================
-CREATE OR REPLACE VIEW V_ALLOC_CHARGES AS
+CREATE OR ALTER VIEW V_ALLOC_CHARGES AS
 SELECT
     p.EXERCICE, p.VERSION,
     SUM(CASE WHEN p.ACCOUNT IN ('6413','645','613','615','616','625','63511')

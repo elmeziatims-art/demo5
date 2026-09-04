@@ -1,6 +1,6 @@
 -- Arbitrage du budget d'acquisition : 3 caps proposes + cap retenu, par campus.
 -- Chaque cap = budget de reference x coefficient de la logique correspondante.
-CREATE OR REPLACE VIEW V_CAP_ARBITRAGE AS
+CREATE OR ALTER VIEW V_CAP_ARBITRAGE AS
 SELECT ENTITY AS CAMPUS, SUBSTR_BEFORE(ENTITY,'_') AS MARQUE,
     CAC_MARGINAL,
     BUDGET_ACQ_REF                    AS BUDGET_REFERENCE,

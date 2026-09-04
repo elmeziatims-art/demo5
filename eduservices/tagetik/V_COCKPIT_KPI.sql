@@ -27,7 +27,7 @@
 -- Pour le meme bandeau par marque ou par campus : ajouter MARQUE (ou ENTITY)
 -- au GROUP BY de "base", aux jointures de "duo", et au SELECT final.
 -- =============================================================================
-CREATE OR REPLACE VIEW V_COCKPIT_KPI AS
+CREATE OR ALTER VIEW V_COCKPIT_KPI AS
 WITH base AS (
     SELECT
         c.SCENARIO, c.VERSION, c.PERIODE, c.EXERCICE,
@@ -61,48 +61,48 @@ duo AS (                       -- l'exercice et son precedent, cote a cote
       ON  p.SCENARIO = n.SCENARIO
       AND p.VERSION  = n.VERSION
       AND p.PERIODE  = n.PERIODE
-      AND p.EXERCICE = TO_VARCHAR(TO_INT(n.EXERCICE) - 1)
+      AND CAST(p.EXERCICE AS INTEGER) = CAST(n.EXERCICE AS INTEGER) - 1
 )
 SELECT SCENARIO, VERSION, PERIODE, EXERCICE,
        1 AS ORDRE, 'CA' AS CODE, 'Chiffre d''affaires' AS LIBELLE,
        CA AS VALEUR, 'MEUR' AS UNITE,
-       CA / NULLIF(CA_P, 0) - 1 AS VARIATION, 'PCT' AS TYPE_VARIATION,
+       1.0 * CA / NULLIF(CA_P, 0) - 1 AS VARIATION, 'PCT' AS TYPE_VARIATION,
        1 AS SENS_FAVORABLE, '' AS INFO
 FROM duo
 UNION ALL
 SELECT SCENARIO, VERSION, PERIODE, EXERCICE,
        2, 'EBITDA', 'EBITDA',
        EBITDA, 'MEUR',
-       EBITDA / NULLIF(EBITDA_P, 0) - 1, 'PCT',
+       1.0 * EBITDA / NULLIF(EBITDA_P, 0) - 1, 'PCT',
        1, ''
 FROM duo
 UNION ALL
 SELECT SCENARIO, VERSION, PERIODE, EXERCICE,
        3, 'MARGE', 'Marge EBITDA',
-       EBITDA / NULLIF(CA, 0), 'PCT',
-       (EBITDA / NULLIF(CA, 0) - EBITDA_P / NULLIF(CA_P, 0)) * 100, 'PT',
-       1, 'vs ' || TO_VARCHAR(ROUND(100 * EBITDA_P / NULLIF(CA_P, 0), 1)) || ' %'
+       1.0 * EBITDA / NULLIF(CA, 0), 'PCT',
+       (1.0 * EBITDA / NULLIF(CA, 0) - 1.0 * EBITDA_P / NULLIF(CA_P, 0)) * 100, 'PT',
+       1, 'vs ' + CAST(ROUND(100 * 1.0 * EBITDA_P / NULLIF(CA_P, 0), 1) AS VARCHAR(20)) + ' %'
 FROM duo
 UNION ALL
 SELECT SCENARIO, VERSION, PERIODE, EXERCICE,
        4, 'INSCRITS', 'Inscrits (nouveaux)',
        INSCRITS, 'NB',
-       INSCRITS / NULLIF(INSCRITS_P, 0) - 1, 'PCT',
-       1, TO_VARCHAR(INSCRITS - INSCRITS_P) || ' vs ' || TO_VARCHAR(TO_INT(EXERCICE) - 1)
+       1.0 * INSCRITS / NULLIF(INSCRITS_P, 0) - 1, 'PCT',
+       1, CAST(INSCRITS - INSCRITS_P AS VARCHAR(20)) + ' vs ' + CAST(CAST(EXERCICE AS INTEGER) - 1 AS VARCHAR(20))
 FROM duo
 UNION ALL
 SELECT SCENARIO, VERSION, PERIODE, EXERCICE,
        5, 'CAC', 'Cout d''acquisition',
-       SPEND / NULLIF(INSCRITS, 0), 'EUR',
-       (SPEND / NULLIF(INSCRITS, 0)) / NULLIF(SPEND_P / NULLIF(INSCRITS_P, 0), 0) - 1, 'PCT',
+       1.0 * SPEND / NULLIF(INSCRITS, 0), 'EUR',
+       1.0 * (1.0 * SPEND / NULLIF(INSCRITS, 0)) / NULLIF(1.0 * SPEND_P / NULLIF(INSCRITS_P, 0), 0) - 1, 'PCT',
        -1,                                        -- une hausse du CAC est defavorable
        'depense / inscrit'
 FROM duo
 UNION ALL
 SELECT SCENARIO, VERSION, PERIODE, EXERCICE,
        6, 'REMPLISSAGE', 'Remplissage moyen',
-       EFF / NULLIF(PLACES, 0), 'PCT',
-       (EFF / NULLIF(PLACES, 0) - EFF_P / NULLIF(PLACES_P, 0)) * 100, 'PT',
-       1, TO_VARCHAR(PLACES - EFF) || ' places libres'
+       1.0 * EFF / NULLIF(PLACES, 0), 'PCT',
+       (1.0 * EFF / NULLIF(PLACES, 0) - 1.0 * EFF_P / NULLIF(PLACES_P, 0)) * 100, 'PT',
+       1, CAST(PLACES - EFF AS VARCHAR(20)) + ' places libres'
 FROM duo
 ;

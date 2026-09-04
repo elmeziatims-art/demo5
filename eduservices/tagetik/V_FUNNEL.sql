@@ -10,7 +10,7 @@
 --   TX cand->admis  = SUM(ADMIS)     / SUM(CANDIDATS)
 --   TX admis->insc  = SUM(INSCRITS)  / SUM(ADMIS)
 -- =============================================================================
-CREATE OR REPLACE VIEW V_FUNNEL AS
+CREATE OR ALTER VIEW V_FUNNEL AS
 SELECT
     EXERCICE,
     ENTITY,                         -- campus (roule vers marque via la dim Entity)

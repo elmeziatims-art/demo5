@@ -1,5 +1,5 @@
 -- =============================================================================
--- V_MOTEUR_CAL — calibration du moteur au grain CAMPUS × EXERCICE   (SAP HANA)
+-- V_MOTEUR_CAL — calibration du moteur au grain CAMPUS × EXERCICE   (SQL Server / T-SQL)
 -- Source : AW_002_000002_000001 (socle enrichi marketing).
 --
 -- Objet : donner en UNE vue tout ce qu'affichent les onglets Excel « Le moteur »
@@ -42,11 +42,10 @@ SELECT
     SUM(s.DEPENSE_ACQ)                                        AS SPEND_ACQ,
     SUM(s.DEPENSE_MARQUE)                                     AS SPEND_BRAND,
     SUM(s.VOL_NEW)                                            AS INSCRITS,
-    SUM(s.VOL_NEW)    / NULLIF(SUM(s.VOL_LEAD), 0)            AS CONVERSION,
-    SUM(s.DEPENSE_ACQ)/ NULLIF(SUM(s.VOL_LEAD_PAY), 0)       AS CPL,
+    1.0 * SUM(s.VOL_NEW) / NULLIF(SUM(s.VOL_LEAD), 0)            AS CONVERSION,
+    1.0 * SUM(s.DEPENSE_ACQ) / NULLIF(SUM(s.VOL_LEAD_PAY), 0)       AS CPL,
     SUM(s.VOL_NEW * s.REV_STUD + s.VOL_NEW * s.REV_FRAIS_INS) AS CA_NEW,
-    SUM(s.VOL_NEW * s.REV_STUD + s.VOL_NEW * s.REV_FRAIS_INS)
-        / NULLIF(SUM(s.VOL_NEW), 0)                           AS CA_PAR_INSCRIT
+    1.0 * SUM(s.VOL_NEW * s.REV_STUD + s.VOL_NEW * s.REV_FRAIS_INS) / NULLIF(SUM(s.VOL_NEW), 0)                           AS CA_PAR_INSCRIT
 FROM AW_002_000002_000001 s
 GROUP BY s.SCENARIO, s.PERIODE, s.ENTITY, s.EXERCICE
 ;

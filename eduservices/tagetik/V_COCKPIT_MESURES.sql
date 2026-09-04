@@ -35,7 +35,7 @@
 --
 -- L'exercice de comparaison est deduit (EXERCICE - 1) : rien a saisir.
 -- =============================================================================
-CREATE OR REPLACE VIEW V_COCKPIT_MESURES AS
+CREATE OR ALTER VIEW V_COCKPIT_MESURES AS
 WITH base AS (
     SELECT
         c.SCENARIO, c.VERSION, c.PERIODE, c.EXERCICE, c.MARQUE, c.ENTITY,
@@ -79,24 +79,23 @@ SELECT
     p.SPEND_ACQ                                   AS SPEND_ACQ_N1,
 
     -- ---------- ② MESURES DERIVEES  (justes au grain de la ligne) ----------
-    n.EBITDA    / NULLIF(n.CA, 0)                 AS MARGE,
-    p.EBITDA    / NULLIF(p.CA, 0)                 AS MARGE_N1,
-    n.SPEND_ACQ / NULLIF(n.INSCRITS, 0)           AS CAC,
-    p.SPEND_ACQ / NULLIF(p.INSCRITS, 0)           AS CAC_N1,
-    n.EFFECTIFS / NULLIF(n.PLACES, 0)             AS REMPLISSAGE,
-    p.EFFECTIFS / NULLIF(p.PLACES, 0)             AS REMPLISSAGE_N1,
+    1.0 * n.EBITDA / NULLIF(n.CA, 0)                 AS MARGE,
+    1.0 * p.EBITDA / NULLIF(p.CA, 0)                 AS MARGE_N1,
+    1.0 * n.SPEND_ACQ / NULLIF(n.INSCRITS, 0)           AS CAC,
+    1.0 * p.SPEND_ACQ / NULLIF(p.INSCRITS, 0)           AS CAC_N1,
+    1.0 * n.EFFECTIFS / NULLIF(n.PLACES, 0)             AS REMPLISSAGE,
+    1.0 * p.EFFECTIFS / NULLIF(p.PLACES, 0)             AS REMPLISSAGE_N1,
 
     -- ---------- ③ VARIATIONS  (justes au grain de la ligne) ----------
-    n.CA        / NULLIF(p.CA, 0)       - 1       AS CA_VAR,
-    n.EBITDA    / NULLIF(p.EBITDA, 0)   - 1       AS EBITDA_VAR,
-    n.INSCRITS  / NULLIF(p.INSCRITS, 0) - 1       AS INSCRITS_VAR,
-    (n.SPEND_ACQ / NULLIF(n.INSCRITS, 0))
-      / NULLIF(p.SPEND_ACQ / NULLIF(p.INSCRITS, 0), 0) - 1
+    1.0 * n.CA / NULLIF(p.CA, 0)       - 1       AS CA_VAR,
+    1.0 * n.EBITDA / NULLIF(p.EBITDA, 0)   - 1       AS EBITDA_VAR,
+    1.0 * n.INSCRITS / NULLIF(p.INSCRITS, 0) - 1       AS INSCRITS_VAR,
+    1.0 * (1.0 * n.SPEND_ACQ / NULLIF(n.INSCRITS, 0)) / NULLIF(1.0 * p.SPEND_ACQ / NULLIF(p.INSCRITS, 0), 0) - 1
                                                   AS CAC_VAR,
-    (n.EBITDA / NULLIF(n.CA, 0)
-       - p.EBITDA / NULLIF(p.CA, 0)) * 100        AS MARGE_VAR_PT,
-    (n.EFFECTIFS / NULLIF(n.PLACES, 0)
-       - p.EFFECTIFS / NULLIF(p.PLACES, 0)) * 100 AS REMPLISSAGE_VAR_PT
+    (1.0 * n.EBITDA / NULLIF(n.CA, 0)
+       - 1.0 * p.EBITDA / NULLIF(p.CA, 0)) * 100        AS MARGE_VAR_PT,
+    (1.0 * n.EFFECTIFS / NULLIF(n.PLACES, 0)
+       - 1.0 * p.EFFECTIFS / NULLIF(p.PLACES, 0)) * 100 AS REMPLISSAGE_VAR_PT
 
 FROM k n
 LEFT JOIN k p
@@ -104,5 +103,5 @@ LEFT JOIN k p
   AND p.VERSION  = n.VERSION
   AND p.PERIODE  = n.PERIODE
   AND p.ENTITY   = n.ENTITY
-  AND p.EXERCICE = TO_VARCHAR(TO_INT(n.EXERCICE) - 1)
+  AND CAST(p.EXERCICE AS INTEGER) = CAST(n.EXERCICE AS INTEGER) - 1
 ;
