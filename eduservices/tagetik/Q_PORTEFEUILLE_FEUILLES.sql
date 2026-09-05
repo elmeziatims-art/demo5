@@ -17,11 +17,32 @@
    campus : elles s'agregent normalement vers n'importe quel noeud.
 
    -------------------------------------------------------------------------
-   LE PIEGE A CONNAITRE
+   LA FORMULE DE RAPPORT, ET SA GARDE
    -------------------------------------------------------------------------
-   Une colonne _M n'est juste que si TOUS les campus de la marque sont dans le
-   perimetre affiche. Filtre un seul campus et MARGE_M vaudra le quart de la
-   marge de la marque -- un chiffre qui ne veut rien dire.
+   Les compteurs NB / NB_M / NB_G disent sur quel niveau on se trouve, donc
+   une seule formule suffit et elle s'adapte au filtre :
+
+       Marge = IF(NB_G = 1 ; MARGE_G ;
+               IF(NB_M = 1 ; MARGE_M ;
+               IF(NB   = 1 ; MARGE_C ; "")))
+
+   L'ordre des tests compte : au niveau groupe NB_G vaut 1 ET NB_M vaut 5
+   (cinq marques completes), donc NB_G se teste en premier.
+
+   Le dernier "" est la GARDE : si le perimetre affiche ne correspond a aucun
+   noeud connu -- deux marques, ou trois campus choisis a la main -- aucun
+   compteur ne vaut 1 et la cellule reste vide, au lieu d'afficher une
+   fraction sans signification.
+
+   LIMITE DE LA GARDE : elle est exacte pour tout perimetre qui EST un noeud
+   de la hierarchie. Elle peut etre trompee par un melange choisi a la main
+   dont les fractions totalisent 1 par hasard -- par exemple PIGIER_LYO +
+   TUNON_PAR, deux campus de marques differentes qui font 1/2 + 1/2 = 1.
+   Sur ce socle il existe 46 combinaisons de ce type, toutes multi-marques,
+   et AUCUNE n'est un noeud. Un rapport qui filtre sur un noeud ne peut donc
+   pas les produire ; le risque n'apparait que si l'utilisateur coche des
+   campus a la main dans plusieurs marques.
+
    Les colonnes _C et les mesures de base, elles, restent justes sur
    n'importe quel sous-ensemble.
 
@@ -112,6 +133,17 @@ SELECT
     w.EFFECTIFS_ALT,
     w.PLACES, w.PLACES - w.EFFECTIFS AS PLACES_LIBRES,
     w.SPEND_ACQ, w.P_SPEND_ACQ AS SPEND_ACQ_N1,
+
+    /* ---------- detecteurs de niveau ----------
+       NB   somme = nombre de campus dans le perimetre ; vaut 1 sur un campus
+       NB_M somme = 1 quand une marque ENTIERE est affichee
+       NB_G somme = 1 quand le groupe ENTIER est affiche
+       Ils permettent au rapport de choisir la bonne colonne SANS savoir
+       a l'avance sur quel noeud on se trouve -- et de ne rien afficher
+       quand le perimetre ne correspond a aucun noeud connu.            */
+    1                                    AS NB,
+    1.0 / NULLIF(w.NB_M, 0)              AS NB_M,
+    1.0 / NULLIF(w.NB_G, 0)              AS NB_G,
 
     /* MARGE —        marge EBITDA */
     1.0 * w.EBITDA / NULLIF(w.CA, 0) AS MARGE_C,
