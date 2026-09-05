@@ -45,14 +45,18 @@ SELECT
        Son diviseur est le meme sur toutes les lignes, donc la somme des
        parts est la part de la somme : au noeud MBway on obtient 45,5 %,
        a la racine 100 %. Aucune formule a ecrire dans le rapport.
-       Le diviseur vient de la sous-requete SEPAREE g, qui balaie
-       V_ALLOCATION en entier : il reste l'EBITDA groupe meme si un filtre
-       entite est injecte dans la requete. Choisir MBway en parametre donne
-       donc 45,5 %, et non 100 % -- ce qu'une fonction de fenetre aurait
-       donne, en se repliant sur le perimetre filtre.
+       Le diviseur est une FENETRE sur le perimetre de la requete : elle
+       se replie sur ce qui est filtre. Passer MBway en parametre fait donc
+       de MBway le 100 %, et ses campus se repartissent dessus -- Paris
+       34,3 %, Lyon 26,1 %, Nantes 22,1 %, Bordeaux 17,6 %.
+       C'est la lecture 'part dans ce que je regarde'. Pour la lecture
+       'part dans le groupe', remplacer la fenetre par une sous-requete
+       separee jointe sur scenario/version/periode/exercice seulement.
        Le diviseur lui-meme ne peut PAS etre expose en colonne : repete
        sur 14 lignes, il serait somme a 14 fois l'EBITDA groupe.          */
-    1.0 * n.EBITDA / NULLIF(g.EBITDA_GROUPE, 0)
+    1.0 * n.EBITDA
+        / NULLIF(SUM(n.EBITDA) OVER (PARTITION BY n.SCENARIO, n.VERSION,
+                                                  n.PERIODE,  n.EXERCICE), 0)
                              AS PART_EBITDA
 FROM (
         SELECT  a.SCENARIO, a.VERSION, a.PERIODE, a.EXERCICE, a.MARQUE, a.ENTITY,
@@ -79,13 +83,3 @@ LEFT JOIN (
       AND  p.PERIODE  = n.PERIODE
       AND  p.ENTITY   = n.ENTITY
       AND  CAST(p.EXERCICE AS INT) = CAST(n.EXERCICE AS INT) - 1
-LEFT JOIN (
-        SELECT  a.SCENARIO, a.VERSION, a.PERIODE, a.EXERCICE,
-                SUM(a.CA - a.COST_COMPLET) AS EBITDA_GROUPE
-        FROM    V_ALLOCATION AS a
-        GROUP BY a.SCENARIO, a.VERSION, a.PERIODE, a.EXERCICE
-     ) AS g
-       ON  g.SCENARIO = n.SCENARIO
-      AND  g.VERSION  = n.VERSION
-      AND  g.PERIODE  = n.PERIODE
-      AND  g.EXERCICE = n.EXERCICE
