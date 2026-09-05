@@ -34,7 +34,7 @@ FROM (
                SUM(CASE WHEN MODALITE = 'ALT'  THEN VOL_EFF * REV_STUD ELSE 0 END) AS CA_ALT,
                SUM(VOL_NEW * REV_FRAIS_INS)                                        AS CA_FRAIS
         FROM AW_002_000002_000001
-        WHERE EXERCICE = '2026'
+        WHERE n.EXERCICE = '2026'
         GROUP BY SUBSTR_BEFORE(ENTITY,'_'), ENTITY
      ) crm
 LEFT JOIN (
@@ -43,7 +43,7 @@ LEFT JOIN (
                SUM(CASE WHEN ACCOUNT = '7062' THEN AMOUNT ELSE 0 END) AS C7062,
                SUM(CASE WHEN ACCOUNT = '708'  THEN AMOUNT ELSE 0 END) AS C708
         FROM AW_002_000004_000001
-        WHERE EXERCICE = '2026'
+        WHERE n.EXERCICE = '2026'
           AND ACCOUNT IN ('706', '7062', '708')
         GROUP BY ENTITY
      ) cpt
