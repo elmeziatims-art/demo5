@@ -35,7 +35,6 @@
 --
 -- L'exercice de comparaison est deduit (EXERCICE - 1) : rien a saisir.
 -- =============================================================================
-CREATE OR ALTER VIEW V_COCKPIT_MESURES AS
 WITH base AS (
     SELECT
         c.SCENARIO, c.VERSION, c.PERIODE, c.EXERCICE, c.MARQUE, c.ENTITY,
@@ -104,4 +103,5 @@ LEFT JOIN k p
   AND p.PERIODE  = n.PERIODE
   AND p.ENTITY   = n.ENTITY
   AND CAST(p.EXERCICE AS INTEGER) = CAST(n.EXERCICE AS INTEGER) - 1
-;
+
+ORDER BY n.EXERCICE, n.MARQUE, n.ENTITY;

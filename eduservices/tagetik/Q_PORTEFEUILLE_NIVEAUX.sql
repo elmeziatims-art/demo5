@@ -2,7 +2,7 @@
    V_PORTEFEUILLE_NIVEAUX  —  SQL SERVER (T-SQL)
    La grille du cockpit avec LES RATIOS DEJA CALCULES, justes a chaque niveau.
 
-   L'idee : au lieu de laisser Tagetik sommer et donc casser les ratios, la vue
+   L'idee : au lieu de laisser Tagetik sommer et donc casser les ratios, la requête
    PRE-AGREGE elle-meme les trois niveaux (GROUPE / MARQUE / CAMPUS) en une
    seule passe, grace a GROUPING SETS. Chaque ligne est deja agregee AVANT la
    division, donc chaque ratio est juste.
@@ -14,7 +14,6 @@
    NIVEAU   'GROUPE' | 'MARQUE' | 'CAMPUS'
    LIBELLE  l'intitule a afficher, quel que soit le niveau
    ============================================================================= */
-CREATE OR ALTER VIEW V_PORTEFEUILLE_NIVEAUX AS
 WITH cls AS (
     SELECT  a.SCENARIO, a.VERSION, a.PERIODE, a.EXERCICE, a.MARQUE, a.ENTITY,
             a.VOL_EFF, a.VOL_NEW, a.CA, a.COST_COMPLET, a.COST_SIEGE,
@@ -102,4 +101,7 @@ LEFT JOIN  lvl AS g                       -- la ligne GROUPE, pour la part d'EBI
       AND  g.SCENARIO = n.SCENARIO
       AND  g.VERSION  = n.VERSION
       AND  g.PERIODE  = n.PERIODE
-      AND  g.EXERCICE = n.EXERCICE;
+      AND  g.EXERCICE = n.EXERCICE
+WHERE EXERCICE = '2026'
+ORDER BY  CASE NIVEAU WHEN 'GROUPE' THEN 1 WHEN 'MARQUE' THEN 2 ELSE 3 END,
+          MARQUE, LIBELLE;

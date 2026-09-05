@@ -11,10 +11,10 @@
    Tagetik somme les mesures sur les noeuds. Une marge, un taux de
    remplissage, un mix ou une variation ne se somment pas : la somme des
    marges de 4 campus n'est pas la marge de la marque. Toute colonne de ce
-   type placee dans la vue serait FAUSSE des le premier total, sans aucune
+   type placee dans la requête serait FAUSSE des le premier total, sans aucune
    erreur pour te prevenir.
 
-   La vue expose donc les COMPOSANTES, et le rapport recompose. Chaque
+   La requete expose donc les COMPOSANTES, et le rapport recompose. Chaque
    composante est additive, donc chaque ratio reste juste a TOUS les niveaux.
 
    -------------------------------------------------------------------------
@@ -41,7 +41,6 @@
 
    Ne depend que de V_ALLOCATION et de AW_002_000002_000001.
    ============================================================================= */
-CREATE OR ALTER VIEW V_PORTEFEUILLE AS
 WITH cls AS (
     SELECT  a.SCENARIO, a.VERSION, a.PERIODE, a.EXERCICE, a.MARQUE, a.ENTITY,
             a.VOL_EFF, a.VOL_NEW, a.CA, a.COST_COMPLET, a.COST_SIEGE,
@@ -107,4 +106,5 @@ LEFT JOIN  k AS p
       AND  p.VERSION  = n.VERSION
       AND  p.PERIODE  = n.PERIODE
       AND  p.ENTITY   = n.ENTITY
-      AND  CAST(p.EXERCICE AS INT) = CAST(n.EXERCICE AS INT) - 1;
+      AND  CAST(p.EXERCICE AS INT) = CAST(n.EXERCICE AS INT) - 1
+ORDER BY n.EXERCICE, n.MARQUE, n.ENTITY;

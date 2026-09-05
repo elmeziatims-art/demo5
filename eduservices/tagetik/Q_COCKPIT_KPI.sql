@@ -4,7 +4,7 @@
 -- Pourquoi une ligne par tuile plutot qu'une ligne large de 12 colonnes :
 --   . chaque tuile pointe UNE cellule -> le masque Excel reste trivial
 --   . ajouter un 7e KPI = une ligne de plus, aucune colonne a recabler
---   . la vue porte l'UNITE et le SENS, donc le format et la couleur se
+--   . la requête porte l'UNITE et le SENS, donc le format et la couleur se
 --     pilotent par la donnee au lieu d'etre codes en dur dans la feuille
 --
 -- COLONNES
@@ -27,7 +27,6 @@
 -- Pour le meme bandeau par marque ou par campus : ajouter MARQUE (ou ENTITY)
 -- au GROUP BY de "base", aux jointures de "duo", et au SELECT final.
 -- =============================================================================
-CREATE OR ALTER VIEW V_COCKPIT_KPI AS
 WITH base AS (
     SELECT
         c.SCENARIO, c.VERSION, c.PERIODE, c.EXERCICE,
@@ -105,4 +104,5 @@ SELECT SCENARIO, VERSION, PERIODE, EXERCICE,
        (1.0 * EFF / NULLIF(PLACES, 0) - 1.0 * EFF_P / NULLIF(PLACES_P, 0)) * 100, 'PT',
        1, CAST(PLACES - EFF AS VARCHAR(20)) + ' places libres'
 FROM duo
-;
+
+ORDER BY ORDRE;
