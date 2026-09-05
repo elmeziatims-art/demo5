@@ -34,6 +34,7 @@
 --       (idem marque avec SPEND_BRAND / LEAD_ORG). C'est exactement le calcul
 --        de V_CAMPAGNES.REND_ACQ, mais posé sur la matrice.
 -- =============================================================================
+CREATE OR ALTER VIEW V_MOTEUR_CAL AS
 SELECT
     s.SCENARIO, s.PERIODE, s.ENTITY, s.EXERCICE,
     SUM(s.VOL_LEAD_ORG)                                       AS LEAD_ORG,
