@@ -39,7 +39,18 @@ SELECT
     n.INSCRITS               AS INSCRITS,
     n.EFFECTIFS              AS EFFECTIFS,
     n.EFFECTIFS_ALT          AS EFFECTIFS_ALT,
-    n.PLACES                 AS PLACES
+    n.PLACES                 AS PLACES,
+
+    /* PART_EBITDA — la part dans l'EBITDA du groupe, DEJA ADDITIVE.
+       Son diviseur est le meme sur toutes les lignes, donc la somme des
+       parts est la part de la somme : au noeud MBway on obtient 45,5 %,
+       a la racine 100 %. Aucune formule a ecrire dans le rapport.
+       Le diviseur lui-meme ne peut PAS etre expose en colonne : repete
+       sur 14 lignes, il serait somme a 14 fois l'EBITDA groupe.          */
+    1.0 * n.EBITDA
+        / NULLIF(SUM(n.EBITDA) OVER (PARTITION BY n.SCENARIO, n.VERSION,
+                                                  n.PERIODE,  n.EXERCICE), 0)
+                             AS PART_EBITDA
 FROM (
         SELECT  a.SCENARIO, a.VERSION, a.PERIODE, a.EXERCICE, a.MARQUE, a.ENTITY,
                 SUM(a.CA)                                 AS CA,
