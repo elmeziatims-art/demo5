@@ -6,11 +6,12 @@ Remplace la version qui reconstruisait la donnee a partir des inducteurs du
 referentiel : depuis le calibrage de la compta, la base fait foi. Tout ce que
 je produis derive donc des memes chiffres que Tagetik, au centime.
 
-  data/socle_crm.csv           AW_002_000002_000001  (CRM : volumes et revenus)
-  data/compta.csv              AW_002_000004_000001  (comptes)
-  data/siege_2026.json         le siege reel redescendu par campus (cascade K1..K4)
-  data/calibrage_direct.json   les couts directs recalibres par campus/exercice
-                               (l'UPDATE applique en base le 05/09)
+  data/socle_crm.csv    AW_002_000002_000001  (CRM : volumes et revenus)
+  data/compta.csv       AW_002_000004_000001  (comptes, extrait POST-UPDATE du 05/09)
+  data/siege_2026.json  le siege reel redescendu par campus (cascade K1..K4)
+
+Aucune transformation intermediaire : ce que lit ce module est exactement ce que
+lit V_ALLOCATION. Le calibrage des couts directs n'existe plus ici, il est en base.
 
 API :
     construire()          -> agregats par CAMPUS et par exercice
@@ -37,7 +38,6 @@ _cap = lambda prog: CAPACITE[prog.split("_")[0]]
 def construire():
     """Agregats par campus x exercice, identiques a ce que renvoie V_ALLOCATION."""
     S = _lire("socle_crm.csv"); C = _lire("compta.csv")
-    CAL = json.load(open(os.path.join(ICI, "data", "calibrage_direct.json")))
 
     campus = defaultdict(lambda: dict(ca={}, eb={}, eff={}, places={}, inscrits={},
                                       mix_alt={}, cvar={}, cdir={}, csiege={}, lignes=[]))
@@ -60,18 +60,20 @@ def construire():
         for ex in EXERCICES:
             c["mix_alt"][ex] = c["mix_alt"][ex] / c["eff"][ex] if c["eff"].get(ex) else 0
 
-    # ---- compta : variable par campus, siege au GRP, direct = valeurs calibrees ----
+    # ---- compta : variable et direct par campus, siege porte par GRP ----
     siege_grp = defaultdict(float)
+    for c in campus.values():
+        for ex in EXERCICES:
+            c["cvar"][ex] = 0.0; c["cdir"][ex] = 0.0
     for r in C:
         ex = int(r["EXERCICE"]); e = r["ENTITY"]; a = r["ACCOUNT"]
         if ex not in EXERCICES: continue
         if e == "GRP":
             if a in CPT_SIEGE: siege_grp[ex] += _num(r["AMOUNT"])
         elif a in CPT_VAR:
-            campus[e]["cvar"][ex] = campus[e]["cvar"].get(ex, 0) + _num(r["AMOUNT"])
-    for e, c in campus.items():
-        for ex in EXERCICES:
-            c["cdir"][ex] = CAL[str(ex)][e]
+            campus[e]["cvar"][ex] += _num(r["AMOUNT"])
+        elif a in CPT_DIRECT:
+            campus[e]["cdir"][ex] += _num(r["AMOUNT"])
 
     # ---- siege : valeurs REELLES 2026 telles que la cascade V_ALLOCATION les
     # redescend (le prorata effectifs s'en ecarte de 1 a 2 %, assez pour decaler
