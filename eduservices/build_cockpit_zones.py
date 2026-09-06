@@ -17,12 +17,14 @@ Une seule zone par query suffit : chaque serie va chercher SA colonne avec
 INDEX(zone, 0, rang). Le zero en deuxieme argument veut dire "toute la
 colonne", donc la serie suit la hauteur de la zone sans qu'on s'en occupe.
 
-    Z_MARGE     1 NIVEAU  2 CODE  3 LIBELLE  4 CA_2024  5 EBITDA_2024
-                6 MARGE_2024  7 CA_2025 ... 9 MARGE_2025 ... 12 MARGE_2026
-                13 ECART_PT
     Z_PONT      1 RANG  2 ETAPE  3 SOCLE  4 ANCRE  5 HAUSSE  6 BAISSE
-    Z_TENSION   1 EXERCICE  2 DEPENSES  3 INSCRITS  4 IND_DEPENSES
-                5 IND_INSCRITS  6 CAC  7 ECART_PT
+    Z_MARGE     1 LIBELLE  2 MARGE_2024  3 MARGE_2025  4 MARGE_2026
+                5 ECART_PT  6 NIVEAU  7 CODE  8..13 CA et EBITDA par exercice
+    Z_TENSION   1 EXERCICE  2 IND_DEPENSES  3 IND_INSCRITS
+                4 CAC  5 ECART_PT  6 DEPENSES  7 INSCRITS
+
+Les query ont ete reordonnees pour cela : categorie en premiere colonne utile,
+puis les series, contigues. Plus aucune colonne de relais dans le classeur.
 
 Les noms sont definis ici a l'etendue actuelle pour que le fichier s'ouvre
 sans erreur. Des que Tagetik les maintient, ce sont les siens qui font foi.
@@ -82,14 +84,14 @@ br.legend=None; br.y_axis.numFmt='0.0,," M€"'; br.height=9.0; br.width=8.1
 ws.add_chart(br,"D13")
 
 mg=BarChart(); mg.type="col"; mg.grouping="clustered"; mg.gapWidth=60; mg.overlap=-10
-monte(mg,"Z_MARGE",3,(6,9,12),("2024","2025","2026"))
+monte(mg,"Z_MARGE",1,(2,3,4),("2024","2025","2026"))
 for s,coul in zip(mg.series,(BLUE3,BLUE2,BLUE)):
     s.graphicalProperties.solidFill=coul; s.graphicalProperties.line.noFill=True
 mg.legend.position="b"; mg.y_axis.numFmt='0%'; mg.height=9.0; mg.width=8.1
 ws.add_chart(mg,"H13")
 
 tn=LineChart()
-monte(tn,"Z_TENSION",1,(4,5),("Dépenses","Inscrits"))
+monte(tn,"Z_TENSION",1,(2,3),("Dépenses","Inscrits"))
 for s,coul in zip(tn.series,(ORANGE,BLUE)):
     s.graphicalProperties.line.solidFill=coul; s.graphicalProperties.line.width=25000
     s.marker=Marker(symbol="circle",size=6); s.smooth=False
@@ -99,9 +101,6 @@ tn.y_axis.scaling.min=95; tn.y_axis.scaling.max=125; tn.y_axis.majorUnit=10
 tn.height=9.0; tn.width=8.1
 ws.add_chart(tn,"L13")
 
-# les colonnes de relais ne servent plus a rien : on les vide
-for c in range(60,76):
-    for r in range(7,12): ws.cell(r,c).value=None
 wb.save(OUT)
 print("%s ecrit — %d graphes sur zones nommees, %d noms definis"
       %(OUT,len(ws._charts),len(wb.defined_names)))

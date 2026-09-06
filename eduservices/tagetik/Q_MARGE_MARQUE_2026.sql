@@ -30,6 +30,18 @@
    ligne sans ambiguite.
 
    =============================================================================
+   L'ORDRE DES COLONNES EST CELUI DU GRAPHE
+
+   Les quatre premieres colonnes sont LIBELLE puis les trois marges, dans
+   l'ordre chronologique. Un graphe se branche donc directement sur la zone de
+   restitution, sans colonne de relais dans le classeur : la categorie est la
+   colonne 1, les trois series les colonnes 2, 3 et 4, contigues.
+
+   Tout le detail -- niveau, code, chiffre d'affaires et EBITDA de chaque
+   exercice -- vient APRES, disponible pour l'audit mais hors du chemin du
+   graphe.
+
+   =============================================================================
    COMMENT L'AXE SE CHOISIT
 
    Une premiere version testait le code du noeud, avec 'ALL' IN (...code).
@@ -69,25 +81,24 @@
    Pas de CTE, pas de ORDER BY, pas de ';'.  Source : V_ALLOCATION.
    ============================================================================= */
 SELECT
-    g.NIVEAU,
-    g.CODE,
+    /* 1 a 4 : le graphe. Categorie, puis les trois series, contigues. */
     COALESCE(az.DESC_AZIENDA0, m.LIB, g.CODE)               AS LIBELLE,
-
-    CAST(ROUND(g.CA_2024,     0) AS DECIMAL(18, 0))         AS CA_2024,
-    CAST(ROUND(g.EBITDA_2024, 0) AS DECIMAL(18, 0))         AS EBITDA_2024,
     CAST(ROUND(1.0 * g.EBITDA_2024 / NULLIF(g.CA_2024, 0), 4) AS DECIMAL(9, 4)) AS MARGE_2024,
-
-    CAST(ROUND(g.CA_2025,     0) AS DECIMAL(18, 0))         AS CA_2025,
-    CAST(ROUND(g.EBITDA_2025, 0) AS DECIMAL(18, 0))         AS EBITDA_2025,
     CAST(ROUND(1.0 * g.EBITDA_2025 / NULLIF(g.CA_2025, 0), 4) AS DECIMAL(9, 4)) AS MARGE_2025,
-
-    CAST(ROUND(g.CA_2026,     0) AS DECIMAL(18, 0))         AS CA_2026,
-    CAST(ROUND(g.EBITDA_2026, 0) AS DECIMAL(18, 0))         AS EBITDA_2026,
     CAST(ROUND(1.0 * g.EBITDA_2026 / NULLIF(g.CA_2026, 0), 4) AS DECIMAL(9, 4)) AS MARGE_2026,
 
+    /* 5 et au-dela : le detail, pour l'audit et pour le tableau */
     CAST(ROUND(100.0 * (1.0 * g.EBITDA_2026 / NULLIF(g.CA_2026, 0)
                       - 1.0 * g.EBITDA_2024 / NULLIF(g.CA_2024, 0)), 2)
-         AS DECIMAL(9, 2))                                  AS ECART_PT
+         AS DECIMAL(9, 2))                                  AS ECART_PT,
+    g.NIVEAU,
+    g.CODE,
+    CAST(ROUND(g.CA_2024,     0) AS DECIMAL(18, 0))         AS CA_2024,
+    CAST(ROUND(g.EBITDA_2024, 0) AS DECIMAL(18, 0))         AS EBITDA_2024,
+    CAST(ROUND(g.CA_2025,     0) AS DECIMAL(18, 0))         AS CA_2025,
+    CAST(ROUND(g.EBITDA_2025, 0) AS DECIMAL(18, 0))         AS EBITDA_2025,
+    CAST(ROUND(g.CA_2026,     0) AS DECIMAL(18, 0))         AS CA_2026,
+    CAST(ROUND(g.EBITDA_2026, 0) AS DECIMAL(18, 0))         AS EBITDA_2026
 FROM (
         SELECT
             CASE WHEN f.PLUSIEURS = 1 THEN 'MARQUE' ELSE 'CAMPUS' END             AS NIVEAU,

@@ -13,6 +13,11 @@
    le recrutement s'achete au lieu de se gagner. ECART_PT mesure cet ecart en
    points d'indice, c'est la tension elle-meme.
 
+   L'ORDRE DES COLONNES EST CELUI DU GRAPHE : l'exercice puis les deux indices,
+   contigus, en colonnes 1, 2 et 3. Un graphe se branche donc directement sur
+   la zone de restitution, sans colonne de relais dans le classeur. Les
+   montants bruts et le CAC viennent apres, hors du chemin du graphe.
+
    CAC est le cout d'acquisition par inscrit, en euros. Il dit la meme chose
    que l'ecart des deux courbes, mais dans l'unite du directeur de campus.
 
@@ -45,18 +50,17 @@
    Pas de CTE, pas de ORDER BY, pas de ';'.
    ============================================================================= */
 SELECT
+    /* 1 a 3 : le graphe. Categorie, puis les deux courbes, contigues. */
     y.EXERCICE,
-
-    CAST(ROUND(y.DEPENSES, 0) AS DECIMAL(18, 0))            AS DEPENSES,
-    CAST(ROUND(y.INSCRITS, 0) AS DECIMAL(18, 0))            AS INSCRITS,
-
     CAST(ROUND(100.0 * y.DEPENSES / NULLIF(b.DEPENSES, 0), 1) AS DECIMAL(9, 1)) AS IND_DEPENSES,
     CAST(ROUND(100.0 * y.INSCRITS / NULLIF(b.INSCRITS, 0), 1) AS DECIMAL(9, 1)) AS IND_INSCRITS,
 
+    /* 4 et au-dela : le detail, pour l'audit */
     CAST(ROUND(1.0 * y.DEPENSES / NULLIF(y.INSCRITS, 0), 0) AS DECIMAL(18, 0))  AS CAC,
-
     CAST(ROUND(100.0 * y.DEPENSES / NULLIF(b.DEPENSES, 0)
-             - 100.0 * y.INSCRITS / NULLIF(b.INSCRITS, 0), 1) AS DECIMAL(9, 1)) AS ECART_PT
+             - 100.0 * y.INSCRITS / NULLIF(b.INSCRITS, 0), 1) AS DECIMAL(9, 1)) AS ECART_PT,
+    CAST(ROUND(y.DEPENSES, 0) AS DECIMAL(18, 0))            AS DEPENSES,
+    CAST(ROUND(y.INSCRITS, 0) AS DECIMAL(18, 0))            AS INSCRITS
 FROM (
         SELECT  v.EXERCICE,
                 SUM(v.INSCRITS)                    AS INSCRITS,

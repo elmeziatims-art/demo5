@@ -228,33 +228,25 @@ for col,bon in ((4,True),(6,True),(8,True),(10,True),(12,False)):
     ws.conditional_formatting.add(cell,CellIsRule(operator="lessThan",formula=["0"],
         font=Font(name=UI,size=9,bold=True,color=CRIT if bon else GOOD)))
 
-# ------------------------------------------------------ le relais des graphes
-# A la conception, la zone technique est vide : Tagetik ne la remplit qu'au
-# lancement, et on ne sait pas combien de lignes elle aura. Le pont en a
-# toujours cinq et la tension trois, mais le bloc de marge suit le noeud
-# choisi -- cinq marques a la racine, quatre campus sur MBway, deux sur Tunon.
+# --------------------------------------------------- ou tombent les query
+# Les trois query sortent desormais DANS L'ORDRE DU GRAPHE : la categorie en
+# premiere colonne utile, puis les series, contigues. Il n'y a donc plus de
+# colonnes de relais dans le classeur -- les graphes lisent la zone de
+# restitution telle quelle.
 #
-# Une plage cablee sur cinq lignes tracerait donc des barres a zero sur les
-# petits noeuds. On interpose un relais qui renvoie NA() quand la ligne est
-# vide : Excel ne trace RIEN sur un NA(), la ou il tracerait une barre a zero
-# sur une cellule vide. Le libelle, lui, revient vide, donc l'axe garde un
-# emplacement libre plutot qu'une categorie fantome.
+#   Z_PONT     AB..AG   1 RANG  2 ETAPE  3 SOCLE  4 ANCRE  5 HAUSSE  6 BAISSE
+#   Z_MARGE    AI..AU   1 LIBELLE  2 MARGE_2024  3 MARGE_2025  4 MARGE_2026
+#                       5 ECART_PT  puis niveau, code, CA et EBITDA par exercice
+#   Z_TENSION  AZ..BF   1 EXERCICE  2 IND_DEPENSES  3 IND_INSCRITS
+#                       4 CAC  5 ECART_PT  6 DEPENSES  7 INSCRITS
 #
-# On ne passe PAS par des noms definis en OFFSET : le nom du classeur entre
-# dans la reference de serie, et l'enregistrement sous un autre nom -- ce qui
-# arrive a chaque navigation -- casse la resolution. Excel supprime alors
-# purement et simplement les series. C'est ce qui s'est produit sur la version
-# precedente.
-def relais(c0, cle, sources, r1, r2):
-    for r in range(r1,r2+1):
-        ws.cell(r,c0,'=IF(${0}{1}="","",${0}{1})'.format(cle,r)).number_format="General"
-        for j,src in enumerate(sources,1):
-            ws.cell(r,c0+j,'=IF(${0}{2}="",NA(),${1}{2})'.format(cle,src,r))
-    for c in range(c0,c0+len(sources)+1): ws.column_dimensions[gl(c)].hidden=True
-    return c0
-P0=relais(60,"AC",("AD","AE","AF","AG"),7,11)   # pont    : 5 pas, toujours
-M0=relais(66,"AK",("AN","AQ","AT"),    7,11)    # marge   : 2 a 5 lignes
-T0=relais(71,"AZ",("BC","BD"),         7,10)    # tension : 3, 4 si 2027 arrive
+# Ici les plages sont figees a la hauteur maximale connue -- cinq pas pour le
+# pont, cinq marques, trois exercices. C'est le repli quand les zones ne sont
+# pas nommees. Des qu'elles le sont, build_cockpit_zones.py rebranche les
+# series dessus et la hauteur suit toute seule.
+PONT_C, PONT_N = 28, 5      # AB
+MARGE_C, MARGE_N = 35, 5    # AI
+TENS_C, TENS_N = 52, 3      # AZ
 for c in range(16,81): ws.column_dimensions[gl(c)].hidden=True
 
 def cadre(r1,c1,r2,c2,titre,note=""):
@@ -283,12 +275,13 @@ ws._charts=[]      # on repart des cadres vides laisses par Excel
 # 1 — le pont d'EBITDA
 cadre(12,4,35,7,"Pont d'EBITDA 2025 → 2026")
 br=BarChart(); br.type="col"; br.grouping="stacked"; br.overlap=100; br.gapWidth=55
-for j in range(1,5):
-    br.add_data(Reference(ws,min_col=P0+j,max_col=P0+j,min_row=7,max_row=11),titles_from_data=False)
+for j in range(2,6):   # SOCLE, ANCRE, HAUSSE, BAISSE
+    br.add_data(Reference(ws,min_col=PONT_C+j,max_col=PONT_C+j,min_row=7,max_row=6+PONT_N),
+                titles_from_data=False)
 for s,coul in zip(br.series,(None,SLATE,GOOD,CRIT)):
     if coul is None: s.graphicalProperties.noFill=True
     else: s.graphicalProperties.solidFill=coul; s.graphicalProperties.line.noFill=True
-cats(br,P0,7,11); br.legend=None; br.y_axis.numFmt='0.0,," M€"'
+cats(br,PONT_C+1,7,6+PONT_N); br.legend=None; br.y_axis.numFmt='0.0,," M€"'
 # AXE LIBRE, et c'est un correctif. Il etait fige entre 3 et 5 M€, ce qui
 # convenait au groupe mais laissait le graphe COMPLETEMENT VIDE sur les cinq
 # marques : ISCOM culmine a 1,3 M€, Tunon a 0,2 M€. Un cadrage qui ne marche
@@ -299,24 +292,26 @@ habille(br); ws.add_chart(br,"D13")
 # 2 — la marge par marque, ou par campus si l'on est descendu sur une marque
 cadre(12,8,35,11,"Marge EBITDA — 3 exercices")
 mg=BarChart(); mg.type="col"; mg.grouping="clustered"; mg.gapWidth=60; mg.overlap=-10
-for j in range(1,4):
-    mg.add_data(Reference(ws,min_col=M0+j,max_col=M0+j,min_row=7,max_row=11),titles_from_data=False)
+for j in range(1,4):   # MARGE_2024, MARGE_2025, MARGE_2026
+    mg.add_data(Reference(ws,min_col=MARGE_C+j,max_col=MARGE_C+j,min_row=7,max_row=6+MARGE_N),
+                titles_from_data=False)
 for s,coul in zip(mg.series,(BLUE3,BLUE2,BLUE)):
     s.graphicalProperties.solidFill=coul; s.graphicalProperties.line.noFill=True
-cats(mg,M0,7,11); noms(mg,("2024","2025","2026"))
+cats(mg,MARGE_C,7,6+MARGE_N); noms(mg,("2024","2025","2026"))
 mg.legend.position="b"; mg.y_axis.numFmt='0%'
 habille(mg); ws.add_chart(mg,"H13")
 
 # 3 — la tension d'acquisition
 cadre(12,12,35,15,"Acquisition — dépenses vs inscrits","base 100")
 tn=LineChart()
-for j in range(1,3):
-    tn.add_data(Reference(ws,min_col=T0+j,max_col=T0+j,min_row=7,max_row=10),titles_from_data=False)
+for j in range(1,3):   # IND_DEPENSES, IND_INSCRITS
+    tn.add_data(Reference(ws,min_col=TENS_C+j,max_col=TENS_C+j,min_row=7,max_row=6+TENS_N),
+                titles_from_data=False)
 for s,coul in zip(tn.series,(ORANGE,BLUE)):
     s.graphicalProperties.line.solidFill=coul; s.graphicalProperties.line.width=25000
     s.marker=Marker(symbol="circle",size=6); s.smooth=False
     s.marker.graphicalProperties.solidFill=coul; s.marker.graphicalProperties.line.solidFill=coul
-cats(tn,T0,7,10); noms(tn,("Dépenses","Inscrits"))
+cats(tn,TENS_C,7,6+TENS_N); noms(tn,("Dépenses","Inscrits"))
 tn.legend.position="b"; tn.y_axis.numFmt='0'
 tn.y_axis.scaling.min=95; tn.y_axis.scaling.max=125; tn.y_axis.majorUnit=10
 habille(tn); ws.add_chart(tn,"L13")
@@ -324,5 +319,5 @@ habille(tn); ws.add_chart(tn,"L13")
 p=ws.cell(RSTAT+2,3,"Source : V_ALLOCATION et AW_002_000002_000001. Marges et indices divisés après somme, jamais moyennés.")
 p.font=F(7.5,False,MUTED,i=True); p.alignment=ind(0)
 wb.save(OUT)
-print("%s ecrit — %d graphes, relais en %s / %s / %s, regles jusqu'a la ligne %d"
-      %(OUT,len(ws._charts),gl(P0),gl(M0),gl(T0),RCF))
+print("%s ecrit — %d graphes branches direct sur %s / %s / %s, regles jusqu'a la ligne %d"
+      %(OUT,len(ws._charts),gl(PONT_C),gl(MARGE_C),gl(TENS_C),RCF))

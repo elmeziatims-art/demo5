@@ -106,12 +106,14 @@ for c in C: grp[c["marque"] if plusieurs else c["ent"]].append(c)
 MARGE=[]
 for k in sorted(grp, key=lambda x:(ORDRE.index(x) if plusieurs else x)):
     g=grp[k]; f=lambda a,e: sum(x[a][e] for x in g)
-    MARGE.append(("MARQUE" if plusieurs else "CAMPUS", CODE[k] if plusieurs else k,
-                  k if plusieurs else LIB[k],
-                  round(f("ca",2024)),round(f("eb",2024)),round(f("eb",2024)/f("ca",2024),4),
-                  round(f("ca",2025)),round(f("eb",2025)),round(f("eb",2025)/f("ca",2025),4),
-                  round(f("ca",N)),  round(f("eb",N)),  round(f("eb",N)/f("ca",N),4),
-                  round(100*(f("eb",N)/f("ca",N)-f("eb",2024)/f("ca",2024)),2)))
+    # ordre de la query reordonnee : libelle, trois marges, ecart, puis detail
+    MARGE.append((k if plusieurs else LIB[k],
+                  round(f("eb",2024)/f("ca",2024),4), round(f("eb",2025)/f("ca",2025),4),
+                  round(f("eb",N)/f("ca",N),4),
+                  round(100*(f("eb",N)/f("ca",N)-f("eb",2024)/f("ca",2024)),2),
+                  "MARQUE" if plusieurs else "CAMPUS", CODE[k] if plusieurs else k,
+                  round(f("ca",2024)),round(f("eb",2024)),round(f("ca",2025)),round(f("eb",2025)),
+                  round(f("ca",N)),round(f("eb",N))))
 for i,ligne in enumerate(MARGE,7):
     for j,val in enumerate(ligne,35): ws.cell(i,j,val)
 for i in range(7+len(MARGE),12):          # Tagetik nettoie le reste du bloc
@@ -121,10 +123,12 @@ EX=[2024,2025,N]
 dep={e:sum(acq[c["ent"]][e] for c in C) for e in EX}
 ins={e:sum(c["inscrits"][e] for c in C) for e in EX}
 for i,e in enumerate(EX,7):
-    for j,val in enumerate((str(e),round(dep[e]),round(ins[e]),
+    # ordre de la query reordonnee : exercice, deux indices, puis detail
+    for j,val in enumerate((str(e),
                             round(100*dep[e]/dep[2024],1),round(100*ins[e]/ins[2024],1),
                             round(dep[e]/ins[e]),
-                            round(100*dep[e]/dep[2024]-100*ins[e]/ins[2024],1)),52):
+                            round(100*dep[e]/dep[2024]-100*ins[e]/ins[2024],1),
+                            round(dep[e]),round(ins[e])),52):
         ws.cell(i,j,val)
 for i in range(7+len(EX),12):
     for j in range(52,59): ws.cell(i,j).value=None
