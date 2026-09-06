@@ -259,7 +259,7 @@ for j,txt in enumerate((
    "Ce rapprochement est un CONTRÔLE, pas une source. V_ALLOCATION ne lit jamais les comptes de produit : le chiffre d'affaires du modèle vient du socle CRM, quoi que disent le 706, le 7062 et le 708.",
    "Le modèle prend le CRM pour deux raisons qui ne tiennent pas à l'exactitude. Le GRAIN — 180 lignes campus × programme × année × modalité contre 105 au grain campus × compte, sans quoi aucune marge par programme n'est calculable.",
    "Et le PILOTAGE — le CRM donne le CA comme un produit d'inducteurs, effectifs × droits de scolarité, donc il se simule. Un montant déjà posé est un constat.",
-   "2026 tombe au centime parce que l'exercice est construit depuis le socle. 2024 et 2025 portaient un estimé établi séparément, à ± 0,08 % près ; FIX_CA_COMPTA_2024_2025.sql les réaligne sur le CRM en un UPDATE de 70 lignes.")):
+   "Les trois exercices tombent désormais au centime. 2024 et 2025 portaient un estimé établi séparément, à ± 0,08 % près ; FIX_CA_COMPTA_2024_2025.sql les a réalignés sur le CRM, 70 lignes recalculées et pas un centime d'EBITDA déplacé.")):
     c=ws.cell(REC+4+j,2,txt); c.font=F(8,False,MUTED,i=True); c.alignment=ind(1)
 
 # ============================================================================
