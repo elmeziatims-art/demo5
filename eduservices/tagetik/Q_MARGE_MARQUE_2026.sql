@@ -1,24 +1,41 @@
 /* =============================================================================
    Q_MARGE_MARQUE_2026  —  SQL SERVER, a lancer telle quelle.
-   Le tableau du graphe "Marge EBITDA par marque" : une ligne par marque
-   presente dans le perimetre, les trois exercices en colonnes.
+   Le tableau du graphe "Marge EBITDA par marque", avec un AXE QUI S'ADAPTE
+   AU NOEUD CHOISI.
 
-     MARQUE   CA_2024  EBITDA_2024  MARGE_2024  ...  MARGE_2026  ECART_PT
-     MBWAY    ...      ...          0,1653      ...  0,1817      +1,64
-     ISCOM    ...      ...          0,1583      ...  0,1720      +1,37
-     ...
+     noeud selectionne = ALL   ->  une ligne par MARQUE   (5 barres)
+     noeud selectionne = autre ->  une ligne par CAMPUS   (les feuilles du noeud)
 
-   MARGE_* sort en FRACTION (0,1817) : formater la colonne en pourcentage dans
-   Excel. ECART_PT est deja en POINTS de marge, c'est un ecart de taux, pas une
+   On choisit ALL, le graphe compare les cinq enseignes. On descend sur MBWAY,
+   le meme graphe compare les quatre campus MBway. Un seul objet de report,
+   deux lectures, aucune bascule a faire a la main.
+
+   La colonne NIVEAU dit lequel des deux axes a ete servi : elle sert a piloter
+   le titre du graphe ("par marque" ou "par campus") sans deuxieme requete.
+
+   =============================================================================
+   LES DEUX PARAMETRES
+
+   1. LE PERIMETRE, comme d'habitude, sur les feuilles :
+
+          AND a.ENTITY IN (${$Entity(HIERARCHY("EDU")).lowest})
+
+   2. LE CODE DU NOEUD, qui sert uniquement de bascule d'axe. Il n'est ecrit
+      qu'UNE fois, dans le CROSS JOIN, et il en sort un simple 0 ou 1 :
+
+          CASE WHEN 'ALL' IN (${$Entity(HIERARCHY("EDU")).code}) THEN 1 ELSE 0 END
+
+      La constante 'ALL' est le seul endroit a changer si la racine de la
+      hierarchie EDU porte un autre code chez vous (EDU, GRP...). Le IN
+      fonctionne aussi bien si le parametre renvoie une valeur unique qu'une
+      liste, donc rien a adapter selon le mode de selection.
+
+   =============================================================================
+   LECTURE DES COLONNES
+
+   MARGE_* sort en FRACTION (0,1825) : formater en pourcentage dans Excel.
+   ECART_PT est deja en POINTS de marge, c'est un ecart de taux et pas une
    variation relative -- ne pas le formater en pourcentage.
-
-   Le perimetre passe par le parametre Tagetik :
-
-       AND a.ENTITY IN (${$Entity(HIERARCHY("EDU")).lowest})
-
-   Si l'on filtre sur une seule marque, la requete renvoie une seule ligne.
-   Si l'on filtre sur trois campus de trois marques, elle en renvoie trois.
-   Elle suit la selection sans rien coder en dur.
 
    La division est faite APRES la somme, a l'interieur de la requete : c'est ce
    qui permet de sortir MARGE directement. Une marge ne s'additionne pas, donc
@@ -28,7 +45,8 @@
    Pas de CTE, pas de ORDER BY, pas de ';'.  Source : V_ALLOCATION.
    ============================================================================= */
 SELECT
-    g.MARQUE,
+    g.NIVEAU,
+    g.LIBELLE,
 
     CAST(ROUND(g.CA_2024,     0) AS DECIMAL(18, 0))         AS CA_2024,
     CAST(ROUND(g.EBITDA_2024, 0) AS DECIMAL(18, 0))         AS EBITDA_2024,
@@ -47,7 +65,8 @@ SELECT
          AS DECIMAL(9, 2))                                  AS ECART_PT
 FROM (
         SELECT
-            a.MARQUE,
+            CASE WHEN f.RACINE = 1 THEN 'MARQUE' ELSE 'CAMPUS' END             AS NIVEAU,
+            CASE WHEN f.RACINE = 1 THEN a.MARQUE ELSE a.ENTITY END             AS LIBELLE,
             SUM(CASE WHEN CAST(a.EXERCICE AS INT) = 2024 THEN a.CA ELSE 0 END) AS CA_2024,
             SUM(CASE WHEN CAST(a.EXERCICE AS INT) = 2025 THEN a.CA ELSE 0 END) AS CA_2025,
             SUM(CASE WHEN CAST(a.EXERCICE AS INT) = 2026 THEN a.CA ELSE 0 END) AS CA_2026,
@@ -58,6 +77,11 @@ FROM (
             SUM(CASE WHEN CAST(a.EXERCICE AS INT) = 2026
                      THEN a.CA - a.COST_COMPLET ELSE 0 END)                    AS EBITDA_2026
         FROM    V_ALLOCATION AS a
+        CROSS JOIN (
+                SELECT CASE WHEN 'ALL' IN (${$Entity(HIERARCHY("EDU")).code})
+                            THEN 1 ELSE 0 END                                  AS RACINE
+             ) AS f
         WHERE   a.ENTITY IN (${$Entity(HIERARCHY("EDU")).lowest})
-        GROUP BY a.MARQUE
+        GROUP BY f.RACINE,
+                 CASE WHEN f.RACINE = 1 THEN a.MARQUE ELSE a.ENTITY END
      ) AS g
