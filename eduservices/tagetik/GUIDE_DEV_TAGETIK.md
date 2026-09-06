@@ -1,0 +1,94 @@
+# Guide de développement Tagetik — Démo EDUSERVICES 2027
+
+Ordre de construction (dépendances), chaque objet avec sa spec et son statut.
+On remplit ce guide au fur et à mesure.
+
+**Légende statut**
+- ✅ **Livré** — brique de données / spec prête dans le repo (`tagetik/`).
+- ⬜ **À développer** — objet à créer dans Tagetik (toi).
+- 🔗 **Câblage** — drill-through ou hyperlink à poser.
+
+**Principe de build** : pour chaque écran, on construit dans l'ordre
+**① vue SQL → ② objet Tagetik (board/report) → ③ câblage (drill/hyperlink)**.
+Une vue expose les clés de dimension → tu fais le multidim par-dessus.
+Les ratios (CAC, marge, taux) se calculent **dans la matrice**, jamais dans la vue.
+
+---
+
+## Socle (prérequis — transverses à toute la démo)
+
+| # | Objet | Type | Statut | Note |
+|---|---|---|---|---|
+| S1 | Dimensions (Entity, Compte, Exercice, Programme, Année/Cycle, Modalité) | Dimensions | ✅ (toi) | Entity : marque→campus ; Compte : nature→EBITDA |
+| S2 | Datasets chargés : socle CRM `AW_002_000002_000001`, compta `AW_002_000004_000001` | Datasets | ✅ (toi) | Réel 2024-2026, un seul scénario |
+| S3 | Hiérarchie Compte + FST `010-EBITDA` | Hiérarchie + FST | ✅ (toi) | Produits→Coûts directs→Personnel→Structure→Impôts→**EBITDA**→Dotations→EBIT |
+| S4 | `MAPPING_COMPTES.csv` — pont nature → rôle d'allocation | Référence | ✅ (repo) | Sert le P&L ② (FST contribution) et l'allocation |
+
+---
+
+## ACTE 1 — Poser le décor (après le chargement : SEUL le cockpit s'affiche)
+
+### ① Vues SQL (briques de données) — toutes ✅ livrées
+| # | Vue | Grain / clés | Mesures (additives) | Statut |
+|---|---|---|---|---|
+| V1 | `V_COCKPIT` | **tall (FST-ready)** : ENTITY×PROGRAMME×AN_ETUDE×MODALITE×ACCOUNT×EXERCICE×PERIOD | AMOUNT (finance = comptes réels → FST calcule CA/EBITDA ; commercial = comptes stat. STAT_LEAD/CAND/ADMIS/INSC/EFF) | ✅ |
+| V2 | `V_PNL` | ENTITY × ACCOUNT × EXERCICE × VERSION | AMOUNT (+ compte statistique EFFECTIF) | ✅ |
+| V3 | `V_TENDANCE` | EXERCICE × ENTITY × PROGRAMME × AN_ETUDE × MODALITE | LEADS, INSCRITS, CA, DEPENSE_ACQ, DEPENSE_MARQUE | ✅ |
+| V4 | `V_CAC` | idem V3 | DEPENSE_ACQ, LEADS_PAYANTS, LEADS, INSCRITS | ✅ |
+| V5 | `V_FUNNEL` | idem V3 | LEADS, CANDIDATS, ADMIS, INSCRITS | ✅ |
+| Q1 | `Q_CA_CONSTITUTION_CRM` | drill-through (POV cellule) | Effectifs, tarif moyen, CA scolarité, CA frais insc., CA total | ✅ |
+| Q2 | `Q_CA_CONSTITUTION_COMPTA` | drill-through (POV cellule) | Montant par compte de produit (706/7062/708) | ✅ |
+| Q3 | `Q_RECONCILIATION_CA` | query (**2026 uniquement**) | CA CRM, CA Budget 2026, Écart (= 0) | ✅ |
+| Q4 | `Q_BRIDGE_RECONCILIATION_CA` | query (le pont, PCA) | — **non utilisé dans la démo** (écart non affiché) ; conservé pour analyse | 🅿️ |
+
+**Choix figé** : le bandeau réconciliation affiche **2026 uniquement** — CA CRM vs CA Budget 2026, écart **0**. On n'affiche pas l'historique (écart 2024/2025) ni le détail PCA. Deux drills : CA CRM → détail CRM, CA Budget → détail Finance.
+**Vocabulaire exercices** : 2024-2025 = réalisé · 2026 = atterrissage (estimé finance) · 2027 = budget.
+
+### ② Objets Tagetik à développer
+**T1 — Board « Cockpit d'atterrissage 2026 »** (SEUL écran post-chargement)  ⬜
+- Source : `V_COCKPIT` (niveau Groupe) + `V_TENDANCE` pour le graphe de tension.
+- **Pas de réconciliation** (écartée : artificielle dans le secteur). Message =
+  « atterrissage 2026, point de départ du budget 2027 » + intégration commercial+financier.
+- Bandeau de tête : CA · EBITDA · Marge 2026. Puis 6 tuiles KPI, 2 familles :
+  **Finance** (CA · EBITDA · Marge %) · **Commercial** (Leads · Inscrits · **CAC** en tension).
+- Colonnes 3 ans : **réalisé 2024 · réalisé 2025 · atterrissage 2026**.
+- Graphes : 1 sparkline par tuile + 1 graphe de tension base 100 (Activité vs Dépenses).
+- Ratios : Marge % = ΣEBITDA/ΣCA ; CAC = ΣDEPENSE_ACQ/ΣINSCRITS (dans le board).
+- Réf. rendu : **`COCKPIT_ATTERRISSAGE.xlsx`** (feuilles Cockpit + Données).
+
+**T2 — Report « P&L ① »** (compte de résultat comparatif)  ⬜
+- Source : `V_PNL` (VERSION = `ACT`), via le **FST 010-EBITDA**.
+- Lignes : hiérarchie Compte → EBITDA → EBIT. Colonnes : Exercice **2024/2025/2026**.
+- POV : Marque (vide = groupe). Réf. rendu : feuille `P&L ①`.
+
+**T4 — Report « Funnel & CAC »** (un seul rapport)  ⬜
+- Source : matrice multidim sur `V_FUNNEL` + `V_CAC`.
+- Contenu : funnel (leads→cand→admis→inscrits + taux) **et** CPL/CAC, par marque + Groupe.
+- POV : Groupe, drill marque → campus. Réf. rendu : feuille `Funnel & CAC`.
+
+### ③ Câblage (navigation)
+| # | Depuis | Vers | Mécanisme | Statut |
+|---|---|---|---|---|
+| ~~C1~~ | ~~Réconciliation CRM/Compta~~ | **rangée** — hors démo (artificielle dans le secteur) ; vues conservées pour analyse | — | 🅿️ |
+| C2 | Cockpit · tuile **EBITDA/Marge** | Report P&L ① (T2) | hyperlink (POV groupe) | 🔗 |
+| C3 | Cockpit · tuile **CAC** | Report Funnel & CAC (T4) | hyperlink (POV groupe) | 🔗 |
+| C4 | P&L ① · ligne **marque** | P&L POV marque → campus | hyperlink | 🔗 |
+| C5 | Funnel & CAC · cellule **campus** | Funnel du campus | hyperlink (POV campus) | 🔗 |
+
+**Ordre de dev conseillé Acte 1 :** T2 (P&L, le plus simple, FST natif) → T4 (Funnel & CAC) → T1 (Cockpit, graphe de tendance inclus) → câblages C1..C5.
+*(Le rapport Tendance n'est plus un objet séparé : son graphe vit dans le cockpit.)*
+
+---
+
+## ACTE 2 — Diagnostiquer & construire *(à détailler à l'étape suivante)*
+Cadrage → arbitrage des caps → moteur → levier prix → 3 scénarios → bridge → **P&L ②** (marge directe, 2ᵉ FST) → soumission V1.
+Vues concernées : `V_CADRAGE_LEVIERS`, `V_CAP_ARBITRAGE`, `V_MOTEUR`, `V_BUDGET`, `Q_SCENARIOS`, `V_BRIDGE_CA`.
+
+## ACTE 3 — Révéler le coût complet *(à détailler)*
+Allocation à la classe (`V_ALLOCATION`) → **P&L ③** coût complet par marque. Le seul acte qui déplace des montants entre entités (moteur d'allocation).
+
+## ACTE 4 — Agir & boucler *(à détailler)*
+Contribution campus → ouverture/fermeture de classe → V2 → **P&L ④** (V1 vs V2 × 3 scénarios) → boucle CAC → clôture.
+
+---
+*Colonne vertébrale : le même P&L comparatif revient 4 fois — ① ouverture · ② après construction · ③ coût complet · ④ V1 vs V2.*
