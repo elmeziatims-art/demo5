@@ -21,7 +21,8 @@
    =============================================================================
 
    =============================================================================
-   LES EN-TETES SONT EN CLAIR, entre crochets. Le drill-through affiche la
+   LES EN-TETES SONT EN CLAIR, entre GUILLEMETS DOUBLES -- Tagetik n'accepte
+   pas les crochets. Le drill-through affiche la
    sortie telle quelle a l'utilisateur : autant qu'il lise "CA par eleve N-1"
    plutot que CAE_P.
 
@@ -31,7 +32,7 @@
    =============================================================================
    */
 SELECT
-    e.ETAPE AS [Étape],
+    e.ETAPE AS "Étape",
 
     CAST(ROUND(
         CASE e.RANG
@@ -43,11 +44,11 @@ SELECT
                              ELSE g.EBITDA_P + g.E_VOL + g.E_PRIX END
             ELSE        0
         END
-    , 0) AS DECIMAL(18, 0))                                 AS [Socle invisible],
+    , 0) AS DECIMAL(18, 0))                                 AS "Socle invisible",
 
     CAST(ROUND(
         CASE e.RANG WHEN 1 THEN g.EBITDA_P WHEN 5 THEN g.EBITDA_N ELSE 0 END
-    , 0) AS DECIMAL(18, 0))                                 AS [Ancre],
+    , 0) AS DECIMAL(18, 0))                                 AS "Ancre",
 
     CAST(ROUND(
         CASE e.RANG
@@ -56,7 +57,7 @@ SELECT
             WHEN 4 THEN CASE WHEN g.E_COUT > 0 THEN g.E_COUT ELSE 0 END
             ELSE        0
         END
-    , 0) AS DECIMAL(18, 0))                                 AS [Hausse],
+    , 0) AS DECIMAL(18, 0))                                 AS "Hausse",
 
     CAST(ROUND(
         CASE e.RANG
@@ -65,7 +66,7 @@ SELECT
             WHEN 4 THEN CASE WHEN g.E_COUT < 0 THEN -1 * g.E_COUT ELSE 0 END
             ELSE        0
         END
-    , 0) AS DECIMAL(18, 0))                                 AS [Baisse]
+    , 0) AS DECIMAL(18, 0))                                 AS "Baisse"
 FROM (
         SELECT
             SUM(x.EBITDA_P)                      AS EBITDA_P,

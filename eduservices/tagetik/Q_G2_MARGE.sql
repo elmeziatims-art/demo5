@@ -25,7 +25,8 @@
    =============================================================================
 
    =============================================================================
-   LES EN-TETES SONT EN CLAIR, entre crochets. Le drill-through affiche la
+   LES EN-TETES SONT EN CLAIR, entre GUILLEMETS DOUBLES -- Tagetik n'accepte
+   pas les crochets. Le drill-through affiche la
    sortie telle quelle a l'utilisateur : autant qu'il lise "CA par eleve N-1"
    plutot que CAE_P.
 
@@ -35,10 +36,10 @@
    =============================================================================
    */
 SELECT
-    COALESCE(az.DESC_AZIENDA0, m.LIB, g.CODE)               AS [Marque ou campus],
-    CAST(ROUND(1.0 * g.EBITDA_2024 / NULLIF(g.CA_2024, 0), 4) AS DECIMAL(9, 4)) AS [Marge EBITDA 2024],
-    CAST(ROUND(1.0 * g.EBITDA_2025 / NULLIF(g.CA_2025, 0), 4) AS DECIMAL(9, 4)) AS [Marge EBITDA 2025],
-    CAST(ROUND(1.0 * g.EBITDA_2026 / NULLIF(g.CA_2026, 0), 4) AS DECIMAL(9, 4)) AS [Marge EBITDA 2026]
+    COALESCE(az.DESC_AZIENDA0, m.LIB, g.CODE)               AS "Marque ou campus",
+    CAST(ROUND(1.0 * g.EBITDA_2024 / NULLIF(g.CA_2024, 0), 4) AS DECIMAL(9, 4)) AS "Marge EBITDA 2024",
+    CAST(ROUND(1.0 * g.EBITDA_2025 / NULLIF(g.CA_2025, 0), 4) AS DECIMAL(9, 4)) AS "Marge EBITDA 2025",
+    CAST(ROUND(1.0 * g.EBITDA_2026 / NULLIF(g.CA_2026, 0), 4) AS DECIMAL(9, 4)) AS "Marge EBITDA 2026"
 FROM (
         SELECT
             CASE WHEN f.PLUSIEURS = 1 THEN a.MARQUE ELSE a.ENTITY END          AS CODE,

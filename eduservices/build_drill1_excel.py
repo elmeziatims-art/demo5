@@ -38,8 +38,10 @@ R0=7; R1=R0+len(C)-1
 wb=openpyxl.Workbook(); ws=wb.active; ws.title="Drill EBITDA"
 ws.sheet_view.showGridLines=False
 ws.column_dimensions["A"].width=2.5; ws.column_dimensions["B"].width=22
-for c in range(3,17): ws.column_dimensions[GL(c)].width=13
-for c in (6,7,8,9,10): ws.column_dimensions[GL(c)].width=15
+# largeur calee sur le libelle : les en-tetes sont longs et se replient sur
+# deux lignes, mais aucun ne doit etre tronque
+LARG={3:11,4:11,5:12,6:13,7:13,8:15,9:15,10:19,11:14,12:14,13:12,14:12,15:13,16:13}
+for c,w in LARG.items(): ws.column_dimensions[GL(c)].width=w
 ws.column_dimensions["R"].width=3
 for c in range(19,24): ws.column_dimensions[GL(c)].width=15
 for r in range(1,60):
@@ -61,7 +63,7 @@ def entete(row,c0,titres,titre,note=""):
         c=ws.cell(row,c0+j,lab); c.fill=fill(SLATE); c.font=F(8,True,"FFFFFF",f=DISPLAY)
         c.alignment=Alignment("center",vertical="center",wrap_text=True) if j else ind(1)
         c.border=Border(*[sd(SLATE)]*4)
-    ws.row_dimensions[row].height=30
+    ws.row_dimensions[row].height=42
 
 # En-tetes en clair, identiques a ceux de la requete. Le drill-through affiche
 # sa sortie telle quelle : autant que l'utilisateur lise "CA par eleve 2025"

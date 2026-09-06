@@ -44,7 +44,8 @@
    =============================================================================
 
    =============================================================================
-   LES EN-TETES SONT EN CLAIR, entre crochets. Le drill-through affiche la
+   LES EN-TETES SONT EN CLAIR, entre GUILLEMETS DOUBLES -- Tagetik n'accepte
+   pas les crochets. Le drill-through affiche la
    sortie telle quelle a l'utilisateur : autant qu'il lise "CA par eleve N-1"
    plutot que CAE_P.
 
@@ -54,8 +55,8 @@
    =============================================================================
    */
 SELECT
-    e.RANG AS [Ordre],
-    e.EFFET AS [Effet],
+    e.RANG AS "Ordre",
+    e.EFFET AS "Effet",
 
     CAST(ROUND(
         CASE e.RANG
@@ -67,7 +68,7 @@ SELECT
             WHEN 6 THEN g.E_SIEGE
             ELSE        g.EBITDA_N
         END
-    , 0) AS DECIMAL(18, 0))                                 AS [Montant],
+    , 0) AS DECIMAL(18, 0))                                 AS "Montant",
 
     CASE WHEN e.RANG IN (1, 7) THEN NULL ELSE
         CAST(ROUND(1.0 *
@@ -78,7 +79,7 @@ SELECT
                 WHEN 5 THEN g.E_CDIR
                 ELSE        g.E_SIEGE
             END / NULLIF(g.EBITDA_N - g.EBITDA_P, 0), 4)
-        AS DECIMAL(9, 4)) END                               AS [Part de la variation]
+        AS DECIMAL(9, 4)) END                               AS "Part de la variation"
 FROM (
         SELECT
             SUM(x.EBITDA_P) AS EBITDA_P, SUM(x.EBITDA_N) AS EBITDA_N,

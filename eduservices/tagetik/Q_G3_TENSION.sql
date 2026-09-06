@@ -27,7 +27,8 @@
    =============================================================================
 
    =============================================================================
-   LES EN-TETES SONT EN CLAIR, entre crochets. Le drill-through affiche la
+   LES EN-TETES SONT EN CLAIR, entre GUILLEMETS DOUBLES -- Tagetik n'accepte
+   pas les crochets. Le drill-through affiche la
    sortie telle quelle a l'utilisateur : autant qu'il lise "CA par eleve N-1"
    plutot que CAE_P.
 
@@ -37,9 +38,9 @@
    =============================================================================
    */
 SELECT
-    y.EXERCICE AS [Exercice],
-    CAST(ROUND(100.0 * y.DEPENSES / NULLIF(b.DEPENSES, 0), 1) AS DECIMAL(9, 1)) AS [Dépenses d'acquisition base 100],
-    CAST(ROUND(100.0 * y.INSCRITS / NULLIF(b.INSCRITS, 0), 1) AS DECIMAL(9, 1)) AS [Inscrits base 100]
+    y.EXERCICE AS "Exercice",
+    CAST(ROUND(100.0 * y.DEPENSES / NULLIF(b.DEPENSES, 0), 1) AS DECIMAL(9, 1)) AS "Dépenses d'acquisition base 100",
+    CAST(ROUND(100.0 * y.INSCRITS / NULLIF(b.INSCRITS, 0), 1) AS DECIMAL(9, 1)) AS "Inscrits base 100"
 FROM (
         SELECT  v.EXERCICE,
                 SUM(v.INSCRITS)              AS INSCRITS,
