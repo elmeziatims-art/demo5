@@ -24,6 +24,33 @@
    redonne exactement EBITDA_N - EBITDA_P. Aucun residu, aucun "non alloue".
 
    --------------------------------------------------------------------------
+   DEUX LECTURES DU MEME BRIDGE, DANS LA MEME REQUETE
+
+   Le graphe du cockpit a CINQ barres, celui du drill en a SEPT. Inutile de
+   maintenir deux requetes : chaque ligne porte les deux axes, on choisit
+   celui qu'on met en abscisse.
+
+     RANG / EFFET                     RANG_5 / EFFET_5
+     1. EBITDA N-1              ->    1. EBITDA N-1
+     2. Effet effectifs         ->    2. Activite
+     3. Effet prix et mix       ->    3. Prix / mix
+     4. Cout variable unitaire  ->
+     5. Couts directs           ->    4. Couts   (les trois fondus en un)
+     6. Effet siege             ->
+     7. EBITDA N                ->    5. EBITDA N
+
+   Sur l'axe court, MONTANT se somme normalement : les trois effets de cout
+   s'additionnent, c'est exactement ce qu'on veut. BASE et CUMUL, eux, ne le
+   peuvent pas : le bas de la barre "Couts" est le cumul APRES le prix, son
+   haut le cumul APRES le siege, et additionner trois bornes n'a aucun sens.
+   D'ou BASE_5 et CUMUL_5, qui ne portent la valeur que sur UNE ligne du
+   groupe et zero sur les deux autres. Leur somme redonne exactement la bonne
+   borne, et elle reste juste sur n'importe quel noeud d'entite.
+
+   -> graphe a 5 barres : axe EFFET_5, mesures MONTANT, BASE_5, CUMUL_5
+   -> graphe a 7 barres : axe EFFET,   mesures MONTANT, BASE,   CUMUL
+
+   --------------------------------------------------------------------------
    TROIS MESURES, TOUTES ADDITIVES
 
      MONTANT   la hauteur de la barre (positive ou negative)
@@ -55,6 +82,14 @@ SELECT
     b.ENTITY,
     e.RANG,
     e.EFFET,
+    CASE WHEN e.RANG BETWEEN 4 AND 6 THEN 4
+         WHEN e.RANG = 7             THEN 5
+         ELSE e.RANG END                                     AS RANG_5,
+    CASE WHEN e.RANG = 1             THEN '1. EBITDA N-1'
+         WHEN e.RANG = 2             THEN '2. Activite'
+         WHEN e.RANG = 3             THEN '3. Prix / mix'
+         WHEN e.RANG BETWEEN 4 AND 6 THEN '4. Couts'
+         ELSE '5. EBITDA N' END                              AS EFFET_5,
 
     CASE e.RANG
         WHEN 1 THEN b.EBITDA_P
@@ -83,7 +118,27 @@ SELECT
         WHEN 4 THEN b.EBITDA_P + b.E_VOL + b.E_PRIX + b.E_CVAR
         WHEN 5 THEN b.EBITDA_P + b.E_VOL + b.E_PRIX + b.E_CVAR + b.E_CDIR
         ELSE        b.EBITDA_N
-    END                                                     AS CUMUL
+    END                                                     AS CUMUL,
+
+    /* bornes de la barre flottante sur l'AXE COURT. Portees par une seule
+       ligne de chaque groupe, zero sur les autres : la somme retombe donc
+       sur la bonne borne, et reste juste sur n'importe quel noeud. */
+    CASE e.RANG
+        WHEN 1 THEN 0
+        WHEN 2 THEN b.EBITDA_P
+        WHEN 3 THEN b.EBITDA_P + b.E_VOL
+        WHEN 4 THEN b.EBITDA_P + b.E_VOL + b.E_PRIX
+        ELSE        0
+    END                                                     AS BASE_5,
+
+    CASE e.RANG
+        WHEN 1 THEN b.EBITDA_P
+        WHEN 2 THEN b.EBITDA_P + b.E_VOL
+        WHEN 3 THEN b.EBITDA_P + b.E_VOL + b.E_PRIX
+        WHEN 6 THEN b.EBITDA_P + b.E_VOL + b.E_PRIX + b.E_CVAR + b.E_CDIR + b.E_SIEGE
+        WHEN 7 THEN b.EBITDA_N
+        ELSE        0
+    END                                                     AS CUMUL_5
 FROM (
         SELECT
             n.SCENARIO, n.VERSION, n.PERIODE, n.EXERCICE, n.MARQUE, n.ENTITY,
