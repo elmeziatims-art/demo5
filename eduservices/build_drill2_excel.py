@@ -178,11 +178,12 @@ for c,ex in ((6,P),(7,N)):
 # compta ? On met les deux cote a cote, l'ecart se voit et la reponse se donne
 # toute seule.
 REC=CTRL+3
-ws.cell(REC-1,2,"POURQUOI LE CHIFFRE D'AFFAIRES VIENT DU SOCLE CRM")
+ws.cell(REC-1,2,"RAPPROCHEMENT DU CHIFFRE D'AFFAIRES  ·  gestion contre socle CRM")
 ws.cell(REC-1,2).font=F(10,True,INK,f=DISPLAY); ws.cell(REC-1,2).alignment=ind(0)
 ws.row_dimensions[REC-1].height=20
 for j,(lab,v25,v26) in enumerate((
-        ("Chiffre d'affaires en comptabilité  ·  706 + 7062 + 708",CA_CPT[P],CA_CPT[N]),
+        ("Chiffre d'affaires en gestion  ·  706 initiaux + 7062 alternants + 708 inscription",
+         CA_CPT[P],CA_CPT[N]),
         ("Chiffre d'affaires du socle CRM  ·  effectifs × droits de scolarité",
          S("ca",P),S("ca",N)))):
     r=REC+j
@@ -201,9 +202,10 @@ ws.cell(r,8).alignment=R; ws.cell(r,8).font=F(8.5,False,MUTED)
 ws.cell(r,9,"={0}{1}/{0}{2}".format("G",r,REC+1)).number_format='+0.00%;-0.00%;"0,00 %"'
 ws.cell(r,9).alignment=R; ws.cell(r,9).font=F(8.5,False,MUTED)
 for j,txt in enumerate((
-   "Les deux disent la même chose. Le modèle prend le CRM pour deux raisons qui ne tiennent pas à l'exactitude :",
-   "le GRAIN — 180 lignes campus × programme × année × modalité contre 105 au grain campus × compte, sans quoi aucune marge par programme n'est calculable ;",
-   "le PILOTAGE — le CRM donne le CA comme un produit d'inducteurs, effectifs × droits de scolarité, donc il se simule. Un montant comptable est un constat.")):
+   "L'écart est normal et n'est pas corrigé : cette table porte l'ESTIMÉ, pas un grand livre clôturé. Sept centièmes de pour cent entre un estimé et un modèle piloté par les inducteurs, c'est le fonctionnement des deux chaînes.",
+   "2026 tombe au centime parce que l'exercice est construit depuis le socle, donc aligné par construction. Les exercices passés portent un estimé établi séparément.",
+   "Le modèle prend le CRM pour deux raisons qui ne tiennent pas à l'exactitude. Le GRAIN — 180 lignes campus × programme × année × modalité contre 105 au grain campus × compte, sans quoi aucune marge par programme n'est calculable.",
+   "Et le PILOTAGE — le CRM donne le CA comme un produit d'inducteurs, effectifs × droits de scolarité, donc il se simule. Un montant déjà posé est un constat.")):
     c=ws.cell(REC+4+j,2,txt); c.font=F(8,False,MUTED,i=True); c.alignment=ind(1)
 
 # ---------------------------------------- 2. le graphe

@@ -40,10 +40,13 @@
    =============================================================================
    TROIS SOURCES, ET C'EST LE POINT INTERESSANT DE CE DRILL
 
-   1. LE CHIFFRE D'AFFAIRES NE VIENT PAS DE LA COMPTA. Il est reconstruit dans
-      le socle CRM, effectifs x droits de scolarite plus nouveaux x frais
-      d'inscription. Les comptes 706, 7062 et 708 existent en base mais
-      V_ALLOCATION ne les utilise pas.
+   1. LE CHIFFRE D'AFFAIRES NE VIENT PAS DES COMPTES DE PRODUITS. Il est
+      reconstruit dans le socle CRM, effectifs x droits de scolarite plus
+      nouveaux x frais d'inscription. Les comptes existent en base -- 706 pour
+      la scolarite des initiaux, 7062 pour celle des alternants, 708 pour les
+      frais d'inscription -- mais V_ALLOCATION ne les lit jamais.
+      Q_D2_CA_COMPTA met les deux cote a cote : ils s'accordent a 0,07 % pres
+      sur les exercices passes et au centime sur 2026.
 
    2. LES DOUZE COMPTES DE CHARGE sont lus tels quels sur le campus, dans
       AW_002_000004_000001. Ce sont de vraies ecritures, drillables plus loin.
