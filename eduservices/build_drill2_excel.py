@@ -93,6 +93,7 @@ SEQUENCE=["CA"]+[a for a,_,_,_ in POSTES]+["SIEGE"]
 # L'OSSATURE
 # ============================================================================
 ZONE0, ZONEN = 7, 26        # zone de restitution : 20 emplacements pour 14 lignes
+ZCTRL0       = 29           # zone de restitution du controle CA, une ligne
 ZC0, ZCN     = 14, 19       # colonnes N..S, masquees
 GRAPH0, TAB0 = 8, 33
 L0    = TAB0+1
@@ -133,6 +134,15 @@ for j,lab in enumerate(("Compte","Famille","Poste","Poste court","Montant 2025",
     ws.cell(ZONE0-1,ZC0+j,lab).font=F(8,True,MUTED)
 for i,ligne in enumerate(RESTIT):
     for j,v in enumerate(ligne): ws.cell(ZONE0+i,ZC0+j,v)
+
+# Seconde zone, une seule ligne : Q_D2_CA_COMPTA. Elle porte le chiffre
+# d'affaires tel que les comptes de produit le donnent. Le rapprochement du
+# bas de page la lit, il ne porte donc plus de valeur en dur : que la base
+# soit realignee ou non, le classeur dit la verite.
+for j,lab in enumerate(("Controle","Montant 2025","Montant 2026")):
+    ws.cell(ZCTRL0-1,ZC0+j,lab).font=F(8,True,MUTED)
+for j,v in enumerate(("Chiffre d'affaires en gestion (706 + 7062 + 708)",CA_CPT[P],CA_CPT[N])):
+    ws.cell(ZCTRL0,ZC0+j,v)
 
 # ============================================================================
 # 1. LA REPONSE, EN UNE PHRASE
@@ -222,15 +232,18 @@ REC=CTRL+3
 ws.cell(REC-1,2,"RAPPROCHEMENT DU CHIFFRE D'AFFAIRES  ·  gestion contre socle CRM")
 ws.cell(REC-1,2).font=F(10,True,INK,f=DISPLAY); ws.cell(REC-1,2).alignment=ind(0)
 ws.row_dimensions[REC-1].height=20
-for j,(lab,v25,v26) in enumerate((
+# Aucune valeur en dur ici non plus : la gestion vient de la seconde zone de
+# restitution, le CRM vient de la ligne CA du tableau du dessus.
+GEST=lambda c: "=${0}${1}".format(GL(ZC0+c),ZCTRL0)          # $O$29 / $P$29
+for j,(lab,f25,f26) in enumerate((
         ("Chiffre d'affaires en gestion  ·  706 initiaux + 7062 alternants + 708 inscription",
-         CA_CPT[P],CA_CPT[N]),
+         GEST(1),GEST(2)),
         ("Chiffre d'affaires du socle CRM  ·  effectifs × droits de scolarité",
-         S("ca",P),S("ca",N)))):
+         "=E%d"%L0,"=F%d"%L0))):
     r=REC+j
     for c in range(2,9): ws.cell(r,c).fill=fill(PANEL); ws.cell(r,c).border=Border(bottom=sd())
     ws.cell(r,2,lab).font=F(8.5); ws.cell(r,2).alignment=ind(1)
-    for c,v in ((5,v25),(6,v26)):
+    for c,v in ((5,f25),(6,f26)):
         x=ws.cell(r,c,v); x.number_format='#,##0" €"'; x.alignment=R; x.font=F(8.5)
 r=REC+2
 for c in range(2,9): ws.cell(r,c).fill=fill(SOFT); ws.cell(r,c).border=Border(bottom=sd(SLATE,"medium"))
@@ -243,10 +256,10 @@ for c in (7,8):
     x=ws.cell(r,c,"={0}{1}/{0}{2}".format(src,r,REC+1))
     x.number_format='+0.00%;-0.00%;"0,00 %"'; x.alignment=R; x.font=F(8.5,False,MUTED)
 for j,txt in enumerate((
-   "L'écart est normal et n'est pas corrigé : cette table porte l'ESTIMÉ, pas un grand livre clôturé. Sept centièmes de pour cent entre un estimé et un modèle piloté par les inducteurs, c'est le fonctionnement des deux chaînes.",
-   "2026 tombe au centime parce que l'exercice est construit depuis le socle, donc aligné par construction. Les exercices passés portent un estimé établi séparément.",
+   "Ce rapprochement est un CONTRÔLE, pas une source. V_ALLOCATION ne lit jamais les comptes de produit : le chiffre d'affaires du modèle vient du socle CRM, quoi que disent le 706, le 7062 et le 708.",
    "Le modèle prend le CRM pour deux raisons qui ne tiennent pas à l'exactitude. Le GRAIN — 180 lignes campus × programme × année × modalité contre 105 au grain campus × compte, sans quoi aucune marge par programme n'est calculable.",
-   "Et le PILOTAGE — le CRM donne le CA comme un produit d'inducteurs, effectifs × droits de scolarité, donc il se simule. Un montant déjà posé est un constat.")):
+   "Et le PILOTAGE — le CRM donne le CA comme un produit d'inducteurs, effectifs × droits de scolarité, donc il se simule. Un montant déjà posé est un constat.",
+   "2026 tombe au centime parce que l'exercice est construit depuis le socle. 2024 et 2025 portaient un estimé établi séparément, à ± 0,08 % près ; FIX_CA_COMPTA_2024_2025.sql les réaligne sur le CRM en un UPDATE de 70 lignes.")):
     c=ws.cell(REC+4+j,2,txt); c.font=F(8,False,MUTED,i=True); c.alignment=ind(1)
 
 # ============================================================================
@@ -273,5 +286,6 @@ print("  2 graphe        B%d — treize postes, barres horizontales, 2025 contre
 print("  3 tableau       B%d:H%d — %d lignes, zéro valeur en dur"%(TAB0,LN,len(SEQUENCE)))
 print("  4 contrôle      E%d et F%d"%(CTRL,CTRL))
 print("  5 rapprochement B%d:H%d"%(REC-1,REC+6))
-print("  zone de restitution Q_D2_SOCLE : %s (colonnes N à S masquées)"%ZR.replace("$",""))
+print("  zone Q_D2_SOCLE      : %s (colonnes N à S masquées)"%ZR.replace("$",""))
+print("  zone Q_D2_CA_COMPTA  : %s%d:%s%d"%(GL(ZC0),ZCTRL0,GL(ZC0+2),ZCTRL0))
 print("  sources du graphe : J, K, L masquées")
