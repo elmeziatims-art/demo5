@@ -1,0 +1,302 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""build_cockpit_design.py — mise au point du template Tagetik COCKPIT.xlsm.
+
+Travaille sur LE TEMPLATE, pas sur un resultat : la ligne 38 ne contient que
+des valeurs de maquette et la zone technique n'a que ses en-tetes. Tout ce qui
+est pose ici doit donc rester juste quand Tagetik remplira, a la navigation,
+un nombre de lignes qu'on ne connait pas a la conception.
+
+Trois choses demandees :
+  1. des fleches de tendance sur les six evolutions du bandeau
+  2. une heatmap reellement lisible sur le tableau de portefeuille
+  3. des graphes dont les sources tiennent au lancement
+
+CARTOGRAPHIE (celle du design, decalee d'une colonne par rapport a la mienne)
+  B  niveau hierarchique   C  libelle
+  D  CA        E  D CA     F  EBITDA   G  D EBITDA  H  Part EBITDA
+  I  Marge     J  D Marge  K  Inscrits L  Rempl.    M  Mix alt.
+  N  EFFECTIFS O  PLACES   P..Y mesures techniques
+  AB..AG pont   AI..AU marge par marque   AZ..BF tension
+  Tableau : entete ligne 37, donnees a partir de la ligne 38.
+"""
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles.differential import DifferentialStyle
+from openpyxl.styles.numbers import NumberFormat
+from openpyxl.formatting.rule import Rule, CellIsRule, ColorScaleRule, DataBarRule
+from openpyxl.chart import BarChart, LineChart, Reference
+from openpyxl.chart.marker import Marker
+from openpyxl.chart.data_source import AxDataSource, StrRef
+from openpyxl.chart.series import SeriesLabel
+from openpyxl.utils import get_column_letter as gl
+
+SRC="COCKPIT.xlsm"; OUT="COCKPIT_DESIGN.xlsm"
+R0=38          # premiere ligne de donnees
+RSTAT=57       # derniere ligne mise en forme en dur (plage Tagetik actuelle)
+RCF=120        # les regles vont plus loin : un noeud plus large passe sans retouche
+
+NAVY="172033"; BLUE="2A78D6"; BLUE2="6FA5DC"; BLUE3="B8CFEC"
+SLATE="526071"; INK="202733"; MUTED="69778B"; ONDARK="B8C6DA"
+CANVAS="F3F6FA"; PANEL="FFFFFF"; SOFT="EAF2FC"; PARENT="D9E2EF"; SEP="E9EDF3"
+GOOD="1E9E89"; WARN="B97800"; CRIT="D64545"; ORANGE="F07B32"
+# teintes pales de la heatmap : lisibles sous du texte dense
+HM_BAS="F7CFCF"; HM_MED="FDF0CE"; HM_HAUT="CDE9DF"
+UI="Arial"; DISPLAY="Fira Sans Medium"
+def F(sz=8.5,b=False,c=INK,i=False,f=None): return Font(name=f or UI,size=sz,bold=b,color=c,italic=i)
+def fill(c): return PatternFill("solid",fgColor=c)
+def sd(c=SEP,st="thin"): return Side(style=st,color=c)
+L=Alignment("left",vertical="center"); R=Alignment("right",vertical="center")
+Cn=Alignment("center",vertical="center")
+def ind(n): return Alignment("left",vertical="center",indent=n)
+
+wb=openpyxl.load_workbook(SRC, keep_vba=True); ws=wb["2"]
+ws.sheet_view.showGridLines=False
+
+# Un lien externe traine dans le classeur : il pointe vers mon fichier
+# precedent, reste dans le dossier Downloads. Excel l'a cree quand les
+# elements y ont ete copies, et c'est le meme mecanisme qui a fait disparaitre
+# les series des graphes -- une reference vers un classeur introuvable.
+# Aucune formule n'en depend. On le retire : sans quoi chaque lancement de la
+# navigation demanderait s'il faut mettre a jour les liaisons.
+wb._external_links=[]
+
+# ---------------------------------------------------------------- la grille
+ws.column_dimensions["A"].width=2.5
+ws.column_dimensions["B"].width=4.5      # le niveau, discret mais visible
+ws.column_dimensions["C"].width=30       # les libelles, 33 caracteres au plus long
+for c in range(4,16): ws.column_dimensions[gl(c)].width=11.0   # D..O, six cartes de 22
+for c in range(16,59): ws.column_dimensions[gl(c)].hidden=True # P..BF : technique
+for r in range(1,RSTAT+1):
+    for c in range(1,16): ws.cell(r,c).fill=fill(CANVAS)
+
+# ---------------------------------------------------------------- bandeau
+for r in (1,2,3):
+    for c in range(1,16): ws.cell(r,c).fill=fill(NAVY)
+t=ws.cell(2,3,"COCKPIT EDUSERVICES — PILOTAGE DE LA MARGE"); t.font=F(15,True,"FFFFFF",f=DISPLAY); t.alignment=ind(0)
+u=ws.cell(3,3,"Exercice 2026 · variation contre 2025 · V_ALLOCATION et socle CRM"); u.font=F(8,False,ONDARK); u.alignment=ind(0)
+for r,h in ((1,8),(2,26),(3,15),(4,6),(5,20),(6,6),(7,10),(8,13),(9,26),(10,14),(11,10),(36,20),(37,17)):
+    ws.row_dimensions[r].height=h
+for r in range(12,36): ws.row_dimensions[r].height=15.5
+for r in range(R0,RSTAT+1): ws.row_dimensions[r].height=15.5
+
+# ---------------------------------------------------------------- filtres
+for c in range(3,16):
+    x=ws.cell(5,c); x.fill=fill(SOFT); x.border=Border(top=sd(BLUE3),bottom=sd(BLUE3))
+for col,lab in ((3,"SCÉNARIO"),(8,"VERSION"),(11,"ENTITÉ")):
+    a=ws.cell(5,col,lab); a.font=F(7.5,True,SLATE); a.alignment=ind(1)
+    ws.cell(5,col+1).font=F(9,True,INK); ws.cell(5,col+1).alignment=L
+
+# --------------------------------------------------- les six cartes de KPI
+# Elles etaient en C, E, G, I, K, M : la premiere tombait sur la colonne des
+# libelles, large de 30, contre 22 pour les cinq autres. On les decale d'une
+# colonne, sur D..O : six cartes de deux colonnes, strictement egales.
+#
+# LES FLECHES. Elles sont dans le FORMAT DE NOMBRE, pas dans le texte : la
+# section positive porte le triangle haut, la section negative le triangle bas,
+# la troisieme le tiret quand la variation est nulle ou vide. La fleche dit
+# donc le SENS, et la couleur conditionnelle dit si c'est une bonne nouvelle.
+# Les deux ne se confondent pas, et c'est voulu : sur le cout d'acquisition,
+# une fleche vers le haut est rouge.
+HAUT_BAS  = '"▲ "0.0%;"▼ "0.0%;"—"'
+HAUT_BAS_PT='"▲ "0.00" pt";"▼ "0.00" pt";"—"'
+KPI=[(4, "CHIFFRE D'AFFAIRES",  "=D38",       '0.0,," M€"', "=E38",       HAUT_BAS,   True),
+     (6, "EBITDA",              "=F38",       '0.0,," M€"', "=G38",       HAUT_BAS,   True),
+     (8, "MARGE EBITDA",        "=I38",       '0.0%',       "=J38",       HAUT_BAS_PT,True),
+     (10,"INSCRITS (NOUVEAUX)", "=K38",       '#,##0',      "=Y38",       HAUT_BAS,   True),
+     (12,"COÛT D'ACQUISITION",  "=S38/K38",   '#,##0" €"',
+         '=IFERROR(L9/(T38/W38)-1,"")',                                   HAUT_BAS,   False),
+     (14,"REMPLISSAGE MOYEN",   "=L38",       '0.0%',       "=O38-N38",
+         '#,##0" places libres";-#,##0" places libres";"—"',              None)]
+for r in (8,9,10):
+    for c in range(2,16): ws.cell(r,c).value=None
+for col,lab,val,fmt,var,vfmt,sens in KPI:
+    for c in (col,col+1):
+        for r in (8,9,10):
+            x=ws.cell(r,c); x.fill=fill(PANEL)
+            x.border=Border(top=sd(SEP) if r==8 else None,bottom=sd(SEP) if r==10 else None,
+                            left=sd(SEP) if c==col else None,right=sd(SEP) if c==col+1 else None)
+    a=ws.cell(8,col,lab);  a.font=F(7.5,True,SLATE); a.alignment=ind(1)
+    v=ws.cell(9,col,val);  v.font=F(18,True,INK,f=DISPLAY); v.number_format=fmt; v.alignment=ind(1)
+    d=ws.cell(10,col,var); d.font=F(9,True,MUTED); d.number_format=vfmt; d.alignment=ind(1)
+
+# ---------------------------------------------------------------- le tableau
+ENTETES={4:"CA",5:"Δ CA",6:"EBITDA",7:"Δ EBITDA",8:"Part EBITDA",9:"Marge EBITDA",
+         10:"Δ Marge (pt)",11:"Inscrits",12:"Remplissage",13:"Mix alternance",
+         14:"Effectifs",15:"Places"}
+s=ws.cell(36,3,"PORTEFEUILLE — MARQUE ET CAMPUS"); s.font=F(10,True,INK,f=DISPLAY); s.alignment=ind(0)
+h=ws.cell(36,6,"le retrait du libellé donne le niveau · fond coloré = performance relative")
+h.font=F(7.5,False,MUTED,i=True); h.alignment=L
+for c in range(2,16):
+    x=ws.cell(37,c); x.fill=fill(SLATE); x.font=F(8,True,"FFFFFF",f=DISPLAY)
+    x.alignment=Cn if c>=4 else ind(1)
+    x.border=Border(top=sd(SLATE),bottom=sd(SLATE),left=sd(SLATE),right=sd(SLATE))
+ws.cell(37,2,"Niv."); ws.cell(37,2).alignment=Cn
+ws.cell(37,3,"Entité")
+for c,lab in ENTETES.items(): ws.cell(37,c).value=lab
+FMT={4:'#,##0',5:'"▲ "0.0%;"▼ "0.0%;""',6:'#,##0',7:'"▲ "0.0%;"▼ "0.0%;""',8:'0.0%',
+     9:'0.0%',10:'"▲ "0.00;"▼ "0.00;""',11:'#,##0',12:'0.0%',13:'0.0%',14:'#,##0',15:'#,##0'}
+for r in range(R0,RSTAT+1):
+    ws.cell(r,2).font=F(7.5,False,MUTED); ws.cell(r,2).alignment=Cn
+    ws.cell(r,3).font=F(8.5); ws.cell(r,3).alignment=L
+    for c in range(4,16):
+        x=ws.cell(r,c); x.font=F(8.5); x.alignment=R; x.number_format=FMT[c]
+    for c in range(2,16):
+        ws.cell(r,c).fill=fill(PANEL); ws.cell(r,c).border=Border(bottom=sd(SEP))
+
+# ------------------------------------------- mise en forme conditionnelle
+# L'ORDRE COMPTE. Excel applique la premiere regle qui pose une propriete
+# donnee. On met donc la heatmap AVANT les fonds de niveau, sans quoi le fond
+# de la marque ecraserait l'echelle de couleur. Les regles qui ne posent qu'une
+# couleur de police, elles, se composent avec tout le reste.
+ws.conditional_formatting=openpyxl.formatting.formatting.ConditionalFormattingList()
+def rg(c1,c2=None): return "%s%d:%s%d"%(gl(c1),R0,gl(c2 or c1),RCF)
+
+# 1. LA HEATMAP. Bornes fixes et non des percentiles : un campus doit garder sa
+#    couleur quand on change de perimetre, sinon la lecture n'est plus
+#    comparable d'un lancement a l'autre. Marge de 2 a 22 %, remplissage de
+#    55 a 95 %, ce qui couvre l'amplitude reelle du reseau.
+ws.conditional_formatting.add(rg(9), ColorScaleRule(
+    start_type="num", start_value=0.02, start_color="FF"+HM_BAS,
+    mid_type="num",   mid_value=0.12,   mid_color="FF"+HM_MED,
+    end_type="num",   end_value=0.22,   end_color="FF"+HM_HAUT))
+ws.conditional_formatting.add(rg(12), ColorScaleRule(
+    start_type="num", start_value=0.55, start_color="FF"+HM_BAS,
+    mid_type="num",   mid_value=0.75,   mid_color="FF"+HM_MED,
+    end_type="num",   end_value=0.95,   end_color="FF"+HM_HAUT))
+
+# 1 bis. LA BARRE DE DONNEES sur la part d'EBITDA. Barre et echelle de couleur
+#    ne disent pas la meme chose : la barre montre une MAGNITUDE, l'echelle une
+#    PERFORMANCE RELATIVE. Les melanger sur la meme colonne brouille les deux.
+#    Part d'EBITDA est une magnitude, marge et remplissage sont des
+#    performances : chacune a l'encodage qui lui revient.
+ws.conditional_formatting.add(rg(8), DataBarRule(
+    start_type="num", start_value=0, end_type="num", end_value=0.30,
+    color="FF"+BLUE3, showValue=True))
+
+# 2. les variations : couleur de police seule, donc elles survivent par-dessus
+#    la heatmap comme par-dessus les fonds de niveau
+for c1 in (5,7,10):
+    ws.conditional_formatting.add(rg(c1),CellIsRule(operator="greaterThan",formula=["0"],
+        font=Font(name=UI,size=8.5,color=GOOD)))
+    ws.conditional_formatting.add(rg(c1),CellIsRule(operator="lessThan",formula=["0"],
+        font=Font(name=UI,size=8.5,color=CRIT)))
+
+# 3. les trois niveaux de hierarchie, pilotes par la colonne B. Le retrait du
+#    libelle passe par le format de nombre : Excel ne sait pas poser une
+#    indentation par regle, mais il sait poser un format.
+def niveau(plage,formule,**k):
+    ws.conditional_formatting.add(plage,Rule(type="expression",formula=[formule],
+                                             dxf=DifferentialStyle(**k)))
+niveau("B%d:O%d"%(R0,RCF),"$B%d=2"%R0,font=Font(bold=True,color=INK),fill=PatternFill(bgColor=PARENT))
+niveau("B%d:O%d"%(R0,RCF),"$B%d=3"%R0,font=Font(bold=True,color=INK),fill=PatternFill(bgColor=SOFT))
+niveau("B%d:O%d"%(R0,RCF),"$B%d=4"%R0,font=Font(bold=False,color=INK))
+niveau("B%d:O%d"%(R0,RCF),"$B%d=2"%R0,border=Border(top=Side(style="medium",color=SLATE)))
+niveau("C%d:C%d"%(R0,RCF),"$B%d=3"%R0,numFmt=NumberFormat(numFmtId=171,formatCode='"  "@'))
+niveau("C%d:C%d"%(R0,RCF),"$B%d=4"%R0,numFmt=NumberFormat(numFmtId=172,formatCode='"      "@'))
+
+# 4. les evolutions du bandeau. La fleche dit le sens, la couleur dit si c'est
+#    une bonne nouvelle : sur le cout d'acquisition les deux sont inverses.
+for col,bon in ((4,True),(6,True),(8,True),(10,True),(12,False)):
+    cell="%s10"%gl(col)
+    ws.conditional_formatting.add(cell,CellIsRule(operator="greaterThan",formula=["0"],
+        font=Font(name=UI,size=9,bold=True,color=GOOD if bon else CRIT)))
+    ws.conditional_formatting.add(cell,CellIsRule(operator="lessThan",formula=["0"],
+        font=Font(name=UI,size=9,bold=True,color=CRIT if bon else GOOD)))
+
+# ------------------------------------------------------ le relais des graphes
+# A la conception, la zone technique est vide : Tagetik ne la remplit qu'au
+# lancement, et on ne sait pas combien de lignes elle aura. Le pont en a
+# toujours cinq et la tension trois, mais le bloc de marge suit le noeud
+# choisi -- cinq marques a la racine, quatre campus sur MBway, deux sur Tunon.
+#
+# Une plage cablee sur cinq lignes tracerait donc des barres a zero sur les
+# petits noeuds. On interpose un relais qui renvoie NA() quand la ligne est
+# vide : Excel ne trace RIEN sur un NA(), la ou il tracerait une barre a zero
+# sur une cellule vide. Le libelle, lui, revient vide, donc l'axe garde un
+# emplacement libre plutot qu'une categorie fantome.
+#
+# On ne passe PAS par des noms definis en OFFSET : le nom du classeur entre
+# dans la reference de serie, et l'enregistrement sous un autre nom -- ce qui
+# arrive a chaque navigation -- casse la resolution. Excel supprime alors
+# purement et simplement les series. C'est ce qui s'est produit sur la version
+# precedente.
+def relais(c0, cle, sources, r1, r2):
+    for r in range(r1,r2+1):
+        ws.cell(r,c0,'=IF(${0}{1}="","",${0}{1})'.format(cle,r)).number_format="General"
+        for j,src in enumerate(sources,1):
+            ws.cell(r,c0+j,'=IF(${0}{2}="",NA(),${1}{2})'.format(cle,src,r))
+    for c in range(c0,c0+len(sources)+1): ws.column_dimensions[gl(c)].hidden=True
+    return c0
+P0=relais(60,"AC",("AD","AE","AF","AG"),7,11)   # pont    : 5 pas, toujours
+M0=relais(66,"AK",("AN","AQ","AT"),    7,11)    # marge   : 2 a 5 lignes
+T0=relais(71,"AZ",("BC","BD"),         7,10)    # tension : 3, 4 si 2027 arrive
+for c in range(16,81): ws.column_dimensions[gl(c)].hidden=True
+
+def cadre(r1,c1,r2,c2,titre,note=""):
+    for r in range(r1,r2+1):
+        for c in range(c1,c2+1):
+            x=ws.cell(r,c); x.fill=fill(PANEL)
+            x.border=Border(top=sd(SEP) if r==r1 else None,bottom=sd(SEP) if r==r2 else None,
+                            left=sd(SEP) if c==c1 else None,right=sd(SEP) if c==c2 else None)
+    t=ws.cell(r1,c1,"  "+titre); t.font=F(9,True,INK,f=DISPLAY); t.alignment=ind(0)
+    if note:
+        n=ws.cell(r1,c2,note+"  "); n.font=F(7.5,False,MUTED,i=True); n.alignment=R
+
+def habille(ch,h=9.0,w=8.1):
+    ch.height=h; ch.width=w; ch.visible_cells_only=False
+    ch.x_axis.delete=False; ch.y_axis.delete=False
+    ch.x_axis.majorTickMark="none"; ch.y_axis.majorTickMark="none"
+    return ch
+def cats(ch,c0,r1,r2):
+    p="'2'!$%s$%d:$%s$%d"%(gl(c0),r1,gl(c0),r2)
+    for s in ch.series: s.cat=AxDataSource(strRef=StrRef(f=p))
+def noms(ch,libelles):
+    for s,n in zip(ch.series,libelles): s.tx=SeriesLabel(v=n)
+
+ws._charts=[]      # on repart des cadres vides laisses par Excel
+
+# 1 — le pont d'EBITDA
+cadre(12,4,35,7,"Pont d'EBITDA 2025 → 2026","axe tronqué")
+br=BarChart(); br.type="col"; br.grouping="stacked"; br.overlap=100; br.gapWidth=55
+for j in range(1,5):
+    br.add_data(Reference(ws,min_col=P0+j,max_col=P0+j,min_row=7,max_row=11),titles_from_data=False)
+for s,coul in zip(br.series,(None,SLATE,GOOD,CRIT)):
+    if coul is None: s.graphicalProperties.noFill=True
+    else: s.graphicalProperties.solidFill=coul; s.graphicalProperties.line.noFill=True
+cats(br,P0,7,11); br.legend=None; br.y_axis.numFmt='0.0,," M€"'
+# axe tronque, et c'est assume : de 3,47 a 3,85 M€, un axe partant de zero
+# rendrait les effets illisibles. La troncature est dite dans le cartouche.
+br.y_axis.scaling.min=3000000; br.y_axis.scaling.max=5000000; br.y_axis.majorUnit=500000
+habille(br); ws.add_chart(br,"D13")
+
+# 2 — la marge par marque, ou par campus si l'on est descendu sur une marque
+cadre(12,8,35,11,"Marge EBITDA — 3 exercices")
+mg=BarChart(); mg.type="col"; mg.grouping="clustered"; mg.gapWidth=60; mg.overlap=-10
+for j in range(1,4):
+    mg.add_data(Reference(ws,min_col=M0+j,max_col=M0+j,min_row=7,max_row=11),titles_from_data=False)
+for s,coul in zip(mg.series,(BLUE3,BLUE2,BLUE)):
+    s.graphicalProperties.solidFill=coul; s.graphicalProperties.line.noFill=True
+cats(mg,M0,7,11); noms(mg,("2024","2025","2026"))
+mg.legend.position="b"; mg.y_axis.numFmt='0%'
+habille(mg); ws.add_chart(mg,"H13")
+
+# 3 — la tension d'acquisition
+cadre(12,12,35,15,"Acquisition — dépenses vs inscrits","base 100")
+tn=LineChart()
+for j in range(1,3):
+    tn.add_data(Reference(ws,min_col=T0+j,max_col=T0+j,min_row=7,max_row=10),titles_from_data=False)
+for s,coul in zip(tn.series,(ORANGE,BLUE)):
+    s.graphicalProperties.line.solidFill=coul; s.graphicalProperties.line.width=25000
+    s.marker=Marker(symbol="circle",size=6); s.smooth=False
+    s.marker.graphicalProperties.solidFill=coul; s.marker.graphicalProperties.line.solidFill=coul
+cats(tn,T0,7,10); noms(tn,("Dépenses","Inscrits"))
+tn.legend.position="b"; tn.y_axis.numFmt='0'
+tn.y_axis.scaling.min=95; tn.y_axis.scaling.max=125; tn.y_axis.majorUnit=10
+habille(tn); ws.add_chart(tn,"L13")
+
+p=ws.cell(RSTAT+2,3,"Source : V_ALLOCATION et AW_002_000002_000001. Marges et indices divisés après somme, jamais moyennés.")
+p.font=F(7.5,False,MUTED,i=True); p.alignment=ind(0)
+wb.save(OUT)
+print("%s ecrit — %d graphes, relais en %s / %s / %s, regles jusqu'a la ligne %d"
+      %(OUT,len(ws._charts),gl(P0),gl(M0),gl(T0),RCF))
