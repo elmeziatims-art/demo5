@@ -21,7 +21,10 @@ from socle_reel import construire
 
 CIBLE = sys.argv[1] if len(sys.argv)>1 else "EDUSERVICES"
 EX    = int(sys.argv[2]) if len(sys.argv)>2 else 2026
-OUT   = "DRILL1_POURQUOI.xlsm"
+# .xlsx et non .xlsm : ce classeur est cree de zero et ne contient aucune
+# macro. Enregistre en .xlsm, il porterait un type de contenu xlsx sous une
+# extension macro, incoherence qu'Excel refuse d'ouvrir.
+OUT   = "DRILL1_POURQUOI.xlsx"
 NAVY="172033"; SLATE="526071"; INK="202733"; MUTED="69778B"; ONDARK="B8C6DA"
 CANVAS="F3F6FA"; PANEL="FFFFFF"; SEP="E9EDF3"; SOFT="EAF2FC"
 GOOD="1E9E89"; CRIT="D64545"; UI="Arial"; DISPLAY="Fira Sans Medium"
