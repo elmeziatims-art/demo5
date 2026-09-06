@@ -51,31 +51,42 @@
    par parametre : la jointure la trouve sur EXERCICE - 1.
 
    Pas de CTE, pas de ORDER BY, pas de ';'.  Source : V_ALLOCATION.
-   ============================================================================= */
+   =============================================================================
+
+   =============================================================================
+   LES EN-TETES SONT EN CLAIR, entre crochets. Le drill-through affiche la
+   sortie telle quelle a l'utilisateur : autant qu'il lise "CA par eleve N-1"
+   plutot que CAE_P.
+
+   Si le canal du loader ne conserve pas les accents -- c'est ce qui avait
+   transforme "Activite" en "Activit?" sur des litteraux -- retirer simplement
+   les accents dans les crochets. La requete ne change pas autrement.
+   =============================================================================
+   */
 SELECT
-    n.ENTITY,
-    COALESCE(az.DESC_AZIENDA0, n.ENTITY)                    AS LIBELLE,
-    n.MARQUE,
-    p.EXERCICE                                              AS EXERCICE_P,
-    n.EXERCICE                                              AS EXERCICE_N,
+    n.ENTITY AS [Code campus],
+    COALESCE(az.DESC_AZIENDA0, n.ENTITY)                    AS [Campus],
+    n.MARQUE AS [Marque],
+    p.EXERCICE                                              AS [Exercice précédent],
+    n.EXERCICE                                              AS [Exercice],
 
-    p.EFFECTIFS                                             AS EFF_P,
-    n.EFFECTIFS                                             AS EFF_N,
-    n.EFFECTIFS - p.EFFECTIFS                               AS D_EFF,
+    p.EFFECTIFS                                             AS [Effectifs N-1],
+    n.EFFECTIFS                                             AS [Effectifs N],
+    n.EFFECTIFS - p.EFFECTIFS                               AS [Élèves gagnés ou perdus],
 
-    p.CA                                                    AS CA_P,
-    n.CA                                                    AS CA_N,
-    p.COST_VAR                                              AS CVAR_P,
-    n.COST_VAR                                              AS CVAR_N,
-    p.COST_DIR                                              AS CDIR_P,
-    n.COST_DIR                                              AS CDIR_N,
-    p.COST_SIEGE                                            AS SIEGE_P,
-    n.COST_SIEGE                                            AS SIEGE_N,
+    p.CA                                                    AS [CA N-1],
+    n.CA                                                    AS [CA N],
+    p.COST_VAR                                              AS [Coût variable N-1],
+    n.COST_VAR                                              AS [Coût variable N],
+    p.COST_DIR                                              AS [Coûts directs N-1],
+    n.COST_DIR                                              AS [Coûts directs N],
+    p.COST_SIEGE                                            AS [Siège N-1],
+    n.COST_SIEGE                                            AS [Siège N],
 
-    p.CA - p.COST_VAR - p.COST_DIR - p.COST_SIEGE           AS EBITDA_P,
-    n.CA - n.COST_VAR - n.COST_DIR - n.COST_SIEGE           AS EBITDA_N,
+    p.CA - p.COST_VAR - p.COST_DIR - p.COST_SIEGE           AS [EBITDA N-1],
+    n.CA - n.COST_VAR - n.COST_DIR - n.COST_SIEGE           AS [EBITDA N],
     (n.CA - n.COST_VAR - n.COST_DIR - n.COST_SIEGE)
-      - (p.CA - p.COST_VAR - p.COST_DIR - p.COST_SIEGE)     AS D_EBITDA,
+      - (p.CA - p.COST_VAR - p.COST_DIR - p.COST_SIEGE)     AS [Variation d'EBITDA],
 
     /* Les cinq unitaires : valables LIGNE A LIGNE, jamais sommables.
        SIX decimales et non deux. Elles sont multipliees par des effectifs, si
@@ -83,12 +94,12 @@ SELECT
        du pont ne tombe plus a zero mais a 3,91 EUR. A six, il tombe a un
        millieme d'euro. On affiche deux decimales dans le classeur, on en
        transporte six. */
-    CAST(1.0 * p.CA / NULLIF(p.EFFECTIFS, 0) AS DECIMAL(18, 6))             AS CAE_P,
-    CAST(1.0 * n.CA / NULLIF(n.EFFECTIFS, 0) AS DECIMAL(18, 6))             AS CAE_N,
-    CAST(1.0 * p.COST_VAR / NULLIF(p.EFFECTIFS, 0) AS DECIMAL(18, 6))       AS CVE_P,
-    CAST(1.0 * n.COST_VAR / NULLIF(n.EFFECTIFS, 0) AS DECIMAL(18, 6))       AS CVE_N,
+    CAST(1.0 * p.CA / NULLIF(p.EFFECTIFS, 0) AS DECIMAL(18, 6))             AS [CA par élève N-1],
+    CAST(1.0 * n.CA / NULLIF(n.EFFECTIFS, 0) AS DECIMAL(18, 6))             AS [CA par élève N],
+    CAST(1.0 * p.COST_VAR / NULLIF(p.EFFECTIFS, 0) AS DECIMAL(18, 6))       AS [Coût variable par élève N-1],
+    CAST(1.0 * n.COST_VAR / NULLIF(n.EFFECTIFS, 0) AS DECIMAL(18, 6))       AS [Coût variable par élève N],
     CAST(1.0 * p.CA / NULLIF(p.EFFECTIFS, 0)
-       - 1.0 * p.COST_VAR / NULLIF(p.EFFECTIFS, 0) AS DECIMAL(18, 6))       AS MARGE_UNIT_P
+       - 1.0 * p.COST_VAR / NULLIF(p.EFFECTIFS, 0) AS DECIMAL(18, 6))       AS [Marge sur coût variable par élève N-1]
 FROM (
         SELECT  a.ENTITY, a.MARQUE, a.EXERCICE,
                 SUM(a.CA)                          AS CA,

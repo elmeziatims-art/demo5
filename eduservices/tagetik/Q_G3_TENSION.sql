@@ -24,11 +24,22 @@
 
    Pas de CTE, pas de ORDER BY, pas de ';'.
    Sources : V_ALLOCATION et AW_002_000002_000001.
-   ============================================================================= */
+   =============================================================================
+
+   =============================================================================
+   LES EN-TETES SONT EN CLAIR, entre crochets. Le drill-through affiche la
+   sortie telle quelle a l'utilisateur : autant qu'il lise "CA par eleve N-1"
+   plutot que CAE_P.
+
+   Si le canal du loader ne conserve pas les accents -- c'est ce qui avait
+   transforme "Activite" en "Activit?" sur des litteraux -- retirer simplement
+   les accents dans les crochets. La requete ne change pas autrement.
+   =============================================================================
+   */
 SELECT
-    y.EXERCICE,
-    CAST(ROUND(100.0 * y.DEPENSES / NULLIF(b.DEPENSES, 0), 1) AS DECIMAL(9, 1)) AS IND_DEPENSES,
-    CAST(ROUND(100.0 * y.INSCRITS / NULLIF(b.INSCRITS, 0), 1) AS DECIMAL(9, 1)) AS IND_INSCRITS
+    y.EXERCICE AS [Exercice],
+    CAST(ROUND(100.0 * y.DEPENSES / NULLIF(b.DEPENSES, 0), 1) AS DECIMAL(9, 1)) AS [Dépenses d'acquisition base 100],
+    CAST(ROUND(100.0 * y.INSCRITS / NULLIF(b.INSCRITS, 0), 1) AS DECIMAL(9, 1)) AS [Inscrits base 100]
 FROM (
         SELECT  v.EXERCICE,
                 SUM(v.INSCRITS)              AS INSCRITS,

@@ -41,10 +41,21 @@
    effets. Un total vaudrait EBITDA N-1 + variation + EBITDA N.
 
    Pas de CTE, pas de ORDER BY, pas de ';'.  Source : V_ALLOCATION.
-   ============================================================================= */
+   =============================================================================
+
+   =============================================================================
+   LES EN-TETES SONT EN CLAIR, entre crochets. Le drill-through affiche la
+   sortie telle quelle a l'utilisateur : autant qu'il lise "CA par eleve N-1"
+   plutot que CAE_P.
+
+   Si le canal du loader ne conserve pas les accents -- c'est ce qui avait
+   transforme "Activite" en "Activit?" sur des litteraux -- retirer simplement
+   les accents dans les crochets. La requete ne change pas autrement.
+   =============================================================================
+   */
 SELECT
-    e.RANG,
-    e.EFFET,
+    e.RANG AS [Ordre],
+    e.EFFET AS [Effet],
 
     CAST(ROUND(
         CASE e.RANG
@@ -56,7 +67,7 @@ SELECT
             WHEN 6 THEN g.E_SIEGE
             ELSE        g.EBITDA_N
         END
-    , 0) AS DECIMAL(18, 0))                                 AS MONTANT,
+    , 0) AS DECIMAL(18, 0))                                 AS [Montant],
 
     CASE WHEN e.RANG IN (1, 7) THEN NULL ELSE
         CAST(ROUND(1.0 *
@@ -67,7 +78,7 @@ SELECT
                 WHEN 5 THEN g.E_CDIR
                 ELSE        g.E_SIEGE
             END / NULLIF(g.EBITDA_N - g.EBITDA_P, 0), 4)
-        AS DECIMAL(9, 4)) END                               AS PART_VAR
+        AS DECIMAL(9, 4)) END                               AS [Part de la variation]
 FROM (
         SELECT
             SUM(x.EBITDA_P) AS EBITDA_P, SUM(x.EBITDA_N) AS EBITDA_N,

@@ -37,10 +37,11 @@ R0=7; R1=R0+len(C)-1
 
 wb=openpyxl.Workbook(); ws=wb.active; ws.title="Drill EBITDA"
 ws.sheet_view.showGridLines=False
-ws.column_dimensions["A"].width=2.5; ws.column_dimensions["B"].width=20
-for c in range(3,17): ws.column_dimensions[GL(c)].width=11
+ws.column_dimensions["A"].width=2.5; ws.column_dimensions["B"].width=22
+for c in range(3,17): ws.column_dimensions[GL(c)].width=13
+for c in (6,7,8,9,10): ws.column_dimensions[GL(c)].width=15
 ws.column_dimensions["R"].width=3
-for c in range(19,24): ws.column_dimensions[GL(c)].width=13
+for c in range(19,24): ws.column_dimensions[GL(c)].width=15
 for r in range(1,60):
     for c in range(1,25): ws.cell(r,c).fill=fill(CANVAS)
 for r in (1,2,3):
@@ -58,13 +59,23 @@ def entete(row,c0,titres,titre,note=""):
         x=ws.cell(row-1,c0+len(titres)-1,note+"  "); x.font=F(7.5,False,MUTED,i=True); x.alignment=R
     for j,lab in enumerate(titres):
         c=ws.cell(row,c0+j,lab); c.fill=fill(SLATE); c.font=F(8,True,"FFFFFF",f=DISPLAY)
-        c.alignment=Cn if j else ind(1); c.border=Border(*[sd(SLATE)]*4)
+        c.alignment=Alignment("center",vertical="center",wrap_text=True) if j else ind(1)
+        c.border=Border(*[sd(SLATE)]*4)
+    ws.row_dimensions[row].height=30
 
-COLS=("LIBELLE","EFF_P","EFF_N","D_EFF","CAE_P","CAE_N","CVE_P","CVE_N","MARGE_UNIT_P",
-      "CDIR_P","CDIR_N","SIEGE_P","SIEGE_N","EBITDA_P","EBITDA_N")
-entete(6,2,COLS,"Q_D1_SOCLE — ce que la requête renvoie","valeurs")
-entete(6,19,("Effectifs","Prix et mix","Coût var. unit.","Coûts directs","Siège"),
-       "Les cinq effets, calculés ici","une multiplication chacun")
+# En-tetes en clair, identiques a ceux de la requete. Le drill-through affiche
+# sa sortie telle quelle : autant que l'utilisateur lise "CA par eleve 2025"
+# plutot que CAE_P.
+COLS=("Campus","Effectifs 2025","Effectifs 2026","Élèves gagnés",
+      "CA par élève 2025","CA par élève 2026",
+      "Coût var. par élève 2025","Coût var. par élève 2026",
+      "Marge sur coût var. par élève 2025",
+      "Coûts directs 2025","Coûts directs 2026","Siège 2025","Siège 2026",
+      "EBITDA 2025","EBITDA 2026")
+entete(6,2,COLS,"CE QUE LA REQUÊTE RENVOIE  ·  Q_D1_SOCLE","une ligne par campus")
+entete(6,19,("Effet effectifs","Effet prix et mix","Effet coût var. unitaire",
+             "Effet coûts directs","Effet siège"),
+       "CE QUE LE CLASSEUR CALCULE","une multiplication par effet, aucune division")
 for i,c in enumerate(C):
     r=R0+i
     ep,en=c["eff"][P],c["eff"][N]
@@ -88,7 +99,7 @@ for i,c in enumerate(C):
         x=ws.cell(r,col,f_); x.fill=fill(WARM); x.border=Border(bottom=sd())
         x.font=F(8.5); x.alignment=R; x.number_format='#,##0'
 TOT=R1+1
-ws.cell(TOT,2,"TOTAL").font=F(8.5,True); ws.cell(TOT,2).alignment=ind(1)
+ws.cell(TOT,2,"TOTAL du périmètre").font=F(8.5,True); ws.cell(TOT,2).alignment=ind(1)
 for col in [3,4,5]+list(range(11,17))+list(range(19,24)):
     x=ws.cell(TOT,col,"=SUM({0}{1}:{0}{2})".format(GL(col),R0,R1))
     x.font=F(8.5,True); x.alignment=R; x.number_format='#,##0'
@@ -97,8 +108,10 @@ ws.cell(TOT,2).fill=fill(SOFT); ws.cell(TOT,2).border=Border(top=Side(style="med
 
 # ------------------------------------------------------ le tableau du drill
 D0=TOT+3
-entete(D0,2,("RANG","EFFET","MONTANT","PART_VAR"),"Le tableau du drill","formules")
-entete(D0,7,("ETAPE","SOCLE","ANCRE","HAUSSE","BAISSE"),"La cascade du graphe","formules")
+entete(D0,2,("Ordre","Effet","Montant","Part de la variation"),
+       "LE TABLEAU DU DRILL","formules")
+entete(D0,7,("Étape","Socle invisible","Ancre","Hausse","Baisse"),
+       "LA CASCADE DU GRAPHE","formules")
 EBP="=SUM(O{0}:O{1})".format(R0,R1)     # EBITDA_P vient de la query
 EBN="=SUM(P{0}:P{1})".format(R0,R1)     # EBITDA_N aussi
 LIB=["EBITDA %d"%P,"Effet effectifs","Effet prix et mix","Effet coût var. unitaire",
@@ -133,7 +146,7 @@ ws.conditional_formatting.add("D{0}:D{1}".format(D0+2,D0+6),
 ws.conditional_formatting.add("D{0}:D{1}".format(D0+2,D0+6),
     CellIsRule(operator="lessThan",formula=["0"],font=Font(name=UI,size=8.5,color=CRIT)))
 CTRL=D0+9
-ws.cell(CTRL,3,"Contrôle · somme des cinq effets moins la variation").font=F(8,True,MUTED)
+ws.cell(CTRL,3,"Contrôle · les cinq effets moins la variation d’EBITDA").font=F(8,True,MUTED)
 ws.cell(CTRL,3).alignment=ind(1)
 k=ws.cell(CTRL,4,"=SUM(D{0}:D{1})-(D{2}-D{3})".format(D0+2,D0+6,D0+7,D0+1))
 k.number_format='0.00" €"'; k.alignment=R; k.font=F(10,True,GOOD)

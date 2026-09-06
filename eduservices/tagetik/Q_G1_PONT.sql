@@ -18,9 +18,20 @@
 
    Perimetre par le parametre, sur les DEUX annees, meme selection des deux
    cotes. Pas de CTE, pas de ORDER BY, pas de ';'.  Source : V_ALLOCATION.
-   ============================================================================= */
+   =============================================================================
+
+   =============================================================================
+   LES EN-TETES SONT EN CLAIR, entre crochets. Le drill-through affiche la
+   sortie telle quelle a l'utilisateur : autant qu'il lise "CA par eleve N-1"
+   plutot que CAE_P.
+
+   Si le canal du loader ne conserve pas les accents -- c'est ce qui avait
+   transforme "Activite" en "Activit?" sur des litteraux -- retirer simplement
+   les accents dans les crochets. La requete ne change pas autrement.
+   =============================================================================
+   */
 SELECT
-    e.ETAPE,
+    e.ETAPE AS [Étape],
 
     CAST(ROUND(
         CASE e.RANG
@@ -32,11 +43,11 @@ SELECT
                              ELSE g.EBITDA_P + g.E_VOL + g.E_PRIX END
             ELSE        0
         END
-    , 0) AS DECIMAL(18, 0))                                 AS SOCLE,
+    , 0) AS DECIMAL(18, 0))                                 AS [Socle invisible],
 
     CAST(ROUND(
         CASE e.RANG WHEN 1 THEN g.EBITDA_P WHEN 5 THEN g.EBITDA_N ELSE 0 END
-    , 0) AS DECIMAL(18, 0))                                 AS ANCRE,
+    , 0) AS DECIMAL(18, 0))                                 AS [Ancre],
 
     CAST(ROUND(
         CASE e.RANG
@@ -45,7 +56,7 @@ SELECT
             WHEN 4 THEN CASE WHEN g.E_COUT > 0 THEN g.E_COUT ELSE 0 END
             ELSE        0
         END
-    , 0) AS DECIMAL(18, 0))                                 AS HAUSSE,
+    , 0) AS DECIMAL(18, 0))                                 AS [Hausse],
 
     CAST(ROUND(
         CASE e.RANG
@@ -54,7 +65,7 @@ SELECT
             WHEN 4 THEN CASE WHEN g.E_COUT < 0 THEN -1 * g.E_COUT ELSE 0 END
             ELSE        0
         END
-    , 0) AS DECIMAL(18, 0))                                 AS BAISSE
+    , 0) AS DECIMAL(18, 0))                                 AS [Baisse]
 FROM (
         SELECT
             SUM(x.EBITDA_P)                      AS EBITDA_P,
