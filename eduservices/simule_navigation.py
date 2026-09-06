@@ -134,12 +134,64 @@ for i,e in enumerate(EX,7):
 for i in range(7+len(EX),12):
     for j in range(52,59): ws.cell(i,j).value=None
 
-# Tagetik redimensionne les zones nommees a la hauteur de ce qu'il a servi.
-# On fait pareil, sinon la simulation ne dirait rien du mecanisme.
-from openpyxl.workbook.defined_name import DefinedName
-for cle,(c1,c2,n) in {"Z_PONT":("AB","AG",5),"Z_MARGE":("AI","AU",len(MARGE)),
-                      "Z_TENSION":("AZ","BF",len(EX))}.items():
-    wb.defined_names[cle]=DefinedName(cle,attr_text="'2'!$%s$7:$%s$%d"%(c1,c2,6+n))
+# ---------------------------------------------------------------- les graphes
+# ON LES REFAIT ICI, ET C'EST LE POINT CRITIQUE. Une reference de serie porte
+# le nom du classeur : des qu'on enregistre sous un autre nom, elle designe un
+# fichier qui n'existe pas et Excel supprime purement et simplement la serie.
+# C'est ce qui vidait les graphes a chaque livraison. On repart donc de zero,
+# en references directes a la feuille, sans le moindre nom defini : plus rien
+# ne peut pointer hors du fichier.
+from openpyxl.chart import BarChart, LineChart, Reference
+from openpyxl.chart.marker import Marker
+from openpyxl.chart.data_source import AxDataSource, StrRef
+from openpyxl.chart.series import SeriesLabel
+from openpyxl.utils import get_column_letter as GL
+for cle in list(wb.defined_names): del wb.defined_names[cle]
+ws._charts=[]
+NP, NM, NT = 5, len(MARGE), len(EX)
+def cat(ch,col,n):
+    p="'2'!$%s$7:$%s$%d"%(GL(col),GL(col),6+n)
+    for x in ch.series: x.cat=AxDataSource(strRef=StrRef(f=p))
+def noms(ch,l):
+    for x,n in zip(ch.series,l): x.tx=SeriesLabel(v=n)
+def fini(ch,h=9.0,w=8.1):
+    ch.height=h; ch.width=w; ch.visible_cells_only=False
+    ch.x_axis.delete=False; ch.y_axis.delete=False
+    ch.x_axis.majorTickMark="none"; ch.y_axis.majorTickMark="none"
+
+SLATE="526071"; GOOD="1E9E89"; CRIT="D64545"
+BLUE="2A78D6"; BLUE2="6FA5DC"; BLUE3="B8CFEC"; ORANGE="F07B32"
+
+br=BarChart(); br.type="col"; br.grouping="stacked"; br.overlap=100; br.gapWidth=55
+for c in range(30,34):        # AD SOCLE, AE ANCRE, AF HAUSSE, AG BAISSE
+    br.add_data(Reference(ws,min_col=c,max_col=c,min_row=7,max_row=6+NP),titles_from_data=False)
+for x,coul in zip(br.series,(None,SLATE,GOOD,CRIT)):
+    if coul is None: x.graphicalProperties.noFill=True
+    else: x.graphicalProperties.solidFill=coul; x.graphicalProperties.line.noFill=True
+cat(br,29,NP); br.legend=None; br.y_axis.numFmt='0.0,," M€"'; fini(br)
+ws.add_chart(br,"D13")
+
+mg=BarChart(); mg.type="col"; mg.grouping="clustered"; mg.gapWidth=60; mg.overlap=-10
+for c in range(36,39):        # AJ, AK, AL : les trois marges
+    mg.add_data(Reference(ws,min_col=c,max_col=c,min_row=7,max_row=6+NM),titles_from_data=False)
+for x,coul in zip(mg.series,(BLUE3,BLUE2,BLUE)):
+    x.graphicalProperties.solidFill=coul; x.graphicalProperties.line.noFill=True
+cat(mg,35,NM); noms(mg,("2024","2025","2026"))
+mg.legend.position="b"; mg.y_axis.numFmt='0%'; fini(mg)
+ws.add_chart(mg,"H13")
+
+tn=LineChart()
+for c in (53,54):             # BA IND_DEPENSES, BB IND_INSCRITS
+    tn.add_data(Reference(ws,min_col=c,max_col=c,min_row=7,max_row=6+NT),titles_from_data=False)
+for x,coul in zip(tn.series,(ORANGE,BLUE)):
+    x.graphicalProperties.line.solidFill=coul; x.graphicalProperties.line.width=25000
+    x.marker=Marker(symbol="circle",size=6); x.smooth=False
+    x.marker.graphicalProperties.solidFill=coul; x.marker.graphicalProperties.line.solidFill=coul
+cat(tn,52,NT); noms(tn,("Dépenses","Inscrits"))
+tn.legend.position="b"; tn.y_axis.numFmt='0'
+tn.y_axis.scaling.min=95; tn.y_axis.scaling.max=125; tn.y_axis.majorUnit=10; fini(tn)
+ws.add_chart(tn,"L13")
+
 wb.save(OUT)
 print("%s — noeud %s : tableau 38 a %d (%d lignes), Z_PONT 5, Z_MARGE %d, Z_TENSION %d"
       %(OUT,NOEUD,DERNIERE,DERNIERE-37,len(MARGE),len(EX)))
