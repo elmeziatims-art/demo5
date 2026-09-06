@@ -44,28 +44,32 @@ cpt=defaultdict(lambda: defaultdict(float))
 for r in csv.DictReader(open("data/compta.csv",encoding="utf-8-sig"),delimiter=";"):
     ex=int(r["EXERCICE"])
     if ex in (P,N) and r["ENTITY"]!="GRP": cpt[r["ACCOUNT"]][ex]+=float(r["AMOUNT"])
-POSTES=[(2,"Coût variable","621","Personnel extérieur (vacataires)"),
-        (3,"Coût variable","604","Achats d'études"),
-        (4,"Coût variable","6063","Fournitures"),
-        (5,"Coût variable","6231","Publicité et acquisition"),
-        (6,"Coûts directs","6411","Salaires des permanents"),
-        (7,"Coûts directs","6413","Primes"),
-        (8,"Coûts directs","645","Charges sociales"),
-        (9,"Coûts directs","613","Loyers"),
-        (10,"Coûts directs","615","Entretien"),
-        (11,"Coûts directs","616","Assurances"),
-        (12,"Coûts directs","625","Déplacements"),
-        (13,"Coûts directs","63511","Taxes")]
+POSTES=[(2,"Coût variable","621","Personnel extérieur (vacataires)","Vacataires"),
+        (3,"Coût variable","604","Achats d'études","Achats d'études"),
+        (4,"Coût variable","6063","Fournitures","Fournitures"),
+        (5,"Coût variable","6231","Publicité et acquisition","Acquisition"),
+        (6,"Coûts directs","6411","Salaires des permanents","Salaires"),
+        (7,"Coûts directs","6413","Primes","Primes"),
+        (8,"Coûts directs","645","Charges sociales","Charges sociales"),
+        (9,"Coûts directs","613","Loyers","Loyers"),
+        (10,"Coûts directs","615","Entretien","Entretien"),
+        (11,"Coûts directs","616","Assurances","Assurances"),
+        (12,"Coûts directs","625","Déplacements","Déplacements"),
+        (13,"Coûts directs","63511","Taxes","Taxes")]
 S=lambda a,e: sum(c[a][e] for c in C)
-LIGNES=[(1,"Produits","","Chiffre d'affaires (socle CRM)",S("ca",P),S("ca",N))]
-LIGNES+=[(r,f,a,l,-cpt[a][P],-cpt[a][N]) for r,f,a,l in POSTES]
-LIGNES+=[(14,"Siège","","Siège redescendu (allocation, pas une écriture)",
+LIGNES=[(1,"Produits","","Chiffre d'affaires (socle CRM)","Chiffre d'affaires",S("ca",P),S("ca",N))]
+LIGNES+=[(r,f,a,l,ct,-cpt[a][P],-cpt[a][N]) for r,f,a,l,ct in POSTES]
+LIGNES+=[(14,"Siège","","Siège redescendu (allocation, pas une écriture)","Siège",
           -S("csiege",P),-S("csiege",N))]
+CA_CPT={e:sum(v for a,d in cpt.items() if a.startswith("7") for x,v in d.items() if x==e)
+        for e in (P,N)}
 
 # ------------------------------------------------------------- l'ossature
 GRAPH0, TAB0 = 8, 33
 L0    = TAB0+1              # premiere ligne de donnees
-LN    = L0+19               # vingt emplacements
+LN    = L0+13               # QUATORZE lignes, ni plus ni moins : la liste des
+                            # comptes est ecrite dans la query, pas decouverte
+                            # dans la donnee, donc le compte est connu d'avance
 CTRL  = LN+2
 wb=openpyxl.Workbook(); ws=wb.active; ws.title="Drill par compte"
 ws.sheet_view.showGridLines=False
@@ -107,9 +111,10 @@ entete(TAB0,2,("Rang","Famille","Compte","Poste","Montant 2025","Montant 2026",
                "Variation","Part des charges"),
        "LE COMPTE D'EXPLOITATION, POSTE PAR POSTE",
        "ce que la requête renvoie · les deux dernières colonnes sont calculées")
-for i,(rg,fam,cp,lab,m25,m26) in enumerate(LIGNES):
+for i,(rg,fam,cp,lab,court,m25,m26) in enumerate(LIGNES):
     r=L0+i
     for col,v in zip(range(2,8),(rg,fam,cp,lab,m25,m26)): ws.cell(r,col,v)
+    ws.cell(r,11,court)                      # le libelle court, pour l'axe
 for r in range(L0,LN+1):
     ws.cell(r,2).font=F(7.5,False,MUTED); ws.cell(r,2).alignment=Cn
     ws.cell(r,3).font=F(8.5,False,MUTED); ws.cell(r,3).alignment=ind(1)
@@ -128,13 +133,11 @@ for r in range(L0,LN+1):
         pass
 
 # ---- sources du graphe : les treize postes de charge, en valeur absolue ----
+# Plus aucun NA() ni emplacement vide : la structure comptable est stable, donc
+# la plage du graphe l'est aussi. C'est ce qui creait les trous a l'ecran.
 for i in range(1,len(LIGNES)):
     r=L0+i
-    ws.cell(r,11,"=E%d"%r); ws.cell(r,12,"=-F%d"%r); ws.cell(r,13,"=-G%d"%r)
-for r in range(L0+len(LIGNES),LN+1):
-    ws.cell(r,11,'=IF(B{0}="","",E{0})'.format(r))
-    ws.cell(r,12,'=IF(B{0}="",NA(),-F{0})'.format(r))
-    ws.cell(r,13,'=IF(B{0}="",NA(),-G{0})'.format(r))
+    ws.cell(r,12,"=-F%d"%r); ws.cell(r,13,"=-G%d"%r)
 ws.cell(TAB0,12,"2025"); ws.cell(TAB0,13,"2026")
 
 # ---- LES REGLES DE FOND, DANS L'ORDRE QUI COMPTE ----------------------------
@@ -170,6 +173,39 @@ for c,ex in ((6,P),(7,N)):
     x=ws.cell(CTRL,c,"=SUM({0}{1}:{0}{2})".format(GL(c),L0,LN))
     x.number_format='#,##0" €"'; x.alignment=R; x.font=F(11,True,BLUE)
 
+# ------------------------------ 4 bis. le rapprochement du chiffre d'affaires
+# La question tombe toujours : pourquoi le CA vient-il du CRM et non de la
+# compta ? On met les deux cote a cote, l'ecart se voit et la reponse se donne
+# toute seule.
+REC=CTRL+3
+ws.cell(REC-1,2,"POURQUOI LE CHIFFRE D'AFFAIRES VIENT DU SOCLE CRM")
+ws.cell(REC-1,2).font=F(10,True,INK,f=DISPLAY); ws.cell(REC-1,2).alignment=ind(0)
+ws.row_dimensions[REC-1].height=20
+for j,(lab,v25,v26) in enumerate((
+        ("Chiffre d'affaires en comptabilité  ·  706 + 7062 + 708",CA_CPT[P],CA_CPT[N]),
+        ("Chiffre d'affaires du socle CRM  ·  effectifs × droits de scolarité",
+         S("ca",P),S("ca",N)))):
+    r=REC+j
+    for c in range(2,10): ws.cell(r,c).fill=fill(PANEL); ws.cell(r,c).border=Border(bottom=sd())
+    ws.cell(r,2,lab).font=F(8.5); ws.cell(r,2).alignment=ind(1)
+    for c,v in ((6,v25),(7,v26)):
+        x=ws.cell(r,c,v); x.number_format='#,##0" €"'; x.alignment=R; x.font=F(8.5)
+r=REC+2
+for c in range(2,10): ws.cell(r,c).fill=fill(SOFT); ws.cell(r,c).border=Border(bottom=sd(SLATE,"medium"))
+ws.cell(r,2,"Écart").font=F(8.5,True); ws.cell(r,2).alignment=ind(1)
+for c in (6,7):
+    x=ws.cell(r,c,"={0}{1}-{0}{2}".format(GL(c),REC,REC+1))
+    x.number_format='+#,##0" €";-#,##0" €";"0 €"'; x.alignment=R; x.font=F(9,True,BLUE)
+ws.cell(r,8,"={0}{1}/{0}{2}".format("F",r,REC+1)).number_format='+0.00%;-0.00%;"0,00 %"'
+ws.cell(r,8).alignment=R; ws.cell(r,8).font=F(8.5,False,MUTED)
+ws.cell(r,9,"={0}{1}/{0}{2}".format("G",r,REC+1)).number_format='+0.00%;-0.00%;"0,00 %"'
+ws.cell(r,9).alignment=R; ws.cell(r,9).font=F(8.5,False,MUTED)
+for j,txt in enumerate((
+   "Les deux disent la même chose. Le modèle prend le CRM pour deux raisons qui ne tiennent pas à l'exactitude :",
+   "le GRAIN — 180 lignes campus × programme × année × modalité contre 105 au grain campus × compte, sans quoi aucune marge par programme n'est calculable ;",
+   "le PILOTAGE — le CRM donne le CA comme un produit d'inducteurs, effectifs × droits de scolarité, donc il se simule. Un montant comptable est un constat.")):
+    c=ws.cell(REC+4+j,2,txt); c.font=F(8,False,MUTED,i=True); c.alignment=ind(1)
+
 # ---------------------------------------- 2. le graphe
 bc=BarChart(); bc.type="bar"; bc.grouping="clustered"; bc.gapWidth=45; bc.overlap=-15
 for c in (12,13):
@@ -179,8 +215,8 @@ for s,coul,nom in zip(bc.series,(BLUE3,BLUE),("2025","2026")):
     s.tx=SeriesLabel(v=nom)
 for s in bc.series:
     s.cat=AxDataSource(strRef=StrRef(f="'Drill par compte'!$K${0}:$K${1}".format(L0+1,LN)))
-bc.legend.position="b"; bc.x_axis.numFmt='#,##0,," M€"'
-bc.height=13.5; bc.width=23; bc.visible_cells_only=False
+bc.legend.position="b"; bc.x_axis.numFmt='#,##0," k€"'
+bc.height=12.5; bc.width=21; bc.visible_cells_only=False
 bc.x_axis.delete=False; bc.y_axis.delete=False
 bc.x_axis.majorTickMark="none"; bc.y_axis.majorTickMark="none"
 ws.add_chart(bc,"B%d"%GRAPH0)
@@ -191,4 +227,5 @@ print("  1 réponse   B5")
 print("  2 graphe    B%d — treize postes, barres horizontales, 2025 contre 2026"%GRAPH0)
 print("  3 tableau   B%d:I%d, %d lignes servies sur %d emplacements"%(TAB0,LN,len(LIGNES),LN-L0+1))
 print("  4 contrôle  F%d et G%d"%(CTRL,CTRL))
+print("  5 rapprochement du CA  B%d:I%d"%(REC-1,REC+6))
 print("  sources du graphe : K, L, M masquées")
