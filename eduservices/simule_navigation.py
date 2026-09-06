@@ -30,7 +30,8 @@ acq=defaultdict(lambda: defaultdict(float))
 for r in csv.DictReader(open("data/socle_crm.csv",encoding="utf-8-sig"),delimiter=";"):
     acq[r["ENTITY"]][int(r["EXERCICE"])]+=float(r["DEPENSE_ACQ"].replace(",","."))
 
-wb=openpyxl.load_workbook("COCKPIT_DESIGN.xlsm",keep_vba=True); ws=wb["2"]
+BASE = sys.argv[3] if len(sys.argv)>3 else "COCKPIT_ZONES.xlsm"
+wb=openpyxl.load_workbook(BASE,keep_vba=True); ws=wb["2"]
 
 # ------------------------------------------------------------ les filtres
 ws.cell(5,4,"Forecast 2026"); ws.cell(5,9,"V_FINAL")
@@ -133,6 +134,12 @@ for i,e in enumerate(EX,7):
 for i in range(7+len(EX),12):
     for j in range(52,59): ws.cell(i,j).value=None
 
+# Tagetik redimensionne les zones nommees a la hauteur de ce qu'il a servi.
+# On fait pareil, sinon la simulation ne dirait rien du mecanisme.
+from openpyxl.workbook.defined_name import DefinedName
+for cle,(c1,c2,n) in {"Z_PONT":("AB","AG",5),"Z_MARGE":("AI","AU",len(MARGE)),
+                      "Z_TENSION":("AZ","BF",len(EX))}.items():
+    wb.defined_names[cle]=DefinedName(cle,attr_text="'2'!$%s$7:$%s$%d"%(c1,c2,6+n))
 wb.save(OUT)
-print("%s — noeud %s : %d lignes de tableau (38 a %d), pont 5, marge %d, tension %d"
-      %(OUT,NOEUD,DERNIERE-37,DERNIERE,len(MARGE),len(EX)))
+print("%s — noeud %s : tableau 38 a %d (%d lignes), Z_PONT 5, Z_MARGE %d, Z_TENSION %d"
+      %(OUT,NOEUD,DERNIERE,DERNIERE-37,len(MARGE),len(EX)))
