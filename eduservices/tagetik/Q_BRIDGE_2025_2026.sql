@@ -16,7 +16,10 @@
    les deux filtres doivent porter la meme selection, sinon le bridge compare
    deux perimetres differents et ne boucle plus.
 
-       AND a.ENTITY IN ($Entity(HIERARCHY("EDU")).lowest)
+       AND a.ENTITY IN (${$Entity(HIERARCHY("EDU")).lowest})
+
+   La substitution Tagetik se fait entre ${ }, comme dans Q_DRILL_COCKPIT ou
+   l'on ecrit deja  IN (${$Entity.code})  et  IN (${$Account.code}).
 
    Si la vue expose la colonne sous son nom Tagetik, remplacer a.ENTITY par
    a.COD_AZIENDA aux deux endroits.
@@ -102,7 +105,7 @@ FROM (
                                 SUM(a.COST_COMPLET - a.COST_VARIABLE - a.COST_SIEGE) AS COST_DIR
                         FROM    V_ALLOCATION AS a
                         WHERE   CAST(a.EXERCICE AS INT) = 2026
-                          AND   a.ENTITY IN ($Entity(HIERARCHY("EDU")).lowest)
+                          AND   a.ENTITY IN (${$Entity(HIERARCHY("EDU")).lowest})
                         GROUP BY a.ENTITY
                      ) AS n
                 INNER JOIN (
@@ -115,7 +118,7 @@ FROM (
                                 SUM(a.COST_COMPLET - a.COST_VARIABLE - a.COST_SIEGE) AS COST_DIR
                         FROM    V_ALLOCATION AS a
                         WHERE   CAST(a.EXERCICE AS INT) = 2025
-                          AND   a.ENTITY IN ($Entity(HIERARCHY("EDU")).lowest)
+                          AND   a.ENTITY IN (${$Entity(HIERARCHY("EDU")).lowest})
                         GROUP BY a.ENTITY
                      ) AS p
                        ON  p.ENTITY = n.ENTITY
