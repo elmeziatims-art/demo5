@@ -64,10 +64,11 @@ wb._external_links=[]
 # ---------------------------------------------------------------- la grille
 ws.column_dimensions["A"].width=2.5
 ws.column_dimensions["B"].width=4.5      # le niveau, discret mais visible
-ws.column_dimensions["C"].width=30       # les libelles, 33 caracteres au plus long
+ws.column_dimensions["C"].width=33       # "      Ipac Bachelor Factory Montpellier" fait
+                                         # 39 signes avec son retrait : 30 etait juste
 for c in range(4,16): ws.column_dimensions[gl(c)].width=11.0   # D..O, six cartes de 22
 for c in range(16,59): ws.column_dimensions[gl(c)].hidden=True # P..BF : technique
-for r in range(1,RSTAT+1):
+for r in range(1,RCF+4):
     for c in range(1,16): ws.cell(r,c).fill=fill(CANVAS)
 
 # ---------------------------------------------------------------- bandeau
@@ -136,13 +137,20 @@ ws.cell(37,3,"Entité")
 for c,lab in ENTETES.items(): ws.cell(37,c).value=lab
 FMT={4:'#,##0',5:'"▲ "0.0%;"▼ "0.0%;""',6:'#,##0',7:'"▲ "0.0%;"▼ "0.0%;""',8:'0.0%',
      9:'0.0%',10:'"▲ "0.00;"▼ "0.00;""',11:'#,##0',12:'0.0%',13:'0.0%',14:'#,##0',15:'#,##0'}
-for r in range(R0,RSTAT+1):
+# Police, alignement et formats sont poses en dur jusqu'a RCF : ils
+# n'apparaissent pas sur une cellule vide. Le FOND et les BORDURES, eux,
+# viennent des regles de niveau uniquement -- sinon une navigation sur Tunon,
+# qui ne sert que quatre lignes, laisserait seize lignes blanches bordees en
+# dessous, qui se lisent comme un tableau vide.
+for r in range(R0,RCF+1):
+    # on efface le fond et les bordures heritees du fichier d'origine : c'est
+    # aux regles de niveau de les poser, et a elles seules
+    for c in range(2,16):
+        ws.cell(r,c).border=Border(); ws.cell(r,c).fill=fill(CANVAS)
     ws.cell(r,2).font=F(7.5,False,MUTED); ws.cell(r,2).alignment=Cn
     ws.cell(r,3).font=F(8.5); ws.cell(r,3).alignment=L
     for c in range(4,16):
         x=ws.cell(r,c); x.font=F(8.5); x.alignment=R; x.number_format=FMT[c]
-    for c in range(2,16):
-        ws.cell(r,c).fill=fill(PANEL); ws.cell(r,c).border=Border(bottom=sd(SEP))
 
 # ------------------------------------------- mise en forme conditionnelle
 # L'ORDRE COMPTE. Excel applique la premiere regle qui pose une propriete
@@ -170,8 +178,11 @@ ws.conditional_formatting.add(rg(12), ColorScaleRule(
 #    PERFORMANCE RELATIVE. Les melanger sur la meme colonne brouille les deux.
 #    Part d'EBITDA est une magnitude, marge et remplissage sont des
 #    performances : chacune a l'encodage qui lui revient.
+# Bornee a 100 % et non a 30 % : la colonne melange les trois niveaux, le
+# groupe y vaut 100 %, une marque jusqu'a 45 % et un campus 1 a 16 %. A 30 %
+# tout ce qui depasse une marque saturait et la barre ne disait plus rien.
 ws.conditional_formatting.add(rg(8), DataBarRule(
-    start_type="num", start_value=0, end_type="num", end_value=0.30,
+    start_type="num", start_value=0, end_type="num", end_value=1.0,
     color="FF"+BLUE3, showValue=True))
 
 # 2. les variations : couleur de police seule, donc elles survivent par-dessus
@@ -188,12 +199,25 @@ for c1 in (5,7,10):
 def niveau(plage,formule,**k):
     ws.conditional_formatting.add(plage,Rule(type="expression",formula=[formule],
                                              dxf=DifferentialStyle(**k)))
-niveau("B%d:O%d"%(R0,RCF),"$B%d=2"%R0,font=Font(bold=True,color=INK),fill=PatternFill(bgColor=PARENT))
-niveau("B%d:O%d"%(R0,RCF),"$B%d=3"%R0,font=Font(bold=True,color=INK),fill=PatternFill(bgColor=SOFT))
-niveau("B%d:O%d"%(R0,RCF),"$B%d=4"%R0,font=Font(bold=False,color=INK))
-niveau("B%d:O%d"%(R0,RCF),"$B%d=2"%R0,border=Border(top=Side(style="medium",color=SLATE)))
+niveau("B%d:O%d"%(R0,RCF),"$B%d=2"%R0,font=Font(bold=True,color=INK),
+       fill=PatternFill(bgColor=PARENT),
+       border=Border(top=Side(style="medium",color=SLATE),bottom=sd(SEP)))
+niveau("B%d:O%d"%(R0,RCF),"$B%d=3"%R0,font=Font(bold=True,color=INK),
+       fill=PatternFill(bgColor=SOFT),  border=Border(bottom=sd(SEP)))
+niveau("B%d:O%d"%(R0,RCF),"$B%d=4"%R0,font=Font(bold=False,color=INK),
+       fill=PatternFill(bgColor=PANEL), border=Border(bottom=sd(SEP)))
 niveau("C%d:C%d"%(R0,RCF),"$B%d=3"%R0,numFmt=NumberFormat(numFmtId=171,formatCode='"  "@'))
 niveau("C%d:C%d"%(R0,RCF),"$B%d=4"%R0,numFmt=NumberFormat(numFmtId=172,formatCode='"      "@'))
+
+# 3 bis. LE FORMAT DES MONTANTS S'ADAPTE A L'ORDRE DE GRANDEUR. En M€, un
+#    EBITDA de 81 725 EUR s'affiche 0,1 M€ : toute la precision est perdue, et
+#    c'est ce qui arriverait des qu'on descend sur Ipac, Pigier ou Tunon. Sous
+#    le million, la carte bascule en euros. Excel ne sait pas conditionner un
+#    format dans un format, mais une regle sait poser un format.
+for col in (4,6):
+    ws.conditional_formatting.add("%s9"%gl(col),Rule(type="cellIs",operator="lessThan",
+        formula=["1000000"],dxf=DifferentialStyle(numFmt=NumberFormat(numFmtId=180+col,
+        formatCode='#,##0" €"'))))
 
 # 4. les evolutions du bandeau. La fleche dit le sens, la couleur dit si c'est
 #    une bonne nouvelle : sur le cout d'acquisition les deux sont inverses.
@@ -257,7 +281,7 @@ def noms(ch,libelles):
 ws._charts=[]      # on repart des cadres vides laisses par Excel
 
 # 1 — le pont d'EBITDA
-cadre(12,4,35,7,"Pont d'EBITDA 2025 → 2026","axe tronqué")
+cadre(12,4,35,7,"Pont d'EBITDA 2025 → 2026")
 br=BarChart(); br.type="col"; br.grouping="stacked"; br.overlap=100; br.gapWidth=55
 for j in range(1,5):
     br.add_data(Reference(ws,min_col=P0+j,max_col=P0+j,min_row=7,max_row=11),titles_from_data=False)
@@ -265,9 +289,11 @@ for s,coul in zip(br.series,(None,SLATE,GOOD,CRIT)):
     if coul is None: s.graphicalProperties.noFill=True
     else: s.graphicalProperties.solidFill=coul; s.graphicalProperties.line.noFill=True
 cats(br,P0,7,11); br.legend=None; br.y_axis.numFmt='0.0,," M€"'
-# axe tronque, et c'est assume : de 3,47 a 3,85 M€, un axe partant de zero
-# rendrait les effets illisibles. La troncature est dite dans le cartouche.
-br.y_axis.scaling.min=3000000; br.y_axis.scaling.max=5000000; br.y_axis.majorUnit=500000
+# AXE LIBRE, et c'est un correctif. Il etait fige entre 3 et 5 M€, ce qui
+# convenait au groupe mais laissait le graphe COMPLETEMENT VIDE sur les cinq
+# marques : ISCOM culmine a 1,3 M€, Tunon a 0,2 M€. Un cadrage qui ne marche
+# que sur un noeud sur six n'est pas un cadrage. Excel echelonne donc lui-meme,
+# et l'effet activite reste largement lisible, autour du quart de la hauteur.
 habille(br); ws.add_chart(br,"D13")
 
 # 2 — la marge par marque, ou par campus si l'on est descendu sur une marque
