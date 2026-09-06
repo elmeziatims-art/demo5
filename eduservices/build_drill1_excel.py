@@ -38,13 +38,13 @@ R0=7; R1=R0+len(C)-1
 wb=openpyxl.Workbook(); ws=wb.active; ws.title="Drill EBITDA"
 ws.sheet_view.showGridLines=False
 ws.column_dimensions["A"].width=2.5; ws.column_dimensions["B"].width=20
-for c in range(3,13): ws.column_dimensions[GL(c)].width=12
-ws.column_dimensions["M"].width=3
-for c in range(14,19): ws.column_dimensions[GL(c)].width=13
+for c in range(3,17): ws.column_dimensions[GL(c)].width=11
+ws.column_dimensions["R"].width=3
+for c in range(19,24): ws.column_dimensions[GL(c)].width=13
 for r in range(1,60):
-    for c in range(1,20): ws.cell(r,c).fill=fill(CANVAS)
+    for c in range(1,25): ws.cell(r,c).fill=fill(CANVAS)
 for r in (1,2,3):
-    for c in range(1,20): ws.cell(r,c).fill=fill(NAVY)
+    for c in range(1,25): ws.cell(r,c).fill=fill(NAVY)
 ws.cell(2,2,"POURQUOI L'EBITDA A BOUGÉ").font=F(15,True,"FFFFFF",f=DISPLAY)
 ws.cell(2,2).alignment=ind(0)
 ws.cell(3,2,"drill sur EDUSERVICES · 2026 contre 2025 · la requête ne renvoie que des sommes, "
@@ -60,30 +60,36 @@ def entete(row,c0,titres,titre,note=""):
         c=ws.cell(row,c0+j,lab); c.fill=fill(SLATE); c.font=F(8,True,"FFFFFF",f=DISPLAY)
         c.alignment=Cn if j else ind(1); c.border=Border(*[sd(SLATE)]*4)
 
-entete(6,2,("ENTITY","EFF_P","EFF_N","CA_P","CA_N","CVAR_P","CVAR_N","CDIR_P","CDIR_N","SIEGE_P","SIEGE_N"),
-       "Q_D1_SOCLE — ce que la requête renvoie","valeurs")
-entete(6,14,("Effectifs","Prix et mix","Coût var. unit.","Coûts directs","Siège"),
-       "Les cinq effets, calculés ici","formules")
+COLS=("LIBELLE","EFF_P","EFF_N","D_EFF","CAE_P","CAE_N","CVE_P","CVE_N","MARGE_UNIT_P",
+      "CDIR_P","CDIR_N","SIEGE_P","SIEGE_N","EBITDA_P","EBITDA_N")
+entete(6,2,COLS,"Q_D1_SOCLE — ce que la requête renvoie","valeurs")
+entete(6,19,("Effectifs","Prix et mix","Coût var. unit.","Coûts directs","Siège"),
+       "Les cinq effets, calculés ici","une multiplication chacun")
 for i,c in enumerate(C):
     r=R0+i
-    for col,v in zip(range(2,13),(LIBC[c["ent"]],c["eff"][P],c["eff"][N],c["ca"][P],c["ca"][N],
-                                  c["cvar"][P],c["cvar"][N],c["cdir"][P],c["cdir"][N],
-                                  c["csiege"][P],c["csiege"][N])):
+    ep,en=c["eff"][P],c["eff"][N]
+    vals=(LIBC[c["ent"]],ep,en,en-ep,
+          round(c["ca"][P]/ep,6),round(c["ca"][N]/en,6),
+          round(c["cvar"][P]/ep,6),round(c["cvar"][N]/en,6),
+          round(c["ca"][P]/ep-c["cvar"][P]/ep,6),
+          c["cdir"][P],c["cdir"][N],c["csiege"][P],c["csiege"][N],
+          c["eb"][P],c["eb"][N])
+    for col,v in zip(range(2,17),vals):
         x=ws.cell(r,col,v); x.fill=fill(PANEL); x.border=Border(bottom=sd())
         x.font=F(8.5); x.alignment=ind(1) if col==2 else R
-        if col>3: x.number_format='#,##0'
-    # les cinq effets, une formule par campus : auditables une par une
-    for col,f_ in zip(range(14,19),(
-        '=(D{0}-C{0})*(E{0}/C{0}-G{0}/C{0})'.format(r),
-        '=(F{0}/D{0}-E{0}/C{0})*D{0}'.format(r),
-        '=-(H{0}/D{0}-G{0}/C{0})*D{0}'.format(r),
-        '=-(J{0}-I{0})'.format(r),
-        '=-(L{0}-K{0})'.format(r))):
+        x.number_format='#,##0.00' if col in (6,7,8,9,10) else '#,##0'
+    # les cinq effets : une multiplication chacun, plus aucune division
+    for col,f_ in zip(range(19,24),(
+        '=E{0}*J{0}'.format(r),
+        '=(G{0}-F{0})*D{0}'.format(r),
+        '=-(I{0}-H{0})*D{0}'.format(r),
+        '=-(L{0}-K{0})'.format(r),
+        '=-(N{0}-M{0})'.format(r))):
         x=ws.cell(r,col,f_); x.fill=fill(WARM); x.border=Border(bottom=sd())
         x.font=F(8.5); x.alignment=R; x.number_format='#,##0'
 TOT=R1+1
 ws.cell(TOT,2,"TOTAL").font=F(8.5,True); ws.cell(TOT,2).alignment=ind(1)
-for col in list(range(3,13))+list(range(14,19)):
+for col in [3,4,5]+list(range(11,17))+list(range(19,24)):
     x=ws.cell(TOT,col,"=SUM({0}{1}:{0}{2})".format(GL(col),R0,R1))
     x.font=F(8.5,True); x.alignment=R; x.number_format='#,##0'
     x.fill=fill(SOFT); x.border=Border(top=Side(style="medium",color=SLATE))
@@ -93,11 +99,11 @@ ws.cell(TOT,2).fill=fill(SOFT); ws.cell(TOT,2).border=Border(top=Side(style="med
 D0=TOT+3
 entete(D0,2,("RANG","EFFET","MONTANT","PART_VAR"),"Le tableau du drill","formules")
 entete(D0,7,("ETAPE","SOCLE","ANCRE","HAUSSE","BAISSE"),"La cascade du graphe","formules")
-EBP="=SUM(E{0}:E{1})-SUM(G{0}:G{1})-SUM(I{0}:I{1})-SUM(K{0}:K{1})".format(R0,R1)
-EBN="=SUM(F{0}:F{1})-SUM(H{0}:H{1})-SUM(J{0}:J{1})-SUM(L{0}:L{1})".format(R0,R1)
+EBP="=SUM(O{0}:O{1})".format(R0,R1)     # EBITDA_P vient de la query
+EBN="=SUM(P{0}:P{1})".format(R0,R1)     # EBITDA_N aussi
 LIB=["EBITDA %d"%P,"Effet effectifs","Effet prix et mix","Effet coût var. unitaire",
      "Effet coûts directs","Effet siège","EBITDA %d"%N]
-COLEF={2:"N",3:"O",4:"P",5:"Q",6:"R"}          # l'effet de chaque rang
+COLEF={2:"S",3:"T",4:"U",5:"V",6:"W"}          # l'effet de chaque rang
 for i,lab in enumerate(LIB,1):
     r=D0+i
     for c in list(range(2,6))+list(range(7,12)):
@@ -147,8 +153,8 @@ br.x_axis.majorTickMark="none"; br.y_axis.majorTickMark="none"
 ws.add_chart(br,"C%d"%(CTRL+2))
 wb.save(OUT)
 print("%s ecrit"%OUT)
-print("  Q_D1_SOCLE      B%d:L%d   %d campus, valeurs"%(R0,R1,len(C)))
-print("  effets/campus   N%d:R%d   formules"%(R0,R1))
+print("  Q_D1_SOCLE      B%d:P%d   %d campus, valeurs"%(R0,R1,len(C)))
+print("  effets/campus   S%d:W%d   formules"%(R0,R1))
 print("  tableau drill   B%d:E%d   formules"%(D0+1,D0+7))
 print("  cascade         G%d:K%d   formules"%(D0+1,D0+7))
 print("  controle        D%d"%CTRL)

@@ -1,50 +1,51 @@
 /* =============================================================================
-   Q_D1_SOCLE  —  DRILL-THROUGH sur une cellule d'EBITDA, version "socle".
-   La requete ne renvoie que de la MATIERE ADDITIVE. Excel fait le reste.
+   Q_D1_SOCLE  —  DRILL-THROUGH sur une cellule d'EBITDA.
+   La requete envoie TOUS LES ELEMENTS DU CALCUL. Le classeur n'a plus qu'a
+   multiplier et additionner : pas une seule division a faire cote Excel.
 
-   Une ligne par CAMPUS du perimetre cliquee, onze colonnes, toutes sommables :
-
-     ENTITY     le campus
-     EFF_P   EFF_N      effectifs, annee precedente et annee courante
-     CA_P    CA_N       chiffre d'affaires
-     CVAR_P  CVAR_N     cout variable
-     CDIR_P  CDIR_N     couts directs, permanents et structure du campus
-     SIEGE_P SIEGE_N    siege redescendu
-
-   Aucun ratio, aucun test de signe, aucune division : rien qui puisse se
-   fausser en s'agregeant. Tout le calcul d'effets se fait dans le classeur.
+   Une ligne par CAMPUS du perimetre cliquee.
 
    =============================================================================
-   POURQUOI UNE LIGNE PAR CAMPUS, ET PAS UN SEUL TOTAL
+   LES VINGT-TROIS COLONNES, ET LEUR NATURE
 
-   On pourrait ne renvoyer qu'une ligne agregee et calculer les effets dessus.
-   Le total retomberait juste, mais la REPARTITION entre effets changerait : le
-   CA par eleve du groupe melange des campus a 7 123 EUR et d'autres a plus de
-   8 000, si bien qu'un simple deplacement d'eleves entre campus, sans aucune
-   hausse tarifaire, se lirait comme un effet prix.
+   IDENTITE          ENTITY  LIBELLE  MARQUE  EXERCICE_P  EXERCICE_N
 
-   Sur le groupe 2025 -> 2026 l'ecart est de 1 515 EUR sur l'effet effectifs et
-   1 946 EUR sur l'effet prix. Peu de chose, mais c'est de la mecanique, pas du
-   metier. En gardant le grain campus, chaque eleve est valorise a la marge de
-   SON campus.
+   VOLUMES           EFF_P  EFF_N  D_EFF                        additifs
+   MONTANTS          CA_P CA_N  CVAR_P CVAR_N                   additifs
+                     CDIR_P CDIR_N  SIEGE_P SIEGE_N             additifs
+   RESULTATS         EBITDA_P  EBITDA_N  D_EBITDA               additifs
 
-   Sur une cellule de campus, les deux methodes donnent evidemment le meme
-   resultat : il n'y a qu'une ligne.
+   UNITAIRES         CAE_P CAE_N      CA par eleve         PAR LIGNE SEULEMENT
+                     CVE_P CVE_N      cout variable/eleve  PAR LIGNE SEULEMENT
+                     MARGE_UNIT_P     CAE_P - CVE_P        PAR LIGNE SEULEMENT
+
+   ATTENTION AUX CINQ DERNIERES. Ce sont des ratios : elles valent pour la
+   ligne ou elles se trouvent et NE S'ADDITIONNENT PAS. Ne jamais les sommer,
+   ne jamais les moyenner. Le classeur les utilise ligne a ligne, ce qui est
+   leur seul emploi correct.
 
    =============================================================================
-   CE QUE LE CLASSEUR CALCULE ENSUITE, ligne a ligne puis somme
+   CE QUE LE CLASSEUR EN FAIT, une multiplication par effet
 
-     effet effectifs   = (EFF_N - EFF_P) x (CA_P/EFF_P - CVAR_P/EFF_P)
-     effet prix et mix = (CA_N/EFF_N - CA_P/EFF_P) x EFF_N
-     effet cout var.   = -(CVAR_N/EFF_N - CVAR_P/EFF_P) x EFF_N
+     effet effectifs   =  D_EFF * MARGE_UNIT_P
+     effet prix et mix = (CAE_N - CAE_P) * EFF_N
+     effet cout var.   = -(CVE_N - CVE_P) * EFF_N
      effet couts dir.  = -(CDIR_N - CDIR_P)
      effet siege       = -(SIEGE_N - SIEGE_P)
 
-     EBITDA_P = CA_P - CVAR_P - CDIR_P - SIEGE_P
-     EBITDA_N = CA_N - CVAR_N - CDIR_N - SIEGE_N
+   Sommes ligne a ligne puis totalises, les cinq effets redonnent D_EBITDA
+   exactement. MARGE_UNIT_P est la marge sur cout variable par eleve de l'annee
+   precedente : c'est a ce prix-la qu'un eleve de plus se valorise, pas au CA.
 
-   Les cinq effets sommes redonnent EBITDA_N - EBITDA_P exactement, campus par
-   campus comme au total.
+   =============================================================================
+   POURQUOI UNE LIGNE PAR CAMPUS
+
+   Sur un noeud, agreger AVANT de calculer melangerait des campus a 7 123 EUR
+   de CA par eleve et d'autres au-dela de 8 000 : un simple deplacement
+   d'eleves entre campus, sans aucune hausse tarifaire, se lirait comme un
+   effet prix. En gardant le grain campus, chaque eleve est valorise a la marge
+   de SON campus. Sur une cellule de campus la question ne se pose pas, il n'y
+   a qu'une ligne.
 
    Contexte herite de la cellule cliquee. L'annee precedente n'est pas filtree
    par parametre : la jointure la trouve sur EXERCICE - 1.
@@ -53,13 +54,43 @@
    ============================================================================= */
 SELECT
     n.ENTITY,
-    p.EFFECTIFS  AS EFF_P,   n.EFFECTIFS  AS EFF_N,
-    p.CA         AS CA_P,    n.CA         AS CA_N,
-    p.COST_VAR   AS CVAR_P,  n.COST_VAR   AS CVAR_N,
-    p.COST_DIR   AS CDIR_P,  n.COST_DIR   AS CDIR_N,
-    p.COST_SIEGE AS SIEGE_P, n.COST_SIEGE AS SIEGE_N
+    COALESCE(az.DESC_AZIENDA0, n.ENTITY)                    AS LIBELLE,
+    n.MARQUE,
+    p.EXERCICE                                              AS EXERCICE_P,
+    n.EXERCICE                                              AS EXERCICE_N,
+
+    p.EFFECTIFS                                             AS EFF_P,
+    n.EFFECTIFS                                             AS EFF_N,
+    n.EFFECTIFS - p.EFFECTIFS                               AS D_EFF,
+
+    p.CA                                                    AS CA_P,
+    n.CA                                                    AS CA_N,
+    p.COST_VAR                                              AS CVAR_P,
+    n.COST_VAR                                              AS CVAR_N,
+    p.COST_DIR                                              AS CDIR_P,
+    n.COST_DIR                                              AS CDIR_N,
+    p.COST_SIEGE                                            AS SIEGE_P,
+    n.COST_SIEGE                                            AS SIEGE_N,
+
+    p.CA - p.COST_VAR - p.COST_DIR - p.COST_SIEGE           AS EBITDA_P,
+    n.CA - n.COST_VAR - n.COST_DIR - n.COST_SIEGE           AS EBITDA_N,
+    (n.CA - n.COST_VAR - n.COST_DIR - n.COST_SIEGE)
+      - (p.CA - p.COST_VAR - p.COST_DIR - p.COST_SIEGE)     AS D_EBITDA,
+
+    /* Les cinq unitaires : valables LIGNE A LIGNE, jamais sommables.
+       SIX decimales et non deux. Elles sont multipliees par des effectifs, si
+       bien qu'un arrondi au centime se propage : a deux decimales, le controle
+       du pont ne tombe plus a zero mais a 3,91 EUR. A six, il tombe a un
+       millieme d'euro. On affiche deux decimales dans le classeur, on en
+       transporte six. */
+    CAST(1.0 * p.CA / NULLIF(p.EFFECTIFS, 0) AS DECIMAL(18, 6))             AS CAE_P,
+    CAST(1.0 * n.CA / NULLIF(n.EFFECTIFS, 0) AS DECIMAL(18, 6))             AS CAE_N,
+    CAST(1.0 * p.COST_VAR / NULLIF(p.EFFECTIFS, 0) AS DECIMAL(18, 6))       AS CVE_P,
+    CAST(1.0 * n.COST_VAR / NULLIF(n.EFFECTIFS, 0) AS DECIMAL(18, 6))       AS CVE_N,
+    CAST(1.0 * p.CA / NULLIF(p.EFFECTIFS, 0)
+       - 1.0 * p.COST_VAR / NULLIF(p.EFFECTIFS, 0) AS DECIMAL(18, 6))       AS MARGE_UNIT_P
 FROM (
-        SELECT  a.ENTITY, a.EXERCICE,
+        SELECT  a.ENTITY, a.MARQUE, a.EXERCICE,
                 SUM(a.CA)                          AS CA,
                 SUM(a.VOL_EFF)                     AS EFFECTIFS,
                 SUM(a.COST_VARIABLE)               AS COST_VAR,
@@ -68,7 +99,7 @@ FROM (
         FROM    V_ALLOCATION AS a
         WHERE   a.ENTITY   IN (${$Entity(HIERARCHY("EDU")).lowest})
           AND   a.EXERCICE IN (${$ANL_EXERCICE.code})
-        GROUP BY a.ENTITY, a.EXERCICE
+        GROUP BY a.ENTITY, a.MARQUE, a.EXERCICE
      ) AS n
 INNER JOIN (
         SELECT  a.ENTITY, a.EXERCICE,
@@ -83,3 +114,5 @@ INNER JOIN (
      ) AS p
        ON  p.ENTITY = n.ENTITY
       AND  CAST(p.EXERCICE AS INT) = CAST(n.EXERCICE AS INT) - 1
+LEFT JOIN azienda AS az
+       ON az.COD_AZIENDA = n.ENTITY
