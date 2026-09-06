@@ -19,6 +19,14 @@
    L'annee de base est posee en dur a 2024, dans le bloc b. Pour la deplacer,
    changer la constante a cet endroit uniquement.
 
+   ATTENTION, DEFAUT CORRIGE LE 06/09/2026. Sans borne haute sur l'exercice, la
+   requete ramenait une ligne 2027 : V_ALLOCATION produit des lignes de budget
+   sur cet exercice, mais AW_002_000002_000001 n'a aucune depense d'acquisition
+   en face. On lisait donc 4 043 inscrits pour 0 EUR de depense, soit un indice
+   inscrits a 370 et un ecart a -370 points, qui ecrasait le graphe. La borne
+   BETWEEN 2024 AND 2026 limite la requete aux exercices reellement documentes
+   des deux cotes. A elargir le jour ou 2027 sera charge dans le socle CRM.
+
    Le perimetre passe par le parametre Tagetik, et il est ecrit QUATRE fois :
    deux fois pour les exercices courants, deux fois pour l'annee de base. Les
    quatre doivent porter la meme selection.
@@ -57,6 +65,7 @@ FROM (
                 SELECT  a.EXERCICE, a.ENTITY, SUM(a.VOL_NEW) AS INSCRITS
                 FROM    V_ALLOCATION AS a
                 WHERE   a.ENTITY IN (${$Entity(HIERARCHY("EDU")).lowest})
+                  AND   CAST(a.EXERCICE AS INT) BETWEEN 2024 AND 2026
                 GROUP BY a.EXERCICE, a.ENTITY
              ) AS v
         LEFT JOIN (
