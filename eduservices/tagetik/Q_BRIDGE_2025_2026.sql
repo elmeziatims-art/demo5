@@ -12,6 +12,11 @@
    Empilement du graphe : SOCLE en bas et invisible, puis ANCRE, HAUSSE et
    BAISSE en trois series. RANG donne l'ordre des barres.
 
+   Les quatre montants sont arrondis a l'euro, sinon ils sortent avec toutes
+   leurs decimales (3467793,289) et le graphe comme le tableau deviennent
+   illisibles. Les libelles sont sans accent : le prefixe N n'est pas conserve
+   par le canal du loader, qui rendait "Activit?" et "Co?ts".
+
    Le perimetre est passe par le parametre Tagetik, sur les DEUX annees :
    les deux filtres doivent porter la meme selection, sinon le bridge compare
    deux perimetres differents et ne boucle plus.
@@ -46,35 +51,43 @@ SELECT
     e.RANG,
     e.ETAPE,
 
-    CASE e.RANG
-        WHEN 2 THEN CASE WHEN g.E_VOL  < 0 THEN g.EBITDA_P + g.E_VOL
-                         ELSE g.EBITDA_P END
-        WHEN 3 THEN CASE WHEN g.E_PRIX < 0 THEN g.EBITDA_P + g.E_VOL + g.E_PRIX
-                         ELSE g.EBITDA_P + g.E_VOL END
-        WHEN 4 THEN CASE WHEN g.E_COUT < 0 THEN g.EBITDA_N
-                         ELSE g.EBITDA_P + g.E_VOL + g.E_PRIX END
-        ELSE        0
-    END                                                     AS SOCLE,
+    CAST(ROUND(
+        CASE e.RANG
+            WHEN 2 THEN CASE WHEN g.E_VOL  < 0 THEN g.EBITDA_P + g.E_VOL
+                             ELSE g.EBITDA_P END
+            WHEN 3 THEN CASE WHEN g.E_PRIX < 0 THEN g.EBITDA_P + g.E_VOL + g.E_PRIX
+                             ELSE g.EBITDA_P + g.E_VOL END
+            WHEN 4 THEN CASE WHEN g.E_COUT < 0 THEN g.EBITDA_N
+                             ELSE g.EBITDA_P + g.E_VOL + g.E_PRIX END
+            ELSE        0
+        END
+    , 0) AS DECIMAL(18, 0))                                                     AS SOCLE,
 
-    CASE e.RANG
-        WHEN 1 THEN g.EBITDA_P
-        WHEN 5 THEN g.EBITDA_N
-        ELSE        0
-    END                                                     AS ANCRE,
+    CAST(ROUND(
+        CASE e.RANG
+            WHEN 1 THEN g.EBITDA_P
+            WHEN 5 THEN g.EBITDA_N
+            ELSE        0
+        END
+    , 0) AS DECIMAL(18, 0))                                                     AS ANCRE,
 
-    CASE e.RANG
-        WHEN 2 THEN CASE WHEN g.E_VOL  > 0 THEN g.E_VOL  ELSE 0 END
-        WHEN 3 THEN CASE WHEN g.E_PRIX > 0 THEN g.E_PRIX ELSE 0 END
-        WHEN 4 THEN CASE WHEN g.E_COUT > 0 THEN g.E_COUT ELSE 0 END
-        ELSE        0
-    END                                                     AS HAUSSE,
+    CAST(ROUND(
+        CASE e.RANG
+            WHEN 2 THEN CASE WHEN g.E_VOL  > 0 THEN g.E_VOL  ELSE 0 END
+            WHEN 3 THEN CASE WHEN g.E_PRIX > 0 THEN g.E_PRIX ELSE 0 END
+            WHEN 4 THEN CASE WHEN g.E_COUT > 0 THEN g.E_COUT ELSE 0 END
+            ELSE        0
+        END
+    , 0) AS DECIMAL(18, 0))                                                     AS HAUSSE,
 
-    CASE e.RANG
-        WHEN 2 THEN CASE WHEN g.E_VOL  < 0 THEN -1 * g.E_VOL  ELSE 0 END
-        WHEN 3 THEN CASE WHEN g.E_PRIX < 0 THEN -1 * g.E_PRIX ELSE 0 END
-        WHEN 4 THEN CASE WHEN g.E_COUT < 0 THEN -1 * g.E_COUT ELSE 0 END
-        ELSE        0
-    END                                                     AS BAISSE
+    CAST(ROUND(
+        CASE e.RANG
+            WHEN 2 THEN CASE WHEN g.E_VOL  < 0 THEN -1 * g.E_VOL  ELSE 0 END
+            WHEN 3 THEN CASE WHEN g.E_PRIX < 0 THEN -1 * g.E_PRIX ELSE 0 END
+            WHEN 4 THEN CASE WHEN g.E_COUT < 0 THEN -1 * g.E_COUT ELSE 0 END
+            ELSE        0
+        END
+    , 0) AS DECIMAL(18, 0))                                                     AS BAISSE
 FROM (
         SELECT
             SUM(x.EBITDA_P)                                 AS EBITDA_P,
@@ -125,9 +138,9 @@ FROM (
              ) AS x
      ) AS g
 CROSS JOIN (
-        VALUES (1, N'EBITDA 2025'),
-               (2, N'Activité'),
-               (3, N'Prix / mix'),
-               (4, N'Coûts'),
-               (5, N'EBITDA 2026')
+        VALUES (1, 'EBITDA 2025'),
+               (2, 'Activite'),
+               (3, 'Prix / mix'),
+               (4, 'Couts'),
+               (5, 'EBITDA 2026')
      ) AS e(RANG, ETAPE)
