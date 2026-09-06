@@ -25,8 +25,7 @@ from openpyxl.styles.numbers import NumberFormat
 from openpyxl.formatting.rule import Rule, CellIsRule, DataBarRule
 from openpyxl.chart import BarChart, LineChart, Reference, Series
 from openpyxl.chart.marker import Marker
-from openpyxl.chart.data_source import AxDataSource, StrRef, NumDataSource, NumRef
-from openpyxl.workbook.defined_name import DefinedName
+from openpyxl.chart.data_source import AxDataSource, StrRef
 from openpyxl.chart.series import SeriesLabel
 from openpyxl.utils import get_column_letter as gl
 
@@ -182,18 +181,25 @@ def cadre(r1,c1,r2,c2,titre):
                             left=sd(SEP) if c==c1 else None,right=sd(SEP) if c==c2 else None)
     t=ws.cell(r1,c1,"  "+titre); t.font=F(9,True,INK,f=DISPLAY); t.alignment=ind(0)
 
-# ------------------------------------------------- plages dynamiques
-# Les blocs techniques n'ont pas un nombre de lignes fixe. Le pont en a
-# toujours cinq et la tension trois, mais le bloc de marge suit le noeud
-# choisi : cinq marques a la racine, quatre campus sur MBway, deux sur Tunon.
-# Un graphe cable en dur sur cinq lignes tracerait donc des barres vides, et
-# tronquerait un noeud a plus de cinq enfants.
-# On passe par des noms definis en OFFSET + COUNTA : la serie se dimensionne
-# sur le nombre de lignes reellement remplies, quel que soit le filtre.
-def nom(cle,col,col_compte,r0=7,rmax=80):
-    f="OFFSET('2'!$%s$%d,0,0,MAX(1,COUNTA('2'!$%s$%d:$%s$%d)),1)"%(col,r0,col_compte,r0,col_compte,rmax)
-    wb.defined_names[cle]=DefinedName(cle,attr_text=f)
-    return "'%s'!%s"%(OUT,cle)
+# ------------------------------------------------- dimensionnement des series
+# Les blocs techniques n'ont pas un nombre de lignes fixe : le bloc de marge
+# suit le noeud choisi, cinq marques a la racine mais quatre campus sur MBway
+# et deux sur Tunon. Une reference cablee sur cinq lignes tracerait des barres
+# vides, et tronquerait un noeud a plus de cinq enfants.
+#
+# Premiere tentative : des noms definis en OFFSET + COUNTA, qui se
+# redimensionnent a l'ouverture. Excel n'en a pas voulu dans les references de
+# serie. On dimensionne donc a la CONSTRUCTION, en comptant les lignes
+# remplies, et le script se relance apres chaque rafraichi Tagetik -- ce qu'il
+# faut faire de toute facon pour remettre la mise en page.
+def compte(col,r0=7,rmax=80):
+    n=0
+    for r in range(r0,rmax+1):
+        if ws.cell(r,col).value in (None,""): break
+        n+=1
+    return max(n,1)
+def plage(col,n,r0=7):
+    return "'2'!$%s$%d:$%s$%d"%(gl(col),r0,gl(col),r0+n-1)
 
 def categories_texte(ch,plage):
     """Les libelles d'axe sont du TEXTE. openpyxl les declare en numRef, et
@@ -211,20 +217,22 @@ def habille(ch,h=8.2,w=8.0):
     ch.x_axis.majorTickMark="none"; ch.y_axis.majorTickMark="none"
     return ch
 
+N_PONT=compte(29); N_MARGE=compte(37); N_TENSION=compte(52)
+# la tension s'arrete aux exercices reellement documentes des deux cotes
+while N_TENSION>1 and not ws.cell(6+N_TENSION,55).value: N_TENSION-=1
+
 # 1 — le pont d'EBITDA. Empilement SOCLE invisible + ANCRE + HAUSSE + BAISSE.
 cadre(12,5,30,8,"Pont d'EBITDA 2025 → 2026")
 ws.cell(12,7,"axe tronqué à 3,0 M€  ").font=F(7.5,False,MUTED,i=True); ws.cell(12,7).alignment=R
 br=BarChart(); br.type="col"; br.grouping="stacked"; br.overlap=100; br.gapWidth=55
 for col,coul in ((30,None),(31,SLATE),(32,GOOD),(33,CRIT)):
-    br.add_data(Reference(ws,min_col=col,max_col=col,min_row=7,max_row=11),titles_from_data=False)
+    br.add_data(Reference(ws,min_col=col,max_col=col,min_row=7,max_row=6+N_PONT),titles_from_data=False)
 br.set_categories(Reference(ws,min_col=29,max_col=29,min_row=7,max_row=11))
 for s,coul in zip(br.series,(None,SLATE,GOOD,CRIT)):
     if coul is None: s.graphicalProperties.noFill=True
     else:
         s.graphicalProperties.solidFill=coul; s.graphicalProperties.line.noFill=True
-for s_,col in zip(br.series,("AD","AE","AF","AG")):
-    s_.val=NumDataSource(NumRef(f=nom("pont_"+col,col,"AC")))
-categories_texte(br,nom("pont_cat","AC","AC"))
+categories_texte(br,plage(29,N_PONT))
 br.legend=None; br.y_axis.numFmt='0.0,," M€"'
 # axe tronque, et c'est assume : un pont de 3,47 a 3,85 M€ sur un axe partant
 # de zero rendrait les effets invisibles. La troncature est dite dans le titre.
@@ -236,13 +244,11 @@ habille(br); ws.add_chart(br,"E13")
 cadre(12,9,30,12,"Marge EBITDA par marque")
 mg=BarChart(); mg.type="col"; mg.grouping="clustered"; mg.gapWidth=60; mg.overlap=-10
 for col in (40,43,46):
-    mg.add_data(Reference(ws,min_col=col,max_col=col,min_row=6,max_row=11),titles_from_data=True)
+    mg.add_data(Reference(ws,min_col=col,max_col=col,min_row=6,max_row=6+N_MARGE),titles_from_data=True)
 mg.set_categories(Reference(ws,min_col=37,max_col=37,min_row=7,max_row=11))
 for s,coul in zip(mg.series,(BLUE3,BLUE2,BLUE)):
     s.graphicalProperties.solidFill=coul; s.graphicalProperties.line.noFill=True
-for s_,col in zip(mg.series,("AN","AQ","AT")):
-    s_.val=NumDataSource(NumRef(f=nom("marge_"+col,col,"AK")))
-categories_texte(mg,nom("marge_cat","AK","AK")); noms_series(mg,("2024","2025","2026"))
+categories_texte(mg,plage(37,N_MARGE)); noms_series(mg,("2024","2025","2026"))
 mg.legend.position="b"; mg.y_axis.numFmt='0%'
 habille(mg); ws.add_chart(mg,"I13")
 
@@ -252,15 +258,13 @@ habille(mg); ws.add_chart(mg,"I13")
 cadre(12,13,30,16,"Acquisition — dépenses contre inscrits, base 100")
 tn=LineChart()
 for col in (55,56):
-    tn.add_data(Reference(ws,min_col=col,max_col=col,min_row=6,max_row=9),titles_from_data=True)
+    tn.add_data(Reference(ws,min_col=col,max_col=col,min_row=6,max_row=6+N_TENSION),titles_from_data=True)
 tn.set_categories(Reference(ws,min_col=52,max_col=52,min_row=7,max_row=9))
 for s,coul in zip(tn.series,(ORANGE,BLUE)):
     s.graphicalProperties.line.solidFill=coul; s.graphicalProperties.line.width=25000
     s.marker=Marker(symbol="circle",size=6); s.smooth=False
     s.marker.graphicalProperties.solidFill=coul; s.marker.graphicalProperties.line.solidFill=coul
-for s_,col in zip(tn.series,("BC","BD")):
-    s_.val=NumDataSource(NumRef(f=nom("tension_"+col,col,"AZ")))
-categories_texte(tn,nom("tension_cat","AZ","AZ")); noms_series(tn,("Dépenses","Inscrits"))
+categories_texte(tn,plage(52,N_TENSION)); noms_series(tn,("Dépenses","Inscrits"))
 tn.legend.position="b"; tn.y_axis.numFmt='0'
 tn.y_axis.scaling.min=95; tn.y_axis.scaling.max=125; tn.y_axis.majorUnit=10
 habille(tn); ws.add_chart(tn,"M13")
@@ -271,4 +275,5 @@ p=ws.cell(FIN+2,3,"Source : V_ALLOCATION et AW_002_000002_000001, scénario et v
 p.font=F(7.5,False,MUTED,i=True); p.alignment=ind(0)
 ws.sheet_view.zoomScale=100
 wb.save(OUT)
+print("  series dimensionnees : pont %d, marge %d, tension %d"%(N_PONT,N_MARGE,N_TENSION))
 print("%s ecrit — %d graphes, mise en forme dynamique jusqu'a la ligne %d"%(OUT,len(ws._charts),FIN))
