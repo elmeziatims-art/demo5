@@ -3,8 +3,8 @@
    Le tableau du graphe "Marge EBITDA par marque", avec un AXE QUI S'ADAPTE
    AU NOEUD CHOISI.
 
-     noeud selectionne = ALL   ->  une ligne par MARQUE   (5 barres)
-     noeud selectionne = autre ->  une ligne par CAMPUS   (les feuilles du noeud)
+     le perimetre couvre PLUSIEURS marques  ->  une ligne par MARQUE
+     le perimetre couvre UNE SEULE marque    ->  une ligne par CAMPUS
 
    On choisit ALL, le graphe compare les cinq enseignes. On descend sur MBWAY,
    le meme graphe compare les quatre campus MBway. Un seul objet de report,
@@ -30,21 +30,29 @@
    ligne sans ambiguite.
 
    =============================================================================
-   LES DEUX PARAMETRES
+   COMMENT L'AXE SE CHOISIT
 
-   1. LE PERIMETRE, comme d'habitude, sur les feuilles :
+   Une premiere version testait le code du noeud, avec 'ALL' IN (...code).
+   Elle ne marche pas : la substitution ne renvoie pas seulement le noeud
+   selectionne, donc le test etait toujours vrai et l'axe restait bloque sur la
+   marque. On ne devine plus la semantique du parametre : le niveau se DEDUIT
+   DE LA DONNEE.
+
+       le perimetre contient plus d'une marque  ->  axe MARQUE
+       il n'en contient qu'une                  ->  axe CAMPUS
+
+   C'est exactement le comportement voulu, et il ne depend d'aucun code en dur :
+
+       ALL              5 marques  ->  cinq barres, une par enseigne
+       MBWAY            1 marque   ->  quatre barres, les campus MBway
+       un seul campus   1 marque   ->  une barre
+       deux enseignes   2 marques  ->  deux barres
+
+   Un seul parametre en tout, le perimetre, ecrit deux fois : une fois pour
+   compter les marques, une fois pour agreger. Les deux doivent porter la meme
+   selection.
 
           AND a.ENTITY IN (${$Entity(HIERARCHY("EDU")).lowest})
-
-   2. LE CODE DU NOEUD, qui sert uniquement de bascule d'axe. Il n'est ecrit
-      qu'UNE fois, dans le CROSS JOIN, et il en sort un simple 0 ou 1 :
-
-          CASE WHEN 'ALL' IN (${$Entity(HIERARCHY("EDU")).code}) THEN 1 ELSE 0 END
-
-      La constante 'ALL' est le seul endroit a changer si la racine de la
-      hierarchie EDU porte un autre code chez vous (EDU, GRP...). Le IN
-      fonctionne aussi bien si le parametre renvoie une valeur unique qu'une
-      liste, donc rien a adapter selon le mode de selection.
 
    =============================================================================
    LECTURE DES COLONNES
@@ -82,8 +90,8 @@ SELECT
          AS DECIMAL(9, 2))                                  AS ECART_PT
 FROM (
         SELECT
-            CASE WHEN f.RACINE = 1 THEN 'MARQUE' ELSE 'CAMPUS' END             AS NIVEAU,
-            CASE WHEN f.RACINE = 1 THEN a.MARQUE ELSE a.ENTITY END             AS CODE,
+            CASE WHEN f.PLUSIEURS = 1 THEN 'MARQUE' ELSE 'CAMPUS' END             AS NIVEAU,
+            CASE WHEN f.PLUSIEURS = 1 THEN a.MARQUE ELSE a.ENTITY END             AS CODE,
             SUM(CASE WHEN CAST(a.EXERCICE AS INT) = 2024 THEN a.CA ELSE 0 END) AS CA_2024,
             SUM(CASE WHEN CAST(a.EXERCICE AS INT) = 2025 THEN a.CA ELSE 0 END) AS CA_2025,
             SUM(CASE WHEN CAST(a.EXERCICE AS INT) = 2026 THEN a.CA ELSE 0 END) AS CA_2026,
@@ -95,12 +103,13 @@ FROM (
                      THEN a.CA - a.COST_COMPLET ELSE 0 END)                    AS EBITDA_2026
         FROM    V_ALLOCATION AS a
         CROSS JOIN (
-                SELECT CASE WHEN 'ALL' IN (${$Entity(HIERARCHY("EDU")).code})
-                            THEN 1 ELSE 0 END                                  AS RACINE
+                SELECT CASE WHEN COUNT(DISTINCT z.MARQUE) > 1 THEN 1 ELSE 0 END AS PLUSIEURS
+                FROM   V_ALLOCATION AS z
+                WHERE  z.ENTITY IN (${$Entity(HIERARCHY("EDU")).lowest})
              ) AS f
         WHERE   a.ENTITY IN (${$Entity(HIERARCHY("EDU")).lowest})
-        GROUP BY f.RACINE,
-                 CASE WHEN f.RACINE = 1 THEN a.MARQUE ELSE a.ENTITY END
+        GROUP BY f.PLUSIEURS,
+                 CASE WHEN f.PLUSIEURS = 1 THEN a.MARQUE ELSE a.ENTITY END
      ) AS g
 LEFT JOIN azienda AS az
        ON az.COD_AZIENDA = g.CODE
