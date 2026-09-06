@@ -14,6 +14,22 @@
    le titre du graphe ("par marque" ou "par campus") sans deuxieme requete.
 
    =============================================================================
+   LES LIBELLES
+
+   L'axe du graphe affiche la DESCRIPTION, pas le code : "MBway Paris" et non
+   MBWAY_PAR. Elle vient de la table azienda, comme dans le drill, par la meme
+   jointure  az.COD_AZIENDA = le code retenu. Comme le regroupement est fait
+   AVANT, une seule jointure sert les deux niveaux : elle attrape le campus
+   quand on est descendu, le noeud de marque quand on est sur ALL.
+
+   Si les noeuds de marque ne portent pas ces codes dans azienda, un petit
+   mapping VALUES prend le relais, et en dernier recours c'est le code brut qui
+   s'affiche. L'axe n'est donc jamais vide, quoi qu'il arrive.
+
+   CODE reste disponible a cote de LIBELLE, pour trier ou pour retrouver une
+   ligne sans ambiguite.
+
+   =============================================================================
    LES DEUX PARAMETRES
 
    1. LE PERIMETRE, comme d'habitude, sur les feuilles :
@@ -46,7 +62,8 @@
    ============================================================================= */
 SELECT
     g.NIVEAU,
-    g.LIBELLE,
+    g.CODE,
+    COALESCE(az.DESC_AZIENDA0, m.LIB, g.CODE)               AS LIBELLE,
 
     CAST(ROUND(g.CA_2024,     0) AS DECIMAL(18, 0))         AS CA_2024,
     CAST(ROUND(g.EBITDA_2024, 0) AS DECIMAL(18, 0))         AS EBITDA_2024,
@@ -66,7 +83,7 @@ SELECT
 FROM (
         SELECT
             CASE WHEN f.RACINE = 1 THEN 'MARQUE' ELSE 'CAMPUS' END             AS NIVEAU,
-            CASE WHEN f.RACINE = 1 THEN a.MARQUE ELSE a.ENTITY END             AS LIBELLE,
+            CASE WHEN f.RACINE = 1 THEN a.MARQUE ELSE a.ENTITY END             AS CODE,
             SUM(CASE WHEN CAST(a.EXERCICE AS INT) = 2024 THEN a.CA ELSE 0 END) AS CA_2024,
             SUM(CASE WHEN CAST(a.EXERCICE AS INT) = 2025 THEN a.CA ELSE 0 END) AS CA_2025,
             SUM(CASE WHEN CAST(a.EXERCICE AS INT) = 2026 THEN a.CA ELSE 0 END) AS CA_2026,
@@ -85,3 +102,13 @@ FROM (
         GROUP BY f.RACINE,
                  CASE WHEN f.RACINE = 1 THEN a.MARQUE ELSE a.ENTITY END
      ) AS g
+LEFT JOIN azienda AS az
+       ON az.COD_AZIENDA = g.CODE
+LEFT JOIN (
+        VALUES ('MBWAY',  'MBway'),
+               ('ISCOM',  'ISCOM'),
+               ('IPAC',   'Ipac Bachelor Factory'),
+               ('PIGIER', 'Pigier'),
+               ('TUNON',  'Tunon')
+     ) AS m(COD, LIB)
+       ON m.COD = g.CODE
