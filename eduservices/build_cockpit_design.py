@@ -12,6 +12,8 @@ Trois choses demandees :
   2. une heatmap reellement lisible sur le tableau de portefeuille
   3. des graphes dont les sources tiennent au lancement
 
+Le retrait du libelle par niveau a ete retire : il est gere dans Tagetik.
+
 CARTOGRAPHIE (celle du design, decalee d'une colonne par rapport a la mienne)
   B  niveau hierarchique   C  libelle
   D  CA        E  D CA     F  EBITDA   G  D EBITDA  H  Part EBITDA
@@ -126,7 +128,7 @@ ENTETES={4:"CA",5:"Δ CA",6:"EBITDA",7:"Δ EBITDA",8:"Part EBITDA",9:"Marge EBIT
          10:"Δ Marge (pt)",11:"Inscrits",12:"Remplissage",13:"Mix alternance",
          14:"Effectifs",15:"Places"}
 s=ws.cell(36,3,"PORTEFEUILLE — MARQUE ET CAMPUS"); s.font=F(10,True,INK,f=DISPLAY); s.alignment=ind(0)
-h=ws.cell(36,6,"le retrait du libellé donne le niveau · fond coloré = performance relative")
+h=ws.cell(36,6,"graisse et fond donnent le niveau · échelle de couleur = performance relative")
 h.font=F(7.5,False,MUTED,i=True); h.alignment=L
 for c in range(2,16):
     x=ws.cell(37,c); x.fill=fill(SLATE); x.font=F(8,True,"FFFFFF",f=DISPLAY)
@@ -193,9 +195,8 @@ for c1 in (5,7,10):
     ws.conditional_formatting.add(rg(c1),CellIsRule(operator="lessThan",formula=["0"],
         font=Font(name=UI,size=8.5,color=CRIT)))
 
-# 3. les trois niveaux de hierarchie, pilotes par la colonne B. Le retrait du
-#    libelle passe par le format de nombre : Excel ne sait pas poser une
-#    indentation par regle, mais il sait poser un format.
+# 3. les trois niveaux de hierarchie, pilotes par la colonne B : gras, fond et
+#    filet. Le retrait du libelle est gere cote Tagetik, pas ici.
 def niveau(plage,formule,**k):
     ws.conditional_formatting.add(plage,Rule(type="expression",formula=[formule],
                                              dxf=DifferentialStyle(**k)))
@@ -206,8 +207,10 @@ niveau("B%d:O%d"%(R0,RCF),"$B%d=3"%R0,font=Font(bold=True,color=INK),
        fill=PatternFill(bgColor=SOFT),  border=Border(bottom=sd(SEP)))
 niveau("B%d:O%d"%(R0,RCF),"$B%d=4"%R0,font=Font(bold=False,color=INK),
        fill=PatternFill(bgColor=PANEL), border=Border(bottom=sd(SEP)))
-niveau("C%d:C%d"%(R0,RCF),"$B%d=3"%R0,numFmt=NumberFormat(numFmtId=171,formatCode='"  "@'))
-niveau("C%d:C%d"%(R0,RCF),"$B%d=4"%R0,numFmt=NumberFormat(numFmtId=172,formatCode='"      "@'))
+# Le RETRAIT du libelle par niveau a ete retire a la demande de Saad, qui le
+# gere directement dans Tagetik. Il passait par le format de nombre de la
+# regle ('"      "@'), seul levier d'indentation qu'une regle conditionnelle
+# sache poser. Les niveaux restent lisibles par le gras, le fond et le filet.
 
 # 3 bis. LE FORMAT DES MONTANTS S'ADAPTE A L'ORDRE DE GRANDEUR. En M€, un
 #    EBITDA de 81 725 EUR s'affiche 0,1 M€ : toute la precision est perdue, et
