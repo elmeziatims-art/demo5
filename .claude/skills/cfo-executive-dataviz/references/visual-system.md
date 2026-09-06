@@ -31,7 +31,15 @@ Use pale tints of semantic colors for cell fills. Do not place saturated fills b
 
 ## Typography
 
-- Prefer Aptos, Arial, Inter or the organization’s supplied corporate font.
+- **EDUSERVICES, choix arrete le 06/09/2026** : Fira Sans Medium pour les
+  titres, en-tetes de section et valeurs de KPI ; Arial pour le corps, les
+  tableaux et les chiffres.
+- Ce partage n'est pas cosmetique. Fira Sans n'est pas installee d'office avec
+  Office : si elle manque sur le poste, seuls les titres se degradent, tandis
+  que le contenu dense reste lisible en Arial, presente partout. Ne jamais
+  mettre le corps de tableau dans une police qui peut ne pas exister.
+- A defaut de consigne, l'ordre de preference reste Aptos, Arial, Inter ou la
+  police corporate fournie.
 - Workbook title: 20–24 pt, bold, white on navy.
 - Section title: 11–13 pt, bold, white on navy or ink on canvas.
 - KPI value: 20–28 pt, bold.
