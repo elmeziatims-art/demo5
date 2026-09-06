@@ -25,7 +25,8 @@ from openpyxl.styles.numbers import NumberFormat
 from openpyxl.formatting.rule import Rule, CellIsRule, DataBarRule
 from openpyxl.chart import BarChart, LineChart, Reference, Series
 from openpyxl.chart.marker import Marker
-from openpyxl.chart.data_source import AxDataSource, StrRef
+from openpyxl.chart.data_source import AxDataSource, StrRef, NumDataSource, NumRef
+from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.chart.series import SeriesLabel
 from openpyxl.utils import get_column_letter as gl
 
@@ -181,6 +182,19 @@ def cadre(r1,c1,r2,c2,titre):
                             left=sd(SEP) if c==c1 else None,right=sd(SEP) if c==c2 else None)
     t=ws.cell(r1,c1,"  "+titre); t.font=F(9,True,INK,f=DISPLAY); t.alignment=ind(0)
 
+# ------------------------------------------------- plages dynamiques
+# Les blocs techniques n'ont pas un nombre de lignes fixe. Le pont en a
+# toujours cinq et la tension trois, mais le bloc de marge suit le noeud
+# choisi : cinq marques a la racine, quatre campus sur MBway, deux sur Tunon.
+# Un graphe cable en dur sur cinq lignes tracerait donc des barres vides, et
+# tronquerait un noeud a plus de cinq enfants.
+# On passe par des noms definis en OFFSET + COUNTA : la serie se dimensionne
+# sur le nombre de lignes reellement remplies, quel que soit le filtre.
+def nom(cle,col,col_compte,r0=7,rmax=80):
+    f="OFFSET('2'!$%s$%d,0,0,MAX(1,COUNTA('2'!$%s$%d:$%s$%d)),1)"%(col,r0,col_compte,r0,col_compte,rmax)
+    wb.defined_names[cle]=DefinedName(cle,attr_text=f)
+    return "'%s'!%s"%(OUT,cle)
+
 def categories_texte(ch,plage):
     """Les libelles d'axe sont du TEXTE. openpyxl les declare en numRef, et
     Excel affiche alors 1, 2, 3 a la place. On force strRef sur chaque serie."""
@@ -208,7 +222,9 @@ for s,coul in zip(br.series,(None,SLATE,GOOD,CRIT)):
     if coul is None: s.graphicalProperties.noFill=True
     else:
         s.graphicalProperties.solidFill=coul; s.graphicalProperties.line.noFill=True
-categories_texte(br,"'2'!$AC$7:$AC$11")
+for s_,col in zip(br.series,("AD","AE","AF","AG")):
+    s_.val=NumDataSource(NumRef(f=nom("pont_"+col,col,"AC")))
+categories_texte(br,nom("pont_cat","AC","AC"))
 br.legend=None; br.y_axis.numFmt='0.0,," M€"'
 # axe tronque, et c'est assume : un pont de 3,47 a 3,85 M€ sur un axe partant
 # de zero rendrait les effets invisibles. La troncature est dite dans le titre.
@@ -224,7 +240,9 @@ for col in (40,43,46):
 mg.set_categories(Reference(ws,min_col=37,max_col=37,min_row=7,max_row=11))
 for s,coul in zip(mg.series,(BLUE3,BLUE2,BLUE)):
     s.graphicalProperties.solidFill=coul; s.graphicalProperties.line.noFill=True
-categories_texte(mg,"'2'!$AK$7:$AK$11"); noms_series(mg,("2024","2025","2026"))
+for s_,col in zip(mg.series,("AN","AQ","AT")):
+    s_.val=NumDataSource(NumRef(f=nom("marge_"+col,col,"AK")))
+categories_texte(mg,nom("marge_cat","AK","AK")); noms_series(mg,("2024","2025","2026"))
 mg.legend.position="b"; mg.y_axis.numFmt='0%'
 habille(mg); ws.add_chart(mg,"I13")
 
@@ -240,7 +258,9 @@ for s,coul in zip(tn.series,(ORANGE,BLUE)):
     s.graphicalProperties.line.solidFill=coul; s.graphicalProperties.line.width=25000
     s.marker=Marker(symbol="circle",size=6); s.smooth=False
     s.marker.graphicalProperties.solidFill=coul; s.marker.graphicalProperties.line.solidFill=coul
-categories_texte(tn,"'2'!$AZ$7:$AZ$9"); noms_series(tn,("Dépenses","Inscrits"))
+for s_,col in zip(tn.series,("BC","BD")):
+    s_.val=NumDataSource(NumRef(f=nom("tension_"+col,col,"AZ")))
+categories_texte(tn,nom("tension_cat","AZ","AZ")); noms_series(tn,("Dépenses","Inscrits"))
 tn.legend.position="b"; tn.y_axis.numFmt='0'
 tn.y_axis.scaling.min=95; tn.y_axis.scaling.max=125; tn.y_axis.majorUnit=10
 habille(tn); ws.add_chart(tn,"M13")
