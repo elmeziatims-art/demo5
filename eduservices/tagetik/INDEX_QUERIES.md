@@ -42,7 +42,14 @@ Deux disciplines de fond, qui expliquent la forme de la plupart de ces requêtes
 
 | Fichier | Rend | Paramétré |
 |---|---|---|
-| `Q_COCKPIT_COMPLET.sql` | une ligne par campus, avec marque, et les six colonnes N-1 (dont inscrits et acquisition) pour calculer les évolutions | non — c'est la source du rapport, Tagetik filtre sur son propre axe |
+| `Q_COCKPIT_COMPLET.sql` | une ligne par campus — 14 par exercice — avec marque et les six colonnes N-1 | non — c'est la source du rapport, Tagetik filtre sur son propre axe |
+| `Q_COCKPIT_DETAIL.sql` | le même cockpit au grain de la **classe** : campus × programme × année d'étude × modalité, **60 lignes** par exercice, plus les libellés (campus, cycle, modalité) et la part dans le campus | idem |
+
+`Q_COCKPIT_DETAIL` **peut remplacer** `Q_COCKPIT_COMPLET` : toutes ses mesures
+sont additives, donc sommer les lignes d'un campus redonne exactement la ligne
+de campus — vérifié à l'écart nul sur les 14 campus. Ne se somment jamais, ici
+comme ailleurs : le CAC, le remplissage, la marge en %. Ce sont des rapports,
+ils se calculent après la somme.
 
 ## Les trois graphes
 
