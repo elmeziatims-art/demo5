@@ -118,8 +118,8 @@ FROM (
      ) AS g
 CROSS JOIN (
         VALUES (1, 'EBITDA 2025'),
-               (2, 'Activite'),
+               (2, 'Volume'),
                (3, 'Prix / mix'),
-               (4, 'Couts'),
+               (4, 'Charges'),
                (5, 'EBITDA 2026')
      ) AS e(RANG, ETAPE)
