@@ -66,7 +66,12 @@ wb._external_links=[]
 
 # ---------------------------------------------------------------- la grille
 ws.column_dimensions["A"].width=2.5
-ws.column_dimensions["B"].width=4.5      # le niveau, discret mais visible
+ws.column_dimensions["B"].width=4.5
+ws.column_dimensions["B"].hidden=True     # LE NIVEAU EST TECHNIQUE : il pilote
+                                          # les quatre regles de hierarchie et
+                                          # ne se lit jamais. Une regle
+                                          # conditionnelle evalue $B meme quand
+                                          # la colonne est masquee.
 ws.column_dimensions["C"].width=33       # "      Ipac Bachelor Factory Montpellier" fait
                                          # 39 signes avec son retrait : 30 etait juste
 ws.column_dimensions["D"].width=13       # Programme, sur les lignes de niveau 5
@@ -141,6 +146,13 @@ ws.cell(37,2,"Niv."); ws.cell(37,2).alignment=Cn
 ws.cell(37,3,"Entité")
 ws.cell(37,4,"Programme"); ws.cell(37,5,"Modalité")
 for c,lab in ENTETES.items(): ws.cell(37,c).value=lab
+# Le bloc technique, R..AA : masque, mais correctement nomme. Il l'etait resté
+# au nom de l'ancienne colonne apres le decalage de deux crans.
+for j,lab in enumerate(("EFFECTIFS_ALT","EBITDA_N1","CA_N1","SPEND_ACQ","SPEND_ACQ_N1",
+                        "MARGE_EBITDA_N1","PLACES_N1","INSCRITS_N1","EFFECTIFS_N1",
+                        "PCT_NOUVEAUX_INSCRITS")):
+    x=ws.cell(37,18+j,lab); x.font=F(7,False,MUTED); x.alignment=Cn
+for c in range(28,40): ws.cell(37,c).value=None
 FMT={6:'#,##0',7:'"▲ "0.0%;"▼ "0.0%;""',8:'#,##0',9:'"▲ "0.0%;"▼ "0.0%;""',10:'0.0%',
      11:'0.0%',12:'"▲ "0.00;"▼ "0.00;""',13:'#,##0',14:'0.0%',15:'0.0%',16:'#,##0',17:'#,##0'}
 # Police, alignement et formats sont poses en dur jusqu'a RCF : ils
@@ -209,10 +221,16 @@ def niveau(plage,formule,**k):
 niveau("B%d:Q%d"%(R0,RCF),"$B%d=2"%R0,font=Font(bold=True,color=INK),
        fill=PatternFill(bgColor=PARENT),
        border=Border(top=Side(style="medium",color=SLATE),bottom=sd(SEP)))
-niveau("B%d:O%d"%(R0,RCF),"$B%d=3"%R0,font=Font(bold=True,color=INK),
+niveau("B%d:Q%d"%(R0,RCF),"$B%d=3"%R0,font=Font(bold=True,color=INK),
        fill=PatternFill(bgColor=SOFT),  border=Border(bottom=sd(SEP)))
-niveau("B%d:O%d"%(R0,RCF),"$B%d=4"%R0,font=Font(bold=False,color=INK),
+niveau("B%d:Q%d"%(R0,RCF),"$B%d=4"%R0,font=Font(bold=True,color=INK),
        fill=PatternFill(bgColor=PANEL), border=Border(bottom=sd(SEP)))
+# NIVEAU 5 : programme x modalite. Le campus prend le gras -- il est devenu un
+# parent -- et la feuille passe en fond tres clair, sans gras, en encre douce.
+# Quatre fonds et deux graisses pour quatre niveaux : la hierarchie se lit sans
+# retrait, ce que Saad gere de son cote dans Tagetik.
+niveau("B%d:Q%d"%(R0,RCF),"$B%d=5"%R0,font=Font(bold=False,color=MUTED),
+       fill=PatternFill(bgColor="FBFCFE"), border=Border(bottom=sd(SEP)))
 # Le RETRAIT du libelle par niveau a ete retire a la demande de Saad, qui le
 # gere directement dans Tagetik. Il passait par le format de nombre de la
 # regle ('"      "@'), seul levier d'indentation qu'une regle conditionnelle
