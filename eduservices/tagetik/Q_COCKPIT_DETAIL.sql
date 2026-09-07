@@ -1,82 +1,82 @@
 /* =============================================================================
-   Q_COCKPIT_DETAIL  —  le cockpit descendu au grain de la CLASSE.
-   Campus x programme x annee d'etude x modalite. Soixante lignes par exercice
-   la ou Q_COCKPIT_COMPLET en rend quatorze.
+   Q_COCKPIT_DETAIL  —  Q_COCKPIT_COMPLET, au grain de la classe.
+   Portefeuille marque & campus, ouvert par programme, annee d'etude et
+   modalite. Soixante lignes par exercice la ou le cockpit en rend quatorze.
 
    =============================================================================
-   ELLE PEUT REMPLACER Q_COCKPIT_COMPLET, ET C'EST VOULU
+   STRUCTURE IDENTIQUE. C'EST LA REGLE DE CE FICHIER.
 
-   Toutes les mesures sont ADDITIVES. Sommer les soixante lignes d'un campus
-   redonne exactement la ligne de campus : CA, EBITDA, inscrits, effectifs,
-   places, depense d'acquisition, et les six colonnes N-1. PART_EBITDA aussi --
-   c'est une part d'un total unique, donc les parts s'additionnent.
+   Memes colonnes, memes noms, meme ordre, meme OUTER APPLY, meme
+   PART_EBITDA. Les VINGT ET UNE colonnes du cockpit sont la, inchangees, et
+   TROIS s'ajoutent apres ENTITY : PROGRAMME, AN_ETUDE, MODALITE. Vingt-quatre
+   en tout.
 
-   Ne se somment JAMAIS, ici comme ailleurs : le CAC, le taux de remplissage,
-   la marge en pourcentage. Ce sont des rapports. Le rapport se calcule APRES
-   la somme, dans le rapport Tagetik ou dans le classeur -- jamais ici.
+   Rien n'a ete retire, rien n'a ete renomme. Pas de libelle de campus, pas de
+   cycle, pas de part campus : tout cela s'ajoute quand vous le voudrez, mais
+   pas ici -- ce fichier doit pouvoir remplacer l'autre sans qu'un rapport
+   bouge.
 
-   =============================================================================
-   TROIS PIEGES DU GRAIN FIN, ET COMMENT ILS SONT TRAITES
-
-   1. LA DEPENSE D'ACQUISITION. Q_COCKPIT_COMPLET l'agrege par campus. Reprise
-      telle quelle au grain fin, le total du campus se serait repete sur chacune
-      de ses lignes et l'acquisition aurait ete comptee jusqu'a six fois.
-      Verification faite : DEPENSE_ACQ est portee LIGNE PAR LIGNE dans
-      AW_002_000002_000001. On la prend donc directement, sans agregat.
-
-      Mieux : elle n'est portee que par les ANNEES D'ENTREE -- B1, BTS1, M1 --
-      et vaut zero ailleurs. C'est exact : on depense pour recruter des
-      entrants. Le CAC devient donc lisible ligne a ligne, la ou il n'avait
-      aucun sens sur une B3.
-      Controle 2026 : 23 lignes servies sur 60, total 434 174, soit le compte
-      6231 au centime.
-
-   2. LES PLACES. VOL_CLASS x capacite, comme avant. Le risque etait qu'un meme
-      couple campus x programme x annee existe en initial ET en alternance : les
-      classes auraient ete comptees deux fois. Verification faite sur 2026 :
-      ZERO couple dans ce cas. Une classe est d'une modalite ou de l'autre.
-      Le remplissage reste donc juste a tous les niveaux.
-
-   3. LE N-1. Il se raccroche maintenant sur ENTITY + PROGRAMME + AN_ETUDE +
-      MODALITE. Attention a ce que cela compare :
-
-         c'est la MEME PLACE DANS LA STRUCTURE, pas la meme cohorte.
-
-      Le B1 de 2026 est confronte au B1 de 2025, pas aux memes etudiants -- eux
-      sont passes en B2. C'est la bonne comparaison pour piloter : "mon entree
-      a-t-elle grossi", "ma M1 se remplit-elle mieux". Pour suivre une COHORTE
-      il faudrait decaler l'annee d'etude dans le raccord, et c'est une autre
-      question.
-      Verification faite : les soixante cles de 2026 existent toutes en 2025.
-      Aucune ligne orpheline, aucun +100 % artificiel.
+   EFFECTIFS_ALT est conservee bien qu'elle soit redondante au grain fin : une
+   ligne y est entierement ALT ou entierement INIT. Elle redevient utile des
+   qu'on replie.
 
    =============================================================================
-   CE QUI A ETE AJOUTE
+   LA SEULE MODIFICATION DE FOND, ET ELLE EST OBLIGATOIRE
 
-     PROGRAMME, AN_ETUDE, MODALITE   les trois dimensions demandees
-     CAMPUS                          le libelle, pas le code (DESC_AZIENDA0)
-     CYCLE                           Bachelor / Mastere / BTS, deduit du prefixe
-     MODALITE_LIB                    Initial / Alternance
-     CLASSE                          un libelle lisible d'un coup d'oeil
-     PART_EBITDA_CAMPUS              la part de la ligne DANS SON CAMPUS
+   LES DEUX SOUS-REQUETES D'ACQUISITION SONT GROUPEES AU GRAIN FIN.
 
-   PART_EBITDA garde son sens d'origine : la part du groupe. Au grain fin elle
-   devient minuscule, d'ou l'ajout de la part campus, qui est celle qu'on lit
-   quand on ouvre un campus.
+   Dans le cockpit elles sont groupees par campus -- c'est correct, puisque le
+   cockpit rend une ligne par campus. Reprises telles quelles ici, le total du
+   campus se serait rattache a CHACUNE de ses lignes et l'acquisition aurait
+   ete comptee jusqu'a six fois au repli.
 
-   Il n'existe pas de table de libelles pour PROGRAMME -- seules azienda et
-   conto en portent. CYCLE et MODALITE_LIB sont donc deduits, ce qui est sur :
-   le prefixe et la modalite ne laissent aucune place au doute. Le code du
-   programme est conserve tel quel plutot qu'invente.
+   Verifie sur la donnee : DEPENSE_ACQ est portee ligne par ligne dans
+   AW_002_000002_000001, et seulement par les ANNEES D'ENTREE -- B1, BTS1, M1.
+   Elle vaut zero ailleurs, ce qui est exact : on depense pour recruter des
+   entrants, pas pour une B3.
+   Controle 2026 : 23 lignes servies sur 60, total 434 174, soit le compte
+   6231 au centime.
 
-   EFFECTIFS_ALT est conservee pour ne rien casser dans le rapport existant,
-   mais au grain fin elle est redondante : une ligne est entierement ALT ou
-   entierement INIT. Elle reste utile des qu'on somme.
+   Les sept clauses de jointure -- SCENARIO, PERIODE, EXERCICE, ENTITY,
+   PROGRAMME, AN_ETUDE, MODALITE -- descendent du meme raisonnement.
 
    =============================================================================
-   Regles Tagetik : pas de CTE, pas de ORDER BY exterieur, pas de ';'. Le seul
-   ORDER BY est celui du TOP 1 dans le OUTER APPLY -- il ne remonte pas au
-   niveau que le loader enveloppe. Pas de crochets dans les alias.
+   AUCUNE REGRESSION, VERIFIE SUR L'EXTRAIT
+
+   Repli des soixante lignes, exercice 2026 :
+
+       CA                23 098 985      la ligne du cockpit
+       EBITDA             3 845 790      la cellule d'ou partent les drills
+       EFFECTIFS              3 114
+       INSCRITS               1 229
+       PLACES                 4 088
+       SPEND_ACQ            434 174      le compte 6231
+
+   Repli par campus contre les quatorze lignes du cockpit : ecart 0,000000.
+
+   PART_EBITDA garde sa partition d'origine -- SCENARIO, VERSION, PERIODE,
+   EXERCICE -- donc la part du GROUPE. Au grain fin elle devient petite, mais
+   elle reste sommable : toutes les parts partagent le meme denominateur, donc
+   les replier redonne exactement la part du campus, puis celle de la marque.
+
+   LES PLACES ne doublent pas : un meme couple campus x programme x annee
+   present dans les deux modalites aurait compte ses classes deux fois, et il
+   n'y en a aucun dans la donnee. Une classe est d'une modalite ou de l'autre.
+   Remplissage 2026 verifie a 76,2 %.
+
+   =============================================================================
+   CE QUE LE RACCORD N-1 COMPARE, MAINTENANT QU'IL DESCEND PLUS BAS
+
+   Il se raccroche sur ENTITY + PROGRAMME + AN_ETUDE + MODALITE : la MEME PLACE
+   DANS LA STRUCTURE, pas la meme cohorte. Le B1 de 2026 est confronte au B1 de
+   2025, pas aux memes etudiants -- eux sont passes en B2. C'est la comparaison
+   de pilotage : "mon entree a-t-elle grossi", "ma M1 se remplit-elle mieux".
+   Les soixante cles de 2026 existent toutes en 2025 : aucune ligne orpheline.
+
+   =============================================================================
+   Regles Tagetik : pas de CTE, pas de ';', pas de crochets. Le seul ORDER BY
+   est celui du TOP 1 dans le OUTER APPLY -- il ne remonte pas au niveau que le
+   loader enveloppe, exactement comme dans le cockpit.
    ============================================================================= */
 SELECT
     n.SCENARIO,
@@ -85,16 +85,9 @@ SELECT
     n.EXERCICE,
     n.MARQUE,
     n.ENTITY,
-    COALESCE(az.DESC_AZIENDA0, n.ENTITY)    AS CAMPUS,
     n.PROGRAMME,
-    CASE WHEN n.PROGRAMME LIKE 'BAC%' THEN 'Bachelor'
-         WHEN n.PROGRAMME LIKE 'MAS%' THEN 'Mastere'
-         ELSE 'BTS' END                     AS CYCLE,
     n.AN_ETUDE,
     n.MODALITE,
-    CASE WHEN n.MODALITE = 'ALT' THEN 'Alternance' ELSE 'Initial' END AS MODALITE_LIB,
-    n.PROGRAMME + ' ' + n.AN_ETUDE + ' - '
-      + CASE WHEN n.MODALITE = 'ALT' THEN 'alternance' ELSE 'initial' END AS CLASSE,
 
     n.CA                                AS CA,
     n.EBITDA                            AS EBITDA,
@@ -115,12 +108,7 @@ SELECT
     1.0 * n.EBITDA
         / NULLIF(SUM(n.EBITDA) OVER (PARTITION BY n.SCENARIO, n.VERSION,
                                                   n.PERIODE,  n.EXERCICE), 0)
-                                        AS PART_EBITDA,
-    1.0 * n.EBITDA
-        / NULLIF(SUM(n.EBITDA) OVER (PARTITION BY n.SCENARIO, n.VERSION,
-                                                  n.PERIODE,  n.EXERCICE,
-                                                  n.ENTITY), 0)
-                                        AS PART_EBITDA_CAMPUS
+                                        AS PART_EBITDA
 FROM (
         SELECT  v.SCENARIO, v.VERSION, v.PERIODE, v.EXERCICE, v.MARQUE, v.ENTITY,
                 v.PROGRAMME, v.AN_ETUDE, v.MODALITE,
@@ -157,8 +145,6 @@ FROM (
               AND  s.AN_ETUDE  = v.AN_ETUDE
               AND  s.MODALITE  = v.MODALITE
      ) AS n
-LEFT JOIN azienda AS az
-       ON  az.COD_AZIENDA = n.ENTITY
 OUTER APPLY (
         SELECT TOP 1
                 x.CA, x.EBITDA, x.INSCRITS, x.EFFECTIFS, x.PLACES, x.SPEND_ACQ
