@@ -45,6 +45,12 @@ Deux disciplines de fond, qui expliquent la forme de la plupart de ces requêtes
 | `Q_COCKPIT_COMPLET.sql` | une ligne par campus — 14 par exercice — avec marque et les six colonnes N-1 | non — c'est la source du rapport, Tagetik filtre sur son propre axe |
 | `Q_COCKPIT_DETAIL.sql` | le même cockpit au grain de la **classe** : campus × programme × année d'étude × modalité, **60 lignes** par exercice, plus les libellés (campus, cycle, modalité) et la part dans le campus | idem |
 
+`Q_D4_CLASSES.sql` est le **drill natif** sur une ligne de campus : double-clic
+dans Tagetik, et le campus s'ouvre en 4 à 6 lignes — programme × année d'étude ×
+modalité, 17 colonnes, les deux exercices côte à côte. Le cockpit garde ses 14
+lignes. C'est la voie à préférer à `Q_COCKPIT_DETAIL`, qui descend le grain de
+la vue elle-même.
+
 `Q_COCKPIT_DETAIL` **peut remplacer** `Q_COCKPIT_COMPLET` : toutes ses mesures
 sont additives, donc sommer les lignes d'un campus redonne exactement la ligne
 de campus — vérifié à l'écart nul sur les 14 campus. Ne se somment jamais, ici
@@ -77,6 +83,7 @@ classeur calcule aujourd'hui. À garder si vous préférez un drill sans formule
 
 | Fichier | Rend |
 |---|---|
+| `Q_D2_CA_CRM.sql` | la restitution CRM du rapprochement : 3 lignes, 4 colonnes, jumelle exacte de `Q_D2_CA_COMPTA` |
 | `Q_D2_SOCLE.sql` | **16 lignes, 6 colonnes.** Le compte d'exploitation poste par poste : 3 comptes de produit (706, 7062, 708), 12 comptes de charge, plus le siège. Montants signés — leur somme vaut l'EBITDA. |
 | `Q_D2_CA_COMPTA.sql` | contrôle autonome : le CA vu par les comptes de produit, une ligne |
 

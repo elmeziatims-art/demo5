@@ -86,7 +86,7 @@ RESTIT=[(a,f,l,ct,s*cpt[a][P],s*cpt[a][N]) for a,f,l,ct,s in COMPTES]
 RESTIT+=[("SIEGE","Siège","Siège redescendu (allocation, pas une écriture)","Siège",
           -S("csiege",P),-S("csiege",N))]
 
-#  Q_D3_CA_CRM : trois lignes, cote inducteurs
+#  Q_D2_CA_CRM : trois lignes, cote inducteurs
 crm=defaultdict(lambda: defaultdict(float))
 for r in lire("socle_crm.csv"):
     ex=int(r["EXERCICE"])
@@ -94,10 +94,10 @@ for r in lire("socle_crm.csv"):
     a="7062" if r["MODALITE"]=="ALT" else "706"
     crm[a]["v%d"%ex]+=num(r["VOL_EFF"]); crm[a]["m%d"%ex]+=num(r["VOL_EFF"])*num(r["REV_STUD"])
     crm["708"]["v%d"%ex]+=num(r["VOL_NEW"]); crm["708"]["m%d"%ex]+=num(r["VOL_NEW"])*num(r["REV_FRAIS_INS"])
-CRM=[(a,l,ct,u,crm[a]["v%d"%P],crm[a]["v%d"%N],crm[a]["m%d"%P],crm[a]["m%d"%N])
-     for a,l,ct,u in (("706","Scolarité des étudiants en initial","Scolarité initial","Effectifs"),
-                      ("7062","Scolarité des alternants","Scolarité alternance","Effectifs"),
-                      ("708","Frais d'inscription","Frais d'inscription","Nouveaux inscrits"))]
+CRM=[(a,l,crm[a]["m%d"%P],crm[a]["m%d"%N])
+     for a,l in (("706","Scolarité des étudiants en initial"),
+                 ("7062","Scolarité des alternants"),
+                 ("708","Frais d'inscription"))]
 
 # L'ORDRE D'AFFICHAGE — c'est le classeur qui le tient, plus la requete.
 SEQUENCE=[a for a,_,_,_,_ in COMPTES]+["SIEGE"]
@@ -107,8 +107,8 @@ NPROD=3                                   # les trois premieres lignes sont des 
 # L'OSSATURE
 # ============================================================================
 ZONE0, ZONEN = 7, 28        # zone Q_D2_SOCLE : 22 emplacements pour 16 lignes
-ZCRM0        = 31           # zone Q_D3_CA_CRM : trois lignes
-ZC0, ZCN     = 14, 21       # colonnes N..U, masquees
+ZCRM0        = 31           # zone Q_D2_CA_CRM : trois lignes, quatre colonnes
+ZC0, ZCN     = 14, 19       # colonnes N..S, masquees
 GRAPH0, TAB0 = 8, 33
 L0    = TAB0+1
 LN    = L0+len(SEQUENCE)-1
@@ -149,8 +149,7 @@ for j,lab in enumerate(("Compte","Famille","Poste","Poste court","Montant 2025",
     ws.cell(ZONE0-1,ZC0+j,lab).font=F(8,True,MUTED)
 for i,ligne in enumerate(RESTIT):
     for j,v in enumerate(ligne): ws.cell(ZONE0+i,ZC0+j,v)
-for j,lab in enumerate(("Compte","Poste","Poste court","Unite comptee","Volume 2025",
-                        "Volume 2026","Montant 2025","Montant 2026")):
+for j,lab in enumerate(("Compte","Poste","Montant 2025","Montant 2026")):
     ws.cell(ZCRM0-1,ZC0+j,lab).font=F(8,True,MUTED)
 for i,ligne in enumerate(CRM):
     for j,v in enumerate(ligne): ws.cell(ZCRM0+i,ZC0+j,v)
@@ -241,8 +240,8 @@ CRMS=lambda c: "=SUM(${0}${1}:${0}${2})".format(GL(ZC0+c),ZCRM0,ZCRM0+2)
 for j,(lab,f25,f26) in enumerate((
         ("Comptes de produit  ·  706 + 7062 + 708, somme des trois lignes ci-dessus",
          "=SUM(E{0}:E{1})".format(L0,L0+NPROD-1),"=SUM(F{0}:F{1})".format(L0,L0+NPROD-1)),
-        ("Socle CRM  ·  effectifs × droits de scolarité, restitution de Q_D3_CA_CRM",
-         CRMS(6),CRMS(7)))):
+        ("Socle CRM  ·  effectifs × droits de scolarité, restitution de Q_D2_CA_CRM",
+         CRMS(2),CRMS(3)))):
     r=REC+j
     for c in range(2,9): ws.cell(r,c).fill=fill(PANEL); ws.cell(r,c).border=Border(bottom=sd())
     ws.cell(r,2,lab).font=F(8.5); ws.cell(r,2).alignment=ind(1)
@@ -261,7 +260,7 @@ for j,txt in enumerate((
    "Les deux chaînes disent le même montant depuis le réalignement du 06/09. Cet écart doit rester à zéro ; s'il reparaît, c'est que le socle CRM a bougé sans que les comptes de produit suivent — FIX_CA_COMPTA_2024_2025.sql les remet d'accord.",
    "C'est ce qui permet d'ouvrir le chiffre d'affaires en trois comptes ici : le tableau est un vrai compte d'exploitation, quinze lignes qui sont toutes de vraies écritures, plus le siège qui est une allocation et le dit.",
    "Le modèle continue de piloter par le CRM, et pour deux raisons qui ne tiennent pas à l'exactitude. Le GRAIN — 180 lignes campus × programme × année × modalité contre 105 au grain campus × compte, sans quoi aucune marge par programme n'est calculable.",
-   "Et le PILOTAGE — le CRM donne le CA comme un produit d'inducteurs, effectifs × droits de scolarité, donc il se simule. Un montant déjà posé est un constat. DRILL3 ouvre cette chaîne-là.")):
+   "Et le PILOTAGE — le CRM donne le CA comme un produit d'inducteurs, effectifs × droits de scolarité, donc il se simule. Un montant déjà posé est un constat.")):
     c=ws.cell(REC+4+j,2,txt); c.font=F(8,False,MUTED,i=True); c.alignment=ind(1)
 
 # ============================================================================
@@ -290,4 +289,4 @@ print("  3 tableau       B%d:H%d — %d lignes dont %d comptes de produit, zéro
 print("  4 contrôle      E%d et F%d"%(CTRL,CTRL))
 print("  5 rapprochement B%d:H%d"%(REC-1,REC+7))
 print("  zone Q_D2_SOCLE   %s"%ZR.replace("$",""))
-print("  zone Q_D3_CA_CRM  %s%d:%s%d"%(GL(ZC0),ZCRM0,GL(ZC0+7),ZCRM0+2))
+print("  zone Q_D2_CA_CRM  %s%d:%s%d"%(GL(ZC0),ZCRM0,GL(ZC0+3),ZCRM0+2))
