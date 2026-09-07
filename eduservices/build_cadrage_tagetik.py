@@ -106,6 +106,22 @@ ws.cell(1, 2, "EDUSERVICES · piloté par l'EBITDA").font = F(8, False, PALE)
 ws.cell(1, 2).alignment = ind(0)
 for r, h in ((1, 16), (2, 24), (3, 3)): ws.row_dimensions[r].height = h
 
+# ---- LA ZONE TECHNIQUE, hors du champ de lecture -------------------------
+# L'objectif d'EBITDA en euros vivait en D12, AU MILIEU DU TABLEAU, avec un
+# format ";;;" pour le taire. Une cellule muette au milieu d'une grille reste
+# une cellule au milieu d'une grille : elle occupe une colonne, elle interdit
+# de s'en servir, et elle finit par ressortir le jour ou quelqu'un change un
+# format. Elle part donc en O4, derriere le rideau.
+#
+# UNE SEULE formule du classeur la lisait -- Pilotage!B12, trois fois dans la
+# meme chaine. Elle est repointee plus bas. C'etait le seul cout du
+# deplacement, et il valait la peine : la colonne D redevient une VRAIE
+# colonne du tableau.
+for c in range(13, 19): ws.column_dimensions[GL(c)].hidden = True
+ws.cell(3, 14, "ZONE TECHNIQUE — ne rien afficher a partir d'ici").font = F(7, False, DOUX, True)
+ws.cell(4, 14, "Objectif EBITDA 2027 (€)").font = F(7.5, False, DOUX)
+o = ws.cell(4, 15, "=C12*(1+$F$4)"); o.number_format = '#,##0" €"'; o.font = F(9, True, AZUR)
+
 # ---- ligne 4 : LA COMMANDE. Les deux seules cellules saisissables. --------
 for c in range(2, NC + 1):
     x = ws.cell(4, c); x.fill = fill(FOND); x.border = Border(bottom=sd(FILET))
@@ -128,18 +144,22 @@ for c in range(2, NC + 1):
     x = ws.cell(5, c); x.fill = fill(PANEL)
     x.border = Border(top=sd(FILET), bottom=sd(FILET))
 ws.row_dimensions[5].height = 24
-v = ws.cell(5, 2, '=IF(E12>=D12,"✓   Objectif atteint   ·   "&TEXT(E12-D12,"+#,##0 €")'
-                  '&" au-dessus de la cible   ·   marge construite "&TEXT(E13,"0.0%")'
+v = ws.cell(5, 2, '=IF(D12>=$O$4,"✓   Objectif atteint   ·   "&TEXT(D12-$O$4,"+#,##0 €")'
+                  '&" au-dessus de la cible   ·   marge construite "&TEXT(D13,"0.0%")'
                   '&" contre "&TEXT(C13,"0.0%")&" en 2026",'
-                  '"✗   Objectif non atteint   ·   il manque "&TEXT(D12-E12,"#,##0 €")'
-                  '&"   ·   marge construite "&TEXT(E13,"0.0%")&" contre "'
+                  '"✗   Objectif non atteint   ·   il manque "&TEXT($O$4-D12,"#,##0 €")'
+                  '&"   ·   marge construite "&TEXT(D13,"0.0%")&" contre "'
                   '&TEXT(C13,"0.0%")&" en 2026")')
 v.font = F(11, True, INK); v.alignment = ind(1)
 
 # ---- lignes 6-8 : LE BANDEAU DE CADRAGE, trois blocs ----------------------
-BLOCS = [(2, "POINT DE DÉPART",    "=C12",     "EBITDA 2026 constaté"),
-         (4, "OBJECTIF 2027",      "=D12",     "la cible que la commande fixe"),
-         (6, "À ALLER CHERCHER",   "=D12-C12", "l'écart que les onze leviers doivent fermer")]
+BLOCS = [(2, "OBJECTIF 2027",                 "=$O$4",
+             '="+"&TEXT($F$4,"0.0%")&" sur "&TEXT(C12,"#,##0 €")&" en 2026, '
+             'soit "&TEXT($O$4-C12,"+#,##0 €")&" à trouver"'),
+         (4, "CE QUE LES LEVIERS PRODUISENT", "=D12",
+             '="scénario « "&$C$4&" »  ·  marge "&TEXT(D13,"0.0%")'),
+         (6, "RESTE À TROUVER",              "=$O$4-D12",
+             "objectif moins construit  ·  se ferme à chaque levier tiré")]
 for r, h in ((6, 12), (7, 26), (8, 14), (9, 22)): ws.row_dimensions[r].height = h
 for col, lab, formule, note in BLOCS:
     for c in (col, col + 1):
@@ -151,6 +171,10 @@ for col, lab, formule, note in BLOCS:
     x.font = F(20, False, AZUR if col == 4 else INK)
     x.number_format = '#,##0" €"' if col != 6 else '+#,##0" €";-#,##0" €";"0 €"'
     n = ws.cell(8, col, note); n.font = F(7, False, DOUX, True); n.alignment = ind(1)
+    if col == 6:
+        # Positif : il reste a trouver. Negatif : on est au-dela de la cible.
+        x.number_format = '#,##0" €";#,##0" € d\'avance";"0 €"'
+    if col == 4: x.font = F(20, False, AZUR)
 
 # ---- le tableau de reconciliation : quatre colonnes, toutes remplies ------
 # L'ancienne ligne d'entetes etait en 9 ; la nouvelle est en 10. On efface
@@ -163,38 +187,44 @@ ws.cell(9, 10, "COEFFICIENTS DE PRIX PAR MARQUE")
 ws.cell(9, 10).font = F(9.5, True, INK); ws.cell(9, 10).alignment = ind(0)
 for r in (7, 8):
     for c in (10, 11): ws.cell(r, c).value = None
-ENT = {2: "Indicateur", 3: "Référence", 4: None, 5: "Construit  ·  scénario actif",
-       6: "Écart", 7: "Écart %"}
+ENT = {2: "Indicateur", 3: "Référence 2026", 4: "Construit 2027  ·  scénario actif",
+       5: "Écart", 6: "Écart %"}
 for c, lab in ENT.items(): ws.cell(10, c).value = lab
+ws.cell(10, 7).value = None
 ws.cell(10, 10, "Marque"); ws.cell(10, 11, "Coeff prix")
 for c in list(range(2, 8)) + [10, 11]:
     x = ws.cell(10, c); x.fill = fill(FOND); x.font = F(8, True, INK)
     x.border = Border(top=sd(FILET), bottom=sd(AZUR, "medium"))
     x.alignment = ind(0) if c in (2, 10) else Cn
 ws.row_dimensions[10].height = 24
-# NE PAS TOUCHER A C11 : c'est la reference de chiffre d'affaires, lue par
-# Pilotage, par C13, F11 et G11. Le libelle "Forecast 2026" etait en C10, et
-# la nouvelle ligne d'entetes l'a deja remplace.
+
+# Les quatre lignes sont reecrites en entier : le CONSTRUIT descend de E en D,
+# et les deux colonnes d'ecart se recalent derriere.
+CONSTRUIT = {11: ws.cell(11, 5).value, 12: ws.cell(12, 5).value, 14: ws.cell(14, 5).value}
+for r, f_ in CONSTRUIT.items(): ws.cell(r, 4).value = f_
+ws.cell(13, 4).value = "=IFERROR(D12/D11,0)"
+for r in (11, 12, 13, 14):
+    ws.cell(r, 5).value = "=D{0}-C{0}".format(r)
+    ws.cell(r, 6).value = ("=IFERROR(D{0}/C{0}-1,0)".format(r) if r != 13 else None)
+    ws.cell(r, 7).value = None
 FMT = {11: '#,##0" €"', 12: '#,##0" €"', 13: '0.0%', 14: '#,##0'}
+ECART = {11: '+#,##0" €";-#,##0" €";"—"', 12: '+#,##0" €";-#,##0" €";"—"',
+         13: '+0.00" pt";-0.00" pt";"—"', 14: '+#,##0;-#,##0;"—"'}
 for r in range(11, 15):
     eb = r == 12
     for c in range(2, 8):
         x = ws.cell(r, c); x.fill = fill(GRIS if eb else PANEL)
         x.border = Border(bottom=sd(INK, "medium") if eb else sd(FILET))
     ws.cell(r, 2).font = F(8.5, eb); ws.cell(r, 2).alignment = ind(1)
-    for c in (3, 5):
-        x = ws.cell(r, c); x.font = F(9 if eb else 8.5, eb); x.alignment = R
-        x.number_format = FMT[r]
-    x = ws.cell(r, 6); x.font = F(8.5, eb); x.alignment = R
-    x.number_format = '+#,##0" €";-#,##0" €";"—"' if r != 13 else '+0.0%;-0.0%;"—"'
-    x = ws.cell(r, 7); x.font = F(8, False, DOUX); x.alignment = R
+    for c in (3, 4):
+        x = ws.cell(r, c); x.font = F(9.5 if eb else 8.5, eb, AZUR if (eb and c == 4) else INK)
+        x.alignment = R; x.number_format = FMT[r]
+    x = ws.cell(r, 5); x.font = F(9 if eb else 8.5, eb); x.alignment = R
+    x.number_format = ECART[r]
+    x = ws.cell(r, 6); x.font = F(8, False, DOUX); x.alignment = R
     x.number_format = '+0.0%;-0.0%;"—"'
     ws.row_dimensions[r].height = 16
-# L'ANCRE TECHNIQUE : D12 garde sa formule, trois feuilles la lisent. Le
-# format ";;;" la rend muette sans la vider. D11 et D13 portaient des tirets
-# qui n'avaient plus d'objet.
-for r in (11, 13, 14): ws.cell(r, 4).value = None
-ws.cell(12, 4).number_format = ";;;"
+
 for r in range(11, 16):
     for c in (10, 11):
         x = ws.cell(r, c); x.fill = fill(PANEL); x.border = Border(bottom=sd(FILET))
@@ -241,13 +271,14 @@ for r in (16, 17, 19, 28, 30, 36, 38): ws.row_dimensions[r].height = 8
 ws.conditional_formatting = ConditionalFormattingList()
 # Le verdict : vert s'il est atteint, rouge sinon. Une seule regle porte le
 # jugement, le texte porte le fait.
-for f_, coul in (('$E$12>=$D$12', VERT_T), ('$E$12<$D$12', ROUGE_T)):
+for f_, coul in (('$D$12>=$O$4', VERT_T), ('$D$12<$O$4', ROUGE_T)):
     ws.conditional_formatting.add("B5:L5", Rule(type="expression", formula=[f_],
         dxf=DifferentialStyle(font=Font(bold=True, color=coul))))
 # L'ecart a aller chercher : il est positif tant qu'on n'y est pas.
-ws.conditional_formatting.add("B7:C7", CellIsRule(operator="lessThanOrEqual",
-    formula=["0"], font=Font(name=UI, size=20, color=DOUX)))
-for c1 in (6, 7):
+for op, coul in (("greaterThan", ROUGE_T), ("lessThanOrEqual", VERT_T)):
+    ws.conditional_formatting.add("F7:G7", CellIsRule(operator=op, formula=["0"],
+        font=Font(name=UI, size=20, color=coul)))
+for c1 in (5, 6):
     for op, coul in (("greaterThan", VERT_T), ("lessThan", ROUGE_T)):
         ws.conditional_formatting.add("%s11:%s14" % (GL(c1), GL(c1)),
             CellIsRule(operator=op, formula=["0"], font=Font(name=UI, size=8.5, color=coul)))
@@ -257,6 +288,10 @@ ws.cell(41, 2).font = F(7.5, False, DOUX, True); ws.cell(41, 2).alignment = ind(
 
 # ---- la feuille Pilotage : meme charte, sans toucher a la mecanique -------
 pl = wb["Pilotage"]
+# D12 ne porte plus l'objectif -- il porte le construit. La chaine de verdict
+# du Pilotage le lisait trois fois : on la repointe sur la zone technique.
+if isinstance(pl["B12"].value, str):
+    pl["B12"] = pl["B12"].value.replace("Cadrage!$D$12", "Cadrage!$O$4")
 pl.sheet_view.showGridLines = False
 for r in range(1, 14):
     for c in range(1, 24): pl.cell(r, c).fill = fill(FOND)
