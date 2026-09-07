@@ -115,7 +115,8 @@ appliqué au volume de N.
 
 | Fichier | Rend |
 |---|---|
-| `Q_MOTEUR_CALIBRATION.sql` | une ligne par campus, 13 colonnes : les séries leads/budget sur 3 exercices, **l'élasticité calculée en SQL**, la conversion et le CA par inscrit. Alimente l'onglet *Le moteur (modèle)*. |
+| `V_MOTEUR_CAL.sql` | **la vue** : une ligne par campus, 17 colonnes. Elle restitue, le masque calcule — rien de ce qui dépend du Δ de budget n'y est. Voir `SPEC_MOTEUR_MASQUE.md` pour les douze formules du masque. |
+| `Q_MOTEUR_CALIBRATION.sql` | la version requête, une ligne par campus, 13 colonnes : les séries leads/budget sur 3 exercices, **l'élasticité calculée en SQL**, la conversion et le CA par inscrit. Alimente l'onglet *Le moteur (modèle)*. |
 
 L'élasticité est une **régression des moindres carrés**, donc une agrégation :
 elle s'écrit avec des `SUM`, sans CTE. Vérifiée identique à `SLOPE` d'Excel au
