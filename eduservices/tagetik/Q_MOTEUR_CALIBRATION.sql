@@ -84,6 +84,27 @@
    moteur en a quatorze et pas cinq.
 
    =============================================================================
+   =============================================================================
+   LA MARQUE EST TIREE EN T-SQL PUR, SANS SUBSTR_BEFORE
+
+   SUBSTR_BEFORE n'existe pas en T-SQL. Elle vit dans V_ALLOCATION, ou elle
+   fonctionne -- donc la fonction existe bien dans la base, en UDF ou apportee
+   par Tagetik. Mais c'est une dependance de plus pour un decoupage de chaine,
+   et cette requete est la seule du jeu courant a en avoir besoin : toutes les
+   autres lisent MARQUE dans V_ALLOCATION, qui l'expose deja. Celle-ci lit le
+   socle CRM en direct, et le socle ne porte pas la marque.
+
+       LEFT(s.ENTITY, CHARINDEX('_', s.ENTITY + '_') - 1)
+
+   LE '_' AJOUTE N'EST PAS UN ORNEMENT. Sans lui, une entite sans underscore
+   -- GRP par exemple -- donne CHARINDEX = 0, donc LEFT(x, -1), et SQL Server
+   leve une erreur au lieu de rendre la chaine. Avec lui, CHARINDEX tombe
+   toujours sur quelque chose et l'entite entiere est rendue.
+
+       'MBWAY_PAR'  ->  CHARINDEX = 6  ->  LEFT(..., 5)  ->  'MBWAY'
+       'GRP'        ->  CHARINDEX = 4  ->  LEFT(..., 3)  ->  'GRP'
+
+   =============================================================================
    Alias entre guillemets doubles, Tagetik n'accepte pas les crochets.
    Exercices en dur comme le reste du modele. Pas de CTE, pas de ORDER BY,
    pas de ';'. Aucun parametre d'entite : c'est une requete de population, la
@@ -122,7 +143,7 @@ SELECT
     SUM(v.LEAD_TOT) - SUM(v.LEAD_BRUT)                              AS "Écart de leads (contrôle)"
 FROM (
         SELECT  s.ENTITY,
-                SUBSTR_BEFORE(s.ENTITY, '_')                AS MARQUE,
+                LEFT(s.ENTITY, CHARINDEX('_', s.ENTITY + '_') - 1)  AS MARQUE,
                 CAST(s.EXERCICE AS INT)                     AS EXERCICE,
                 SUM(s.VOL_LEAD_PAY)                         AS LEAD_PAY,
                 SUM(s.VOL_LEAD_ORG) + SUM(s.VOL_LEAD_PAY)   AS LEAD_TOT,
@@ -132,7 +153,8 @@ FROM (
                 SUM(s.VOL_NEW * s.REV_STUD + s.VOL_NEW * s.REV_FRAIS_INS) AS CA_NEW
         FROM    AW_002_000002_000001 AS s
         WHERE   CAST(s.EXERCICE AS INT) IN (2024, 2025, 2026)
-        GROUP BY s.ENTITY, SUBSTR_BEFORE(s.ENTITY, '_'), CAST(s.EXERCICE AS INT)
+        GROUP BY s.ENTITY, LEFT(s.ENTITY, CHARINDEX('_', s.ENTITY + '_') - 1),
+                 CAST(s.EXERCICE AS INT)
         HAVING  SUM(s.VOL_LEAD_PAY) > 0 AND SUM(s.DEPENSE_ACQ) > 0
      ) AS v
 LEFT JOIN azienda AS az
