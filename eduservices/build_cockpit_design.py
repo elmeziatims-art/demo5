@@ -35,7 +35,8 @@ from openpyxl.utils import get_column_letter as gl
 
 SRC="COCKPIT.xlsm"; OUT="COCKPIT_DESIGN.xlsm"
 R0=38          # premiere ligne de donnees
-RSTAT=57       # derniere ligne mise en forme en dur (plage Tagetik actuelle)
+RSTAT=90       # derniere ligne mise en forme en dur : 50 lignes servies au grain
+               # programme x modalite, plus de la marge
 RCF=120        # les regles vont plus loin : un noeud plus large passe sans retouche
 
 NAVY="172033"; BLUE="2A78D6"; BLUE2="6FA5DC"; BLUE3="B8CFEC"
@@ -68,14 +69,16 @@ ws.column_dimensions["A"].width=2.5
 ws.column_dimensions["B"].width=4.5      # le niveau, discret mais visible
 ws.column_dimensions["C"].width=33       # "      Ipac Bachelor Factory Montpellier" fait
                                          # 39 signes avec son retrait : 30 etait juste
-for c in range(4,16): ws.column_dimensions[gl(c)].width=11.0   # D..O, six cartes de 22
-for c in range(16,59): ws.column_dimensions[gl(c)].hidden=True # P..BF : technique
+ws.column_dimensions["D"].width=13       # Programme, sur les lignes de niveau 5
+ws.column_dimensions["E"].width=11       # Modalite, idem
+for c in range(6,18): ws.column_dimensions[gl(c)].width=11.0   # F..Q, les douze mesures
+for c in range(18,59): ws.column_dimensions[gl(c)].hidden=True # R..BF : technique
 for r in range(1,RCF+4):
-    for c in range(1,16): ws.cell(r,c).fill=fill(CANVAS)
+    for c in range(1,18): ws.cell(r,c).fill=fill(CANVAS)
 
 # ---------------------------------------------------------------- bandeau
 for r in (1,2,3):
-    for c in range(1,16): ws.cell(r,c).fill=fill(NAVY)
+    for c in range(1,18): ws.cell(r,c).fill=fill(NAVY)
 t=ws.cell(2,3,"COCKPIT EDUSERVICES — PILOTAGE DE LA MARGE"); t.font=F(15,True,"FFFFFF",f=DISPLAY); t.alignment=ind(0)
 u=ws.cell(3,3,"Exercice 2026 · variation contre 2025 · V_ALLOCATION et socle CRM"); u.font=F(8,False,ONDARK); u.alignment=ind(0)
 for r,h in ((1,8),(2,26),(3,15),(4,6),(5,20),(6,6),(7,10),(8,13),(9,26),(10,14),(11,10),(36,20),(37,17)):
@@ -84,9 +87,9 @@ for r in range(12,36): ws.row_dimensions[r].height=15.5
 for r in range(R0,RSTAT+1): ws.row_dimensions[r].height=15.5
 
 # ---------------------------------------------------------------- filtres
-for c in range(3,16):
+for c in range(3,18):
     x=ws.cell(5,c); x.fill=fill(SOFT); x.border=Border(top=sd(BLUE3),bottom=sd(BLUE3))
-for col,lab in ((3,"SCÉNARIO"),(8,"VERSION"),(11,"ENTITÉ")):
+for col,lab in ((3,"SCÉNARIO"),(10,"VERSION"),(14,"ENTITÉ")):
     a=ws.cell(5,col,lab); a.font=F(7.5,True,SLATE); a.alignment=ind(1)
     ws.cell(5,col+1).font=F(9,True,INK); ws.cell(5,col+1).alignment=L
 
@@ -103,16 +106,16 @@ for col,lab in ((3,"SCÉNARIO"),(8,"VERSION"),(11,"ENTITÉ")):
 # une fleche vers le haut est rouge.
 HAUT_BAS  = '"▲ "0.0%;"▼ "0.0%;"—"'
 HAUT_BAS_PT='"▲ "0.00" pt";"▼ "0.00" pt";"—"'
-KPI=[(4, "CHIFFRE D'AFFAIRES",  "=D38",       '0.0,," M€"', "=E38",       HAUT_BAS,   True),
-     (6, "EBITDA",              "=F38",       '0.0,," M€"', "=G38",       HAUT_BAS,   True),
-     (8, "MARGE EBITDA",        "=I38",       '0.0%',       "=J38",       HAUT_BAS_PT,True),
-     (10,"INSCRITS (NOUVEAUX)", "=K38",       '#,##0',      "=Y38",       HAUT_BAS,   True),
-     (12,"COÛT D'ACQUISITION",  "=S38/K38",   '#,##0" €"',
-         '=IFERROR(L9/(T38/W38)-1,"")',                                   HAUT_BAS,   False),
-     (14,"REMPLISSAGE MOYEN",   "=L38",       '0.0%',       "=O38-N38",
+KPI=[(6, "CHIFFRE D'AFFAIRES",  "=F38",       '0.0,," M€"', "=G38",       HAUT_BAS,   True),
+     (8, "EBITDA",              "=H38",       '0.0,," M€"', "=I38",       HAUT_BAS,   True),
+     (10,"MARGE EBITDA",        "=K38",       '0.0%',       "=L38",       HAUT_BAS_PT,True),
+     (12,"INSCRITS (NOUVEAUX)", "=M38",       '#,##0',      "=AA38",      HAUT_BAS,   True),
+     (14,"COÛT D'ACQUISITION",  "=U38/M38",   '#,##0" €"',
+         '=IFERROR(N9/(V38/Y38)-1,"")',                                   HAUT_BAS,   False),
+     (16,"REMPLISSAGE MOYEN",   "=N38",       '0.0%',       "=Q38-P38",
          '#,##0" places libres";-#,##0" places libres";"—"',              None)]
 for r in (8,9,10):
-    for c in range(2,16): ws.cell(r,c).value=None
+    for c in range(2,18): ws.cell(r,c).value=None
 for col,lab,val,fmt,var,vfmt,sens in KPI:
     for c in (col,col+1):
         for r in (8,9,10):
@@ -124,21 +127,22 @@ for col,lab,val,fmt,var,vfmt,sens in KPI:
     d=ws.cell(10,col,var); d.font=F(9,True,MUTED); d.number_format=vfmt; d.alignment=ind(1)
 
 # ---------------------------------------------------------------- le tableau
-ENTETES={4:"CA",5:"Δ CA",6:"EBITDA",7:"Δ EBITDA",8:"Part EBITDA",9:"Marge EBITDA",
-         10:"Δ Marge (pt)",11:"Inscrits",12:"Remplissage",13:"Mix alternance",
-         14:"Effectifs",15:"Places"}
-s=ws.cell(36,3,"PORTEFEUILLE — MARQUE ET CAMPUS"); s.font=F(10,True,INK,f=DISPLAY); s.alignment=ind(0)
-h=ws.cell(36,6,"graisse et fond donnent le niveau · échelle de couleur = performance relative")
+ENTETES={6:"CA",7:"Δ CA",8:"EBITDA",9:"Δ EBITDA",10:"Part EBITDA",11:"Marge EBITDA",
+         12:"Δ Marge (pt)",13:"Inscrits",14:"Remplissage",15:"Mix alternance",
+         16:"Effectifs",17:"Places"}
+s=ws.cell(36,3,"PORTEFEUILLE — MARQUE, CAMPUS, PROGRAMME ET MODALITÉ"); s.font=F(10,True,INK,f=DISPLAY); s.alignment=ind(0)
+h=ws.cell(36,8,"graisse et fond donnent le niveau · échelle de couleur = performance relative")
 h.font=F(7.5,False,MUTED,i=True); h.alignment=L
-for c in range(2,16):
+for c in range(2,18):
     x=ws.cell(37,c); x.fill=fill(SLATE); x.font=F(8,True,"FFFFFF",f=DISPLAY)
-    x.alignment=Cn if c>=4 else ind(1)
+    x.alignment=Cn if c>=6 else ind(1)
     x.border=Border(top=sd(SLATE),bottom=sd(SLATE),left=sd(SLATE),right=sd(SLATE))
 ws.cell(37,2,"Niv."); ws.cell(37,2).alignment=Cn
 ws.cell(37,3,"Entité")
+ws.cell(37,4,"Programme"); ws.cell(37,5,"Modalité")
 for c,lab in ENTETES.items(): ws.cell(37,c).value=lab
-FMT={4:'#,##0',5:'"▲ "0.0%;"▼ "0.0%;""',6:'#,##0',7:'"▲ "0.0%;"▼ "0.0%;""',8:'0.0%',
-     9:'0.0%',10:'"▲ "0.00;"▼ "0.00;""',11:'#,##0',12:'0.0%',13:'0.0%',14:'#,##0',15:'#,##0'}
+FMT={6:'#,##0',7:'"▲ "0.0%;"▼ "0.0%;""',8:'#,##0',9:'"▲ "0.0%;"▼ "0.0%;""',10:'0.0%',
+     11:'0.0%',12:'"▲ "0.00;"▼ "0.00;""',13:'#,##0',14:'0.0%',15:'0.0%',16:'#,##0',17:'#,##0'}
 # Police, alignement et formats sont poses en dur jusqu'a RCF : ils
 # n'apparaissent pas sur une cellule vide. Le FOND et les BORDURES, eux,
 # viennent des regles de niveau uniquement -- sinon une navigation sur Tunon,
@@ -147,11 +151,13 @@ FMT={4:'#,##0',5:'"▲ "0.0%;"▼ "0.0%;""',6:'#,##0',7:'"▲ "0.0%;"▼ "0.0%;"
 for r in range(R0,RCF+1):
     # on efface le fond et les bordures heritees du fichier d'origine : c'est
     # aux regles de niveau de les poser, et a elles seules
-    for c in range(2,16):
+    for c in range(2,18):
         ws.cell(r,c).border=Border(); ws.cell(r,c).fill=fill(CANVAS)
     ws.cell(r,2).font=F(7.5,False,MUTED); ws.cell(r,2).alignment=Cn
     ws.cell(r,3).font=F(8.5); ws.cell(r,3).alignment=L
-    for c in range(4,16):
+    for c in (4,5):
+        x=ws.cell(r,c); x.font=F(8,False,MUTED); x.alignment=L
+    for c in range(6,18):
         x=ws.cell(r,c); x.font=F(8.5); x.alignment=R; x.number_format=FMT[c]
 
 # ------------------------------------------- mise en forme conditionnelle
@@ -166,11 +172,11 @@ def rg(c1,c2=None): return "%s%d:%s%d"%(gl(c1),R0,gl(c2 or c1),RCF)
 #    couleur quand on change de perimetre, sinon la lecture n'est plus
 #    comparable d'un lancement a l'autre. Marge de 2 a 22 %, remplissage de
 #    55 a 95 %, ce qui couvre l'amplitude reelle du reseau.
-ws.conditional_formatting.add(rg(9), ColorScaleRule(
+ws.conditional_formatting.add(rg(11), ColorScaleRule(
     start_type="num", start_value=0.02, start_color="FF"+HM_BAS,
     mid_type="num",   mid_value=0.12,   mid_color="FF"+HM_MED,
     end_type="num",   end_value=0.22,   end_color="FF"+HM_HAUT))
-ws.conditional_formatting.add(rg(12), ColorScaleRule(
+ws.conditional_formatting.add(rg(14), ColorScaleRule(
     start_type="num", start_value=0.55, start_color="FF"+HM_BAS,
     mid_type="num",   mid_value=0.75,   mid_color="FF"+HM_MED,
     end_type="num",   end_value=0.95,   end_color="FF"+HM_HAUT))
@@ -183,13 +189,13 @@ ws.conditional_formatting.add(rg(12), ColorScaleRule(
 # Bornee a 100 % et non a 30 % : la colonne melange les trois niveaux, le
 # groupe y vaut 100 %, une marque jusqu'a 45 % et un campus 1 a 16 %. A 30 %
 # tout ce qui depasse une marque saturait et la barre ne disait plus rien.
-ws.conditional_formatting.add(rg(8), DataBarRule(
+ws.conditional_formatting.add(rg(10), DataBarRule(
     start_type="num", start_value=0, end_type="num", end_value=1.0,
     color="FF"+BLUE3, showValue=True))
 
 # 2. les variations : couleur de police seule, donc elles survivent par-dessus
 #    la heatmap comme par-dessus les fonds de niveau
-for c1 in (5,7,10):
+for c1 in (7,9,12):
     ws.conditional_formatting.add(rg(c1),CellIsRule(operator="greaterThan",formula=["0"],
         font=Font(name=UI,size=8.5,color=GOOD)))
     ws.conditional_formatting.add(rg(c1),CellIsRule(operator="lessThan",formula=["0"],
@@ -200,7 +206,7 @@ for c1 in (5,7,10):
 def niveau(plage,formule,**k):
     ws.conditional_formatting.add(plage,Rule(type="expression",formula=[formule],
                                              dxf=DifferentialStyle(**k)))
-niveau("B%d:O%d"%(R0,RCF),"$B%d=2"%R0,font=Font(bold=True,color=INK),
+niveau("B%d:Q%d"%(R0,RCF),"$B%d=2"%R0,font=Font(bold=True,color=INK),
        fill=PatternFill(bgColor=PARENT),
        border=Border(top=Side(style="medium",color=SLATE),bottom=sd(SEP)))
 niveau("B%d:O%d"%(R0,RCF),"$B%d=3"%R0,font=Font(bold=True,color=INK),
@@ -217,14 +223,14 @@ niveau("B%d:O%d"%(R0,RCF),"$B%d=4"%R0,font=Font(bold=False,color=INK),
 #    c'est ce qui arriverait des qu'on descend sur Ipac, Pigier ou Tunon. Sous
 #    le million, la carte bascule en euros. Excel ne sait pas conditionner un
 #    format dans un format, mais une regle sait poser un format.
-for col in (4,6):
+for col in (6,8):
     ws.conditional_formatting.add("%s9"%gl(col),Rule(type="cellIs",operator="lessThan",
         formula=["1000000"],dxf=DifferentialStyle(numFmt=NumberFormat(numFmtId=180+col,
         formatCode='#,##0" €"'))))
 
 # 4. les evolutions du bandeau. La fleche dit le sens, la couleur dit si c'est
 #    une bonne nouvelle : sur le cout d'acquisition les deux sont inverses.
-for col,bon in ((4,True),(6,True),(8,True),(10,True),(12,False)):
+for col,bon in ((6,True),(8,True),(10,True),(12,True),(14,False)):
     cell="%s10"%gl(col)
     ws.conditional_formatting.add(cell,CellIsRule(operator="greaterThan",formula=["0"],
         font=Font(name=UI,size=9,bold=True,color=GOOD if bon else CRIT)))
@@ -250,7 +256,7 @@ for col,bon in ((4,True),(6,True),(8,True),(10,True),(12,False)):
 PONT_C, PONT_N = 28, 5      # AB
 MARGE_C, MARGE_N = 35, 5    # AI
 TENS_C, TENS_N = 52, 3      # AZ
-for c in range(16,81): ws.column_dimensions[gl(c)].hidden=True
+for c in range(18,81): ws.column_dimensions[gl(c)].hidden=True
 
 def cadre(r1,c1,r2,c2,titre,note=""):
     for r in range(r1,r2+1):
@@ -276,7 +282,7 @@ def noms(ch,libelles):
 ws._charts=[]      # on repart des cadres vides laisses par Excel
 
 # 1 — le pont d'EBITDA
-cadre(12,4,35,7,"Pont d'EBITDA 2025 → 2026")
+cadre(12,4,35,8,"Pont d'EBITDA 2025 → 2026")
 br=BarChart(); br.type="col"; br.grouping="stacked"; br.overlap=100; br.gapWidth=55
 for j in range(2,6):   # SOCLE, ANCRE, HAUSSE, BAISSE
     br.add_data(Reference(ws,min_col=PONT_C+j,max_col=PONT_C+j,min_row=7,max_row=6+PONT_N),
@@ -293,7 +299,7 @@ cats(br,PONT_C+1,7,6+PONT_N); br.legend=None; br.y_axis.numFmt='0.0,," M€"'
 habille(br); ws.add_chart(br,"D13")
 
 # 2 — la marge par marque, ou par campus si l'on est descendu sur une marque
-cadre(12,8,35,11,"Marge EBITDA — 3 exercices")
+cadre(12,9,35,13,"Marge EBITDA — 3 exercices")
 mg=BarChart(); mg.type="col"; mg.grouping="clustered"; mg.gapWidth=60; mg.overlap=-10
 for j in range(1,4):   # MARGE_2024, MARGE_2025, MARGE_2026
     mg.add_data(Reference(ws,min_col=MARGE_C+j,max_col=MARGE_C+j,min_row=7,max_row=6+MARGE_N),
@@ -302,10 +308,10 @@ for s,coul in zip(mg.series,(BLUE3,BLUE2,BLUE)):
     s.graphicalProperties.solidFill=coul; s.graphicalProperties.line.noFill=True
 cats(mg,MARGE_C,7,6+MARGE_N); noms(mg,("2024","2025","2026"))
 mg.legend.position="b"; mg.y_axis.numFmt='0%'
-habille(mg); ws.add_chart(mg,"H13")
+habille(mg); ws.add_chart(mg,"I13")
 
 # 3 — la tension d'acquisition
-cadre(12,12,35,15,"Acquisition — dépenses vs inscrits","base 100")
+cadre(12,14,35,17,"Acquisition — dépenses vs inscrits","base 100")
 tn=LineChart()
 for j in range(1,3):   # IND_DEPENSES, IND_INSCRITS
     tn.add_data(Reference(ws,min_col=TENS_C+j,max_col=TENS_C+j,min_row=7,max_row=6+TENS_N),
@@ -317,7 +323,7 @@ for s,coul in zip(tn.series,(ORANGE,BLUE)):
 cats(tn,TENS_C,7,6+TENS_N); noms(tn,("Dépenses","Inscrits"))
 tn.legend.position="b"; tn.y_axis.numFmt='0'
 tn.y_axis.scaling.min=95; tn.y_axis.scaling.max=125; tn.y_axis.majorUnit=10
-habille(tn); ws.add_chart(tn,"L13")
+habille(tn); ws.add_chart(tn,"N13")
 
 p=ws.cell(RSTAT+2,3,"Source : V_ALLOCATION et AW_002_000002_000001. Marges et indices divisés après somme, jamais moyennés.")
 p.font=F(7.5,False,MUTED,i=True); p.alignment=ind(0)

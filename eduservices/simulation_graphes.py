@@ -73,39 +73,101 @@ for cle in list(wb.defined_names): del wb.defined_names[cle]   # rien qui pointe
 ws._charts=[]
 for r in range(6,14):                       # on nettoie toute l'ancienne zone
     for c in range(28,60): ws.cell(r,c).value=None
+for r in range(38,121):                     # et la colonne AB heritee du modele
+    for c in range(26,30): ws.cell(r,c).value=None
 
 # ------------------------------------------------------------- le tableau
-FEUILLE=lambda c: {"D":c["ca"][N],"F":c["eb"][N],"K":c["inscrits"][N],"N":c["eff"][N],
-    "O":c["places"][N],"P":c["mix_alt"][N]*c["eff"][N],"Q":c["eb"][P],"R":c["ca"][P],
-    "S":acq[c["ent"]][N],"T":acq[c["ent"]][P],"V":c["places"][P],"W":c["inscrits"][P],
-    "X":c["eff"][P]}
+# DEUX COLONNES DE PLUS : D Programme, E Modalite. Tout ce qui etait en D..Y
+# glisse donc de deux colonnes, en F..AA. Et une QUATRIEME profondeur apparait
+# dans les lignes : sous chaque campus, une ligne par programme x modalite.
+# On s'arrete la -- l'annee d'etude, Tagetik la deplie tout seul au double-clic.
+FEUILLE=lambda c: {"F":c["ca"][N],"H":c["eb"][N],"M":c["inscrits"][N],"P":c["eff"][N],
+    "Q":c["places"][N],"R":c["mix_alt"][N]*c["eff"][N],"S":c["eb"][P],"T":c["ca"][P],
+    "U":acq[c["ent"]][N],"V":acq[c["ent"]][P],"X":c["places"][P],"Y":c["inscrits"][P],
+    "Z":c["eff"][P]}
 EBG=S(C,"eb",N)
-calc=lambda r: {"E":'=IFERROR((D{0}-R{0})/R{0},"")'.format(r),"G":'=IFERROR((F{0}-Q{0})/Q{0},"")'.format(r),
-                "I":'=IFERROR(F{0}/D{0},"")'.format(r),"J":'=IFERROR((I{0}-U{0})*100,"")'.format(r),
-                "L":'=IFERROR(N{0}/O{0},"")'.format(r),"M":'=IFERROR(P{0}/N{0},"")'.format(r),
-                "U":'=IFERROR(Q{0}/R{0},"")'.format(r),"Y":'=IFERROR((K{0}-W{0})/W{0},"")'.format(r)}
+calc=lambda r: {"G":'=IFERROR((F{0}-T{0})/T{0},"")'.format(r),"I":'=IFERROR((H{0}-S{0})/S{0},"")'.format(r),
+                "K":'=IFERROR(H{0}/F{0},"")'.format(r),"L":'=IFERROR((K{0}-W{0})*100,"")'.format(r),
+                "N":'=IFERROR(P{0}/Q{0},"")'.format(r),"O":'=IFERROR(R{0}/P{0},"")'.format(r),
+                "W":'=IFERROR(S{0}/T{0},"")'.format(r),"AA":'=IFERROR((M{0}-Y{0})/Y{0},"")'.format(r)}
 ci=openpyxl.utils.column_index_from_string
+
+# ---- le grain programme x modalite, tel que Q_COCKPIT_DETAIL le rendra ----
+# Les VOLUMES, le CA, les PLACES et l'ACQUISITION sont lus ligne par ligne dans
+# le socle : ils sont exacts.
+# Les COUTS, eux, ne descendent pas jusqu'ici dans l'extrait local -- la
+# cascade K1..K4 vit dans V_ALLOCATION, en base. La simulation les repartit
+# donc au PRORATA DES EFFECTIFS a l'interieur de chaque campus. Consequence :
+# chaque total de campus, de marque et de groupe est EXACT, seule la
+# repartition entre les programmes d'un meme campus est approchee. En
+# production c'est la cascade reelle qui remplit ces cellules.
+fin=defaultdict(lambda: defaultdict(float))
+for r in csv.DictReader(open("data/socle_crm.csv",encoding="utf-8-sig"),delimiter=";"):
+    ex=int(r["EXERCICE"])
+    if ex not in (P,N): continue
+    f=lambda k: float(r[k].replace(",","."))
+    cap=32 if r["PROGRAMME"].startswith("BAC") else 26 if r["PROGRAMME"].startswith("MAS") else 30
+    d=fin[(r["ENTITY"],r["PROGRAMME"],r["MODALITE"],ex)]
+    d["eff"]+=f("VOL_EFF"); d["new"]+=f("VOL_NEW")
+    d["ca"]+=f("VOL_EFF")*f("REV_STUD")+f("VOL_NEW")*f("REV_FRAIS_INS")
+    d["places"]+=f("VOL_CLASS")*cap; d["acq"]+=f("DEPENSE_ACQ")
+PROGMOD=defaultdict(list)
+for (ent,prog,mod,ex) in fin:
+    if (prog,mod) not in PROGMOD[ent]: PROGMOD[ent].append((prog,mod))
+for ent in PROGMOD: PROGMOD[ent].sort()
+MODLIB={"ALT":"Alternance","INIT":"Initial"}
+def feuille5(camp,prog,mod):
+    """Les treize valeurs d'une ligne programme x modalite."""
+    v={}
+    for ex,suf in ((N,"n"),(P,"p")):
+        d=fin[(camp["ent"],prog,mod,ex)]
+        cout=(camp["cvar"][ex]+camp["cdir"][ex]+camp["csiege"][ex])
+        part=d["eff"]/camp["eff"][ex] if camp["eff"][ex] else 0
+        v[suf]=dict(d,eb=d["ca"]-cout*part,alt=d["eff"] if mod=="ALT" else 0)
+    a,b=v["n"],v["p"]
+    return {"F":a["ca"],"H":a["eb"],"M":a["new"],"P":a["eff"],"Q":a["places"],
+            "R":a["alt"],"S":b["eb"],"T":b["ca"],"U":a["acq"],"V":b["acq"],
+            "X":b["places"],"Y":b["new"],"Z":b["eff"]}
+
+for rr in range(38,121):
+    for c in range(2,30): ws.cell(rr,c).value=None
 lignes=[]; r=38
-lignes.append([r,2,"EDUSERVICES",None]); racine=r; r+=1
+lignes.append([r,2,"EDUSERVICES",None,None,None]); racine=r; r+=1
 for m in ORDRE:
     g=[c for c in C if c["marque"]==m]
-    tete=r; lignes.append([r,3,m,None]); r+=1
-    for c in sorted(g,key=lambda x:LIB[x["ent"]]): lignes.append([r,4,LIB[c["ent"]],c]); r+=1
-    lignes[[k for k,l in enumerate(lignes) if l[0]==tete][0]][3]=(tete+1,r-1)
-lignes[0][3]=(racine+1,r-1)
-for ligne,niv,lib,src in lignes:
-    ws.cell(ligne,2,niv); ws.cell(ligne,3,lib)
-    if niv==4:
-        v2=FEUILLE(src); v2["H"]=src["eb"][N]/EBG
+    tete=r; lignes.append([r,3,m,None,None,None]); r+=1
+    for c in sorted(g,key=lambda x:LIB[x["ent"]]):
+        tetec=r; lignes.append([r,4,LIB[c["ent"]],None,None,None]); r+=1
+        for prog,mod in PROGMOD[c["ent"]]:
+            lignes.append([r,5,"",prog,MODLIB[mod],feuille5(c,prog,mod)]); r+=1
+        lignes[[k for k,l in enumerate(lignes) if l[0]==tetec][0]][5]=(tetec+1,r-1)
+    lignes[[k for k,l in enumerate(lignes) if l[0]==tete][0]][5]=(tete+1,r-1)
+lignes[0][5]=(racine+1,r-1)
+
+for ligne,niv,lib,prog,mod,src in lignes:
+    ws.cell(ligne,2).value=niv; ws.cell(ligne,3).value=lib or None
+    ws.cell(ligne,4).value=prog; ws.cell(ligne,5).value=mod
+    if niv==5:
+        v2=dict(src); v2["J"]=src["H"]/EBG
         for k,x in v2.items(): ws.cell(ligne,ci(k),x)
     else:
         a,b=src
-        for k in "DFHKNOPQRSTVWX": ws.cell(ligne,ci(k),"=SUBTOTAL(9,{0}{1}:{0}{2})".format(k,a,b))
+        for k in ("F","H","J","M","P","Q","R","S","T","U","V","X","Y","Z"):
+            ws.cell(ligne,ci(k),"=SUBTOTAL(9,{0}{1}:{0}{2})".format(k,a,b))
     for k,f in calc(ligne).items(): ws.cell(ligne,ci(k),f)
 DERNIERE=r-1
 for rr in range(DERNIERE+1,121):
-    for c in range(2,26): ws.cell(rr,c).value=None
-ws.cell(5,4,"Forecast 2026"); ws.cell(5,9,"V_FINAL"); ws.cell(5,12,"EDUSERVICES")
+    for c in range(2,30): ws.cell(rr,c).value=None
+ws.cell(5,4,"Forecast 2026"); ws.cell(5,11,"V_FINAL"); ws.cell(5,15,"EDUSERVICES")
+
+# La note de bas de tableau dit d'ou viennent les chiffres, et ou la
+# simulation approche. On ne laisse pas le lecteur le deviner.
+from openpyxl.styles import Font as _F, Alignment as _A
+for j,txt in enumerate((
+   "Source : V_ALLOCATION et AW_002_000002_000001. Marges, remplissage et coût d'acquisition sont divisés après somme, jamais moyennés.",
+   "Sur les lignes de niveau 5, les volumes, le CA, les places et l'acquisition sont lus ligne par ligne dans le socle. Les COÛTS y sont répartis au prorata des effectifs du campus, parce que la cascade K1..K4 vit dans V_ALLOCATION, en base : chaque total de campus, de marque et de groupe est donc exact, seule la répartition entre les programmes d'un même campus est approchée dans cette simulation.")):
+    c=ws.cell(DERNIERE+2+j,3,txt)
+    c.font=_F(name="Arial",size=7.5,italic=True,color="69778B"); c.alignment=_A("left",vertical="center")
 
 # ------------------------------------- les trois resultats de query, en place
 ENT={G1:("ETAPE","SOCLE","ANCRE","HAUSSE","BAISSE"),
@@ -119,7 +181,7 @@ for i2,l in enumerate(R2,7):
     for j,x in enumerate(l): ws.cell(i2,G2+j,x)
 for i2,l in enumerate(R3,7):
     for j,x in enumerate(l): ws.cell(i2,G3+j,x)
-for c in range(16,60): ws.column_dimensions[GL(c)].hidden=True
+for c in range(18,60): ws.column_dimensions[GL(c)].hidden=True
 
 # --------------------------------------------------------------- les graphes
 # References INTERNES uniquement : '2'!$AB$7:$AB$11. Aucun nom defini, aucun
@@ -154,7 +216,7 @@ for x,coul in zip(mg.series,(BLUE3,BLUE2,BLUE)):
     x.graphicalProperties.solidFill=coul; x.graphicalProperties.line.noFill=True
 P2=cat(mg,G2,len(R2)); noms(mg,("2024","2025","2026"))
 mg.legend.position="b"; mg.y_axis.numFmt='0%'; fini(mg)
-ws.add_chart(mg,"H13")
+ws.add_chart(mg,"I13")
 
 tn=LineChart()
 for c in range(G3+1,G3+3):
@@ -166,7 +228,7 @@ for x,coul in zip(tn.series,(ORANGE,BLUE)):
 P3=cat(tn,G3,len(R3)); noms(tn,("Dépenses","Inscrits"))
 tn.legend.position="b"; tn.y_axis.numFmt='0'
 tn.y_axis.scaling.min=95; tn.y_axis.scaling.max=125; tn.y_axis.majorUnit=10; fini(tn)
-ws.add_chart(tn,"L13")
+ws.add_chart(tn,"N13")
 wb.save(OUT)
 
 # ============================================================== LA PREUVE
