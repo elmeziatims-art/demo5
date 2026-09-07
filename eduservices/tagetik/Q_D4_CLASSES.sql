@@ -63,6 +63,29 @@
    2025 et 2026 la base n'en porte qu'une, et c'est ce qui fait que ces trois
    drills tombent exactement sur le cockpit.
 
+   =============================================================================
+   POUR LA TESTER HORS DRILL
+
+   Le parametre ${$Entity(...)} n'a de valeur que dans un contexte de
+   drill-through : une cellule cliquee. Lance dans l'editeur, il se resout en
+   chaine vide, la clause devient  WHERE V.ENTITY IN ( '' )  -- du SQL
+   parfaitement valide, qui ne trouve simplement aucun campus. ZERO LIGNE,
+   sans la moindre erreur.
+
+   Pour verifier le SQL lui-meme, remplacer la ligne du WHERE par un campus en
+   dur, lancer, puis remettre le parametre :
+
+       WHERE   v.ENTITY IN ('MBWAY_PAR')
+
+   Attendu sur MBway Paris : quatre a six lignes, et la somme de la colonne
+   "EBITDA 2026" egale a la valeur de la cellule d'ou part le drill.
+
+   LITTERAUX EN ASCII, ET C'EST OBLIGATOIRE. Les chaines ecrites dans la
+   requete -- 'Mastere', 'Alternance' -- ne survivent pas au canal du loader si
+   elles portent un accent : elles ressortent en 'Mast?re'. Les ALIAS de
+   colonnes, eux, transitent autrement et gardent les leurs.
+
+   =============================================================================
    Alias entre guillemets doubles, Tagetik n'accepte pas les crochets.
    Perimetre herite de la cellule cliquee, exercices en dur comme le cockpit.
    Pas de CTE, pas de ORDER BY, pas de ';'.
@@ -71,9 +94,9 @@ SELECT
     COALESCE(az.DESC_AZIENDA0, v.ENTITY)                        AS "Campus",
     v.PROGRAMME                                                 AS "Programme",
     CASE WHEN v.PROGRAMME LIKE 'BAC%' THEN 'Bachelor'
-         WHEN v.PROGRAMME LIKE 'MAS%' THEN 'Mastère'
+         WHEN v.PROGRAMME LIKE 'MAS%' THEN 'Mastere'
          ELSE 'BTS' END                                         AS "Cycle",
-    v.AN_ETUDE                                                  AS "Année d'étude",
+    v.AN_ETUDE                                                  AS "Année",
     CASE WHEN v.MODALITE = 'ALT' THEN 'Alternance'
          ELSE 'Initial' END                                     AS "Modalité",
 
@@ -127,7 +150,7 @@ WHERE   v.ENTITY IN (${$Entity(HIERARCHY("EDU")).lowest})
 GROUP BY COALESCE(az.DESC_AZIENDA0, v.ENTITY),
          v.PROGRAMME,
          CASE WHEN v.PROGRAMME LIKE 'BAC%' THEN 'Bachelor'
-              WHEN v.PROGRAMME LIKE 'MAS%' THEN 'Mastère'
+              WHEN v.PROGRAMME LIKE 'MAS%' THEN 'Mastere'
               ELSE 'BTS' END,
          v.AN_ETUDE,
          CASE WHEN v.MODALITE = 'ALT' THEN 'Alternance'
