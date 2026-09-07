@@ -96,8 +96,9 @@ ws.cell(6,2).font=F(8.5,False,MUTED,i=True); ws.cell(6,2).alignment=ind(0)
 LIB=["EBITDA %d"%P,"Effet effectifs","Effet prix et mix","Effet coût var. unitaire",
      "Effet coûts directs","Effet siège","EBITDA %d"%N]
 COLEF={2:"S",3:"T",4:"U",5:"V",6:"W"}
-entete(TAB0,2,("Effet","Montant","Part de la variation"),
-       "LE PONT, CHIFFRE PAR CHIFFRE","la légende du graphe")
+entete(TAB0,2,("Effet","Montant","Part de sa masse"),
+       "LE PONT, CHIFFRE PAR CHIFFRE",
+       "chaque effet rapporté à sa masse : ce qui pousse, ou ce qui freine")
 for i,lab in enumerate(LIB,1):
     r=TAB0+i; niv = i in (1,7)
     for c in range(2,5):
@@ -107,7 +108,8 @@ for i,lab in enumerate(LIB,1):
         "=SUM(P{0}:P{1})".format(CAMP0,CAMPN) if i==7 else "={0}{1}".format(COLEF[i],DR0)
     x=ws.cell(r,3,m); x.number_format='#,##0" €"'; x.alignment=R; x.font=F(9,niv)
     if not niv:
-        x=ws.cell(r,4,'=IFERROR(C{0}/(C{1}-C{2}),"")'.format(r,TAB0+7,TAB0+1))
+        x=ws.cell(r,4,'=IFERROR(IF(C{0}>0,C{0}/SUMIF($C${1}:$C${2},">0"),'
+                      'C{0}/SUMIF($C${1}:$C${2},"<0")),"")'.format(r,TAB0+2,TAB0+6))
         x.number_format='0.0%'; x.alignment=R; x.font=F(8.5,False,MUTED)
     # la plomberie de la cascade, en colonnes masquees
     ws.cell(r,25,lab)
@@ -122,6 +124,22 @@ ws.conditional_formatting.add("C{0}:C{1}".format(TAB0+2,TAB0+6),
     CellIsRule(operator="greaterThan",formula=["0"],font=Font(name=UI,size=9,color=GOOD)))
 ws.conditional_formatting.add("C{0}:C{1}".format(TAB0+2,TAB0+6),
     CellIsRule(operator="lessThan",formula=["0"],font=Font(name=UI,size=9,color=CRIT)))
+
+# ---- les deux masses, sous le pont ----------------------------------------
+# Le net est une petite difference entre deux grosses masses. Le dire
+# explicitement evite la lecture fausse qui consiste a prendre +378 022 pour
+# "le" mouvement de l'annee.
+MASS=TAB0+8
+for c in range(2,5): ws.cell(MASS,c).fill=fill(WARM); ws.cell(MASS,c).border=Border(bottom=sd())
+ws.cell(MASS,2,"Ce qui pousse  ·  ce qui freine").font=F(8.5,True,MUTED)
+ws.cell(MASS,2).alignment=ind(1)
+x=ws.cell(MASS,3,'=SUMIF($C${0}:$C${1},">0")'.format(TAB0+2,TAB0+6))
+x.number_format='+#,##0" €"'; x.alignment=R; x.font=F(9,True,GOOD)
+x=ws.cell(MASS,4,'=SUMIF($C${0}:$C${1},"<0")'.format(TAB0+2,TAB0+6))
+x.number_format='-#,##0" €"'; x.alignment=R; x.font=F(9,True,CRIT)
+ws.cell(MASS+1,2,"la variation nette est le SOLDE de ces deux masses, pas un mouvement : "
+                 "c'est pourquoi chaque effet est rapporté à la sienne")
+ws.cell(MASS+1,2).font=F(7.5,False,MUTED,i=True); ws.cell(MASS+1,2).alignment=ind(0)
 
 # ------------------------------------------- 4. le controle
 for c in range(2,5):
