@@ -1,49 +1,47 @@
 /* =============================================================================
-   Q_COCKPIT_DETAIL  —  Q_COCKPIT_COMPLET, au grain de la classe.
-   Portefeuille marque & campus, ouvert par programme, annee d'etude et
-   modalite. Soixante lignes par exercice la ou le cockpit en rend quatorze.
+   Q_COCKPIT_DETAIL  —  Q_COCKPIT_COMPLET, ouvert par programme et modalite.
+
+   Le cockpit rend une ligne par campus. Celui-ci rend une ligne par
+   CAMPUS x PROGRAMME x MODALITE : trente lignes par exercice au lieu de
+   quatorze. On s'arrete la. L'annee d'etude n'est pas dans la requete parce
+   que Tagetik y descend tout seul, au double-clic.
 
    =============================================================================
    STRUCTURE IDENTIQUE. C'EST LA REGLE DE CE FICHIER.
 
-   Memes colonnes, memes noms, meme ordre, meme OUTER APPLY, meme
-   PART_EBITDA. Les VINGT ET UNE colonnes du cockpit sont la, inchangees, et
-   TROIS s'ajoutent apres ENTITY : PROGRAMME, AN_ETUDE, MODALITE. Vingt-quatre
-   en tout.
+   Memes colonnes, memes noms, meme ordre, meme OUTER APPLY, meme PART_EBITDA
+   avec sa partition d'origine. Les VINGT ET UNE colonnes du cockpit sont la,
+   inchangees, et DEUX s'ajoutent apres ENTITY : PROGRAMME et MODALITE.
+   Vingt-trois en tout.
 
-   Rien n'a ete retire, rien n'a ete renomme. Pas de libelle de campus, pas de
-   cycle, pas de part campus : tout cela s'ajoute quand vous le voudrez, mais
-   pas ici -- ce fichier doit pouvoir remplacer l'autre sans qu'un rapport
-   bouge.
+   Rien n'a ete retire, rien n'a ete renomme. Pas de libelle, pas de cycle, pas
+   de part campus : ce fichier doit pouvoir remplacer l'autre sans qu'un
+   rapport bouge.
 
-   EFFECTIFS_ALT est conservee bien qu'elle soit redondante au grain fin : une
+   EFFECTIFS_ALT est conservee bien qu'elle soit redondante a ce grain -- une
    ligne y est entierement ALT ou entierement INIT. Elle redevient utile des
-   qu'on replie.
+   qu'on replie sur le campus.
 
    =============================================================================
    LA SEULE MODIFICATION DE FOND, ET ELLE EST OBLIGATOIRE
 
-   LES DEUX SOUS-REQUETES D'ACQUISITION SONT GROUPEES AU GRAIN FIN.
+   LES DEUX SOUS-REQUETES D'ACQUISITION SONT GROUPEES AU MEME GRAIN.
 
-   Dans le cockpit elles sont groupees par campus -- c'est correct, puisque le
-   cockpit rend une ligne par campus. Reprises telles quelles ici, le total du
-   campus se serait rattache a CHACUNE de ses lignes et l'acquisition aurait
-   ete comptee jusqu'a six fois au repli.
+   Dans le cockpit elles sont groupees par campus -- c'est correct, puisqu'il
+   rend une ligne par campus. Reprises telles quelles ici, le total du campus
+   se serait rattache a CHACUNE de ses lignes et l'acquisition aurait ete
+   comptee jusqu'a quatre fois au repli. Ce n'est pas un detail de style :
+   c'est la difference entre 434 174 et pres de deux millions.
 
-   Verifie sur la donnee : DEPENSE_ACQ est portee ligne par ligne dans
-   AW_002_000002_000001, et seulement par les ANNEES D'ENTREE -- B1, BTS1, M1.
-   Elle vaut zero ailleurs, ce qui est exact : on depense pour recruter des
-   entrants, pas pour une B3.
-   Controle 2026 : 23 lignes servies sur 60, total 434 174, soit le compte
+   DEPENSE_ACQ est portee ligne par ligne dans AW_002_000002_000001, donc la
+   grouper a ce grain est exact et additif.
+   Controle 2026 : 23 lignes servies sur 30, total 434 174, soit le compte
    6231 au centime.
-
-   Les sept clauses de jointure -- SCENARIO, PERIODE, EXERCICE, ENTITY,
-   PROGRAMME, AN_ETUDE, MODALITE -- descendent du meme raisonnement.
 
    =============================================================================
    AUCUNE REGRESSION, VERIFIE SUR L'EXTRAIT
 
-   Repli des soixante lignes, exercice 2026 :
+   Repli des trente lignes, exercice 2026 :
 
        CA                23 098 985      la ligne du cockpit
        EBITDA             3 845 790      la cellule d'ou partent les drills
@@ -54,24 +52,20 @@
 
    Repli par campus contre les quatorze lignes du cockpit : ecart 0,000000.
 
-   PART_EBITDA garde sa partition d'origine -- SCENARIO, VERSION, PERIODE,
-   EXERCICE -- donc la part du GROUPE. Au grain fin elle devient petite, mais
-   elle reste sommable : toutes les parts partagent le meme denominateur, donc
-   les replier redonne exactement la part du campus, puis celle de la marque.
+   PART_EBITDA garde sa partition d'origine, donc la part du GROUPE. Elle reste
+   sommable : toutes les parts partagent le meme denominateur, donc les replier
+   redonne exactement la part du campus, puis celle de la marque.
 
-   LES PLACES ne doublent pas : un meme couple campus x programme x annee
-   present dans les deux modalites aurait compte ses classes deux fois, et il
-   n'y en a aucun dans la donnee. Une classe est d'une modalite ou de l'autre.
-   Remplissage 2026 verifie a 76,2 %.
+   LES PLACES ne doublent pas. VOL_CLASS x capacite se casserait si un meme
+   couple campus x programme existait dans les deux modalites en partageant ses
+   classes ; il n'y en a aucun dans la donnee. Une classe est d'une modalite ou
+   de l'autre. Remplissage 2026 verifie a 76,2 %.
 
    =============================================================================
-   CE QUE LE RACCORD N-1 COMPARE, MAINTENANT QU'IL DESCEND PLUS BAS
+   CE QUE LE RACCORD N-1 COMPARE
 
-   Il se raccroche sur ENTITY + PROGRAMME + AN_ETUDE + MODALITE : la MEME PLACE
-   DANS LA STRUCTURE, pas la meme cohorte. Le B1 de 2026 est confronte au B1 de
-   2025, pas aux memes etudiants -- eux sont passes en B2. C'est la comparaison
-   de pilotage : "mon entree a-t-elle grossi", "ma M1 se remplit-elle mieux".
-   Les soixante cles de 2026 existent toutes en 2025 : aucune ligne orpheline.
+   Il se raccroche sur ENTITY + PROGRAMME + MODALITE. Les trente cles de 2026
+   existent toutes en 2025 : aucune ligne orpheline, aucun +100 % artificiel.
 
    =============================================================================
    Regles Tagetik : pas de CTE, pas de ';', pas de crochets. Le seul ORDER BY
@@ -86,7 +80,6 @@ SELECT
     n.MARQUE,
     n.ENTITY,
     n.PROGRAMME,
-    n.AN_ETUDE,
     n.MODALITE,
 
     n.CA                                AS CA,
@@ -111,12 +104,12 @@ SELECT
                                         AS PART_EBITDA
 FROM (
         SELECT  v.SCENARIO, v.VERSION, v.PERIODE, v.EXERCICE, v.MARQUE, v.ENTITY,
-                v.PROGRAMME, v.AN_ETUDE, v.MODALITE,
+                v.PROGRAMME, v.MODALITE,
                 v.CA, v.EBITDA, v.INSCRITS, v.EFFECTIFS, v.EFFECTIFS_ALT, v.PLACES,
                 COALESCE(s.SPEND_ACQ, 0) AS SPEND_ACQ
         FROM (
                 SELECT  a.SCENARIO, a.VERSION, a.PERIODE, a.EXERCICE, a.MARQUE, a.ENTITY,
-                        a.PROGRAMME, a.AN_ETUDE, a.MODALITE,
+                        a.PROGRAMME, a.MODALITE,
                         SUM(a.CA)                          AS CA,
                         SUM(a.CA - a.COST_COMPLET)         AS EBITDA,
                         SUM(a.VOL_NEW)                     AS INSCRITS,
@@ -127,22 +120,21 @@ FROM (
                                                ELSE 30 END) AS PLACES
                 FROM    V_ALLOCATION AS a
                 GROUP BY a.SCENARIO, a.VERSION, a.PERIODE, a.EXERCICE, a.MARQUE, a.ENTITY,
-                         a.PROGRAMME, a.AN_ETUDE, a.MODALITE
+                         a.PROGRAMME, a.MODALITE
              ) AS v
         LEFT JOIN (
                 SELECT  z.SCENARIO, z.PERIODE, z.EXERCICE, z.ENTITY,
-                        z.PROGRAMME, z.AN_ETUDE, z.MODALITE,
+                        z.PROGRAMME, z.MODALITE,
                         SUM(z.DEPENSE_ACQ) AS SPEND_ACQ
                 FROM    AW_002_000002_000001 AS z
                 GROUP BY z.SCENARIO, z.PERIODE, z.EXERCICE, z.ENTITY,
-                         z.PROGRAMME, z.AN_ETUDE, z.MODALITE
+                         z.PROGRAMME, z.MODALITE
              ) AS s
                ON  s.SCENARIO  = v.SCENARIO
               AND  s.PERIODE   = v.PERIODE
               AND  s.EXERCICE  = v.EXERCICE
               AND  s.ENTITY    = v.ENTITY
               AND  s.PROGRAMME = v.PROGRAMME
-              AND  s.AN_ETUDE  = v.AN_ETUDE
               AND  s.MODALITE  = v.MODALITE
      ) AS n
 OUTER APPLY (
@@ -150,12 +142,12 @@ OUTER APPLY (
                 x.CA, x.EBITDA, x.INSCRITS, x.EFFECTIFS, x.PLACES, x.SPEND_ACQ
         FROM (
                 SELECT  w.SCENARIO, w.VERSION, w.PERIODE, w.EXERCICE, w.ENTITY,
-                        w.PROGRAMME, w.AN_ETUDE, w.MODALITE,
+                        w.PROGRAMME, w.MODALITE,
                         w.CA, w.EBITDA, w.INSCRITS, w.EFFECTIFS, w.PLACES,
                         COALESCE(s2.SPEND_ACQ, 0) AS SPEND_ACQ
                 FROM (
                         SELECT  a.SCENARIO, a.VERSION, a.PERIODE, a.EXERCICE, a.ENTITY,
-                                a.PROGRAMME, a.AN_ETUDE, a.MODALITE,
+                                a.PROGRAMME, a.MODALITE,
                                 SUM(a.CA)                  AS CA,
                                 SUM(a.CA - a.COST_COMPLET) AS EBITDA,
                                 SUM(a.VOL_NEW)             AS INSCRITS,
@@ -165,29 +157,27 @@ OUTER APPLY (
                                                        ELSE 30 END) AS PLACES
                         FROM    V_ALLOCATION AS a
                         GROUP BY a.SCENARIO, a.VERSION, a.PERIODE, a.EXERCICE, a.ENTITY,
-                                 a.PROGRAMME, a.AN_ETUDE, a.MODALITE
+                                 a.PROGRAMME, a.MODALITE
                      ) AS w
                 LEFT JOIN (
                         SELECT  z.SCENARIO, z.PERIODE, z.EXERCICE, z.ENTITY,
-                                z.PROGRAMME, z.AN_ETUDE, z.MODALITE,
+                                z.PROGRAMME, z.MODALITE,
                                 SUM(z.DEPENSE_ACQ) AS SPEND_ACQ
                         FROM    AW_002_000002_000001 AS z
                         GROUP BY z.SCENARIO, z.PERIODE, z.EXERCICE, z.ENTITY,
-                                 z.PROGRAMME, z.AN_ETUDE, z.MODALITE
+                                 z.PROGRAMME, z.MODALITE
                      ) AS s2
                        ON  s2.SCENARIO  = w.SCENARIO
                       AND  s2.PERIODE   = w.PERIODE
                       AND  s2.EXERCICE  = w.EXERCICE
                       AND  s2.ENTITY    = w.ENTITY
                       AND  s2.PROGRAMME = w.PROGRAMME
-                      AND  s2.AN_ETUDE  = w.AN_ETUDE
                       AND  s2.MODALITE  = w.MODALITE
              ) AS x
         WHERE   x.SCENARIO  = n.SCENARIO
           AND   x.PERIODE   = n.PERIODE
           AND   x.ENTITY    = n.ENTITY
           AND   x.PROGRAMME = n.PROGRAMME
-          AND   x.AN_ETUDE  = n.AN_ETUDE
           AND   x.MODALITE  = n.MODALITE
           AND   CAST(x.EXERCICE AS INT) = CAST(n.EXERCICE AS INT) - 1
         ORDER BY CASE WHEN x.VERSION = n.VERSION THEN 0 ELSE 1 END

@@ -43,7 +43,7 @@ Deux disciplines de fond, qui expliquent la forme de la plupart de ces requêtes
 | Fichier | Rend | Paramétré |
 |---|---|---|
 | `Q_COCKPIT_COMPLET.sql` | une ligne par campus — 14 par exercice — avec marque et les six colonnes N-1 | non — c'est la source du rapport, Tagetik filtre sur son propre axe |
-| `Q_COCKPIT_DETAIL.sql` | **exactement la même structure** que `Q_COCKPIT_COMPLET` — mêmes colonnes, mêmes noms, même `OUTER APPLY`, même `PART_EBITDA` — plus `PROGRAMME`, `AN_ETUDE`, `MODALITE`. 24 colonnes, **60 lignes** par exercice | idem |
+| `Q_COCKPIT_DETAIL.sql` | **exactement la même structure** que `Q_COCKPIT_COMPLET` — mêmes colonnes, mêmes noms, même `OUTER APPLY`, même `PART_EBITDA` — plus `PROGRAMME` et `MODALITE`. 23 colonnes, **30 lignes** par exercice. On s'arrête là : Tagetik descend à l'année d'étude nativement, au double-clic | idem |
 
 `Q_PORTEFEUILLE_CLASSES.sql` est la version **population** de la même chose :
 pas de paramètre d'entité, 60 lignes, 20 colonnes, et surtout **les codes de
