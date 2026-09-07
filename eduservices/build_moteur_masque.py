@@ -549,9 +549,10 @@ titre(w2, 30, "③  Le coût d'enseignement campus par campus  ·  ce qui suit l
       "quand une classe doit ouvrir.")
 entete(w2, 33, ["Campus", "Effectifs 2026", "Places libres", "Consommables 604+6063",
                 "Consommables / élève", "Heures d'enseignement", "Vacataires 621",
-                "Quote-part vacataire / place", "Permanents 6411", "Permanents / élève"], 34)
+                "Quote-part vacataire / place", "Permanents 6411", "Permanents / élève",
+                "Croissance possible avant saturation"], 34)
 NB4 = ['General', '#,##0', '#,##0', '#,##0" €"', '#,##0" €"', '#,##0" h"', '#,##0" €"',
-       '#,##0" €"', '#,##0" €"', '#,##0" €"']
+       '#,##0" €"', '#,##0" €"', '#,##0" €"', '0.0%']
 RC0 = 34
 for j, e in enumerate(ENTS):
     r, r1, r2 = RC0 + j, T1 + 1 + j, T2 + 1 + j
@@ -559,18 +560,25 @@ for j, e in enumerate(ENTS):
                   "={0}N{1}".format(M, r1), "={0}G{1}".format(M, r2), "={0}R{1}".format(M, r1),
                   "=IFERROR(E%d/C%d,0)" % (r, r), "={0}Q{1}".format(M, r1),
                   "={0}S{1}".format(M, r1), "=IFERROR(H{0}/{1}O{2},0)".format(r, M, r1),
-                  "={0}T{1}".format(M, r1), "=IFERROR(J%d/C%d,0)" % (r, r)], NB4)
+                  "={0}T{1}".format(M, r1), "=IFERROR(J%d/C%d,0)" % (r, r),
+                  "=IFERROR(D%d/C%d,0)" % (r, r)], NB4)
 RCN = RC0 + len(ENTS)
 ligne(w2, RCN, ["GROUPE · 14 campus"] +
       ["=SUM({0}{1}:{0}{2})".format(GL(c), RC0, RCN - 1) for c in (3, 4, 5)] +
       ["=IFERROR(E{0}/C{0},0)".format(RCN)] +
       ["=SUM({0}{1}:{0}{2})".format(GL(c), RC0, RCN - 1) for c in (7, 8)] +
-      ["=IFERROR(H{0}/{1}O34,0)".format(RCN, M), "=SUM(J{0}:J{1})".format(RC0, RCN - 1),
-       "=IFERROR(J{0}/C{0},0)".format(RCN)], NB4, fond=GRIS, gras=True, trait=INK)
+      ["=IFERROR(H{0}/{1}O{2},0)".format(RCN, M, RT1), "=SUM(J{0}:J{1})".format(RC0, RCN - 1),
+       "=IFERROR(J{0}/C{0},0)".format(RCN),
+       # la croissance possible ne se somme pas : au groupe, c'est celle du
+       # PREMIER campus qui sature, pas la moyenne du reseau.
+       "=MIN(L{0}:L{1})".format(RC0, RCN - 1)], NB4, fond=GRIS, gras=True, trait=INK)
 for col in ("F", "I", "K"):
     w2.conditional_formatting.add("{0}{1}:{0}{2}".format(col, RC0, RCN - 1),
         ColorScaleRule(start_type="min", start_color=HM_HAUT, mid_type="percentile", mid_value=50,
                        mid_color=HM_MED, end_type="max", end_color=HM_BAS))
+w2.cell(RCN + 1, 2, "La dernière colonne ne se somme pas : au groupe, la croissance possible est "
+                    "celle du PREMIER campus qui sature, pas la moyenne du réseau.")
+w2.cell(RCN + 1, 2).font = F(7.5, False, DOUX, True); w2.cell(RCN + 1, 2).alignment = ind(0)
 w2.cell(RCN + 2, 2, '="Les permanents pèsent "&TEXT(J{0}/(E{0}+H{0}+J{0}),"0 %")&" du coût '
                     'd\'enseignement du réseau, et pas un euro d\'entre eux ne bouge quand un élève '
                     'de plus s\'assoit."'.format(RCN))
@@ -856,6 +864,206 @@ w3.cell(RKN + 3, 2, "① ajouter HEURES_N et COUT_PERM_N à V_MOTEUR_CAL (le .sq
                     "③ le tableau ② est un masque de saisie : seule F4 est ouverte.  "
                     "④ l'onglet « Le coût variable » ne lit que le tableau ① et les paramètres ci-dessus.")
 w3.cell(RKN + 3, 2).font = F(7.5, False, DOUX, True); w3.cell(RKN + 3, 2).alignment = ind(0)
+
+# ============================================================================
+#  ONGLET 4 — PROJETER LES COUTS 2027
+#
+#  LA QUESTION EST JUSTE, ET LA REPONSE HONNETE COMMENCE PAR UN AVEU.
+#
+#  Le moteur ne projette RIEN. C'est un modele MARGINAL : il applique des couts
+#  unitaires 2026 a un volume marginal, et repond a « si je bouge le budget
+#  d'acquisition, qu'est-ce que ca change ». Cette reponse ne depend pas de
+#  l'inflation 2027 -- elle depend du cout du siege suivant. Valide pour un
+#  delta ; ce n'est pas un budget.
+#
+#  Et il n'y a rien a restituer : la comptabilite ne contient AUCUN cout 2027.
+#  Les deux seules lignes 2027 sont techniques (TEC_PL, TEC_EBITDA) et on ne
+#  les utilise pas. Le 2027 se CONSTRUIT.
+#
+#  Il se construit avec UN INDUCTEUR PAR COMPORTEMENT -- et le comportement,
+#  c'est exactement la colonne du tableau (5). D'ou cet onglet : la colonne
+#  « comportement » devient une regle de projection.
+#
+#      Variable      604 6063     effectifs x inflation
+#      Semi-variable 621          CLASSES x inflation -- et non pas effectifs :
+#                                 tant qu'aucune classe n'ouvre, le vacataire
+#                                 ne prend que son prix
+#      Capacite      6411         postes x politique salariale
+#      Assis         645 6331     la masse salariale, au prorata
+#                    6333
+#      Structure     613 615 616  inflation moins l'effort de productivite
+#                    625 63511
+#                    6413 6226
+#                    626 6281
+#      Siege         6414         politique salariale
+#                    6236         le budget de marque, qui est une decision
+#      Levier        6231         LE GESTE lui-meme, lie a la saisie F4 du
+#                                 premier onglet
+#      Hors EBITDA   6811         le plan d'amortissement
+#
+#  CE QUE LES TROIS EXERCICES REELS DISENT, ET QUI CADRE LES SAISIES :
+#  tous les comptes de charges progressent au MEME rythme, +4,58 % puis
+#  +4,77 %, pendant que les effectifs montent de +5,8 % puis +6,2 % et que le
+#  nombre de classes ne bouge pas -- 135, trois ans de suite. C'est du levier
+#  operationnel pur : la charge par eleve tombe de 6 281 a 6 183 EUR et la
+#  marge passe de 15,3 % a 16,7 %.
+#
+#  ET LA MARCHE NE TOMBE PAS EN 2027. Le premier campus a saturer est MBway
+#  Paris, a +16,2 % d'effectifs. A +6,2 % l'an, il tient jusqu'en 2029. C'est
+#  pour cela que 621 ne prend que l'inflation en 2027, et c'est verifiable
+#  dans le classeur, pas affirme.
+# ============================================================================
+w4 = wb.create_sheet("Projection 2027")
+NC4 = 12
+bandeau(w4, NC4, "PROJETER LES COÛTS 2027  —  un inducteur par comportement", 76)
+w4.column_dimensions["A"].width = 2.4; w4.column_dimensions["B"].width = 34
+for c, wd in ((3, 14), (4, 15), (5, 24), (6, 13), (7, 13), (8, 15), (9, 13), (10, 26),
+              (11, 14), (12, 14)): w4.column_dimensions[GL(c)].width = wd
+
+w4.cell(5, 2, "La base 2027 n'existe pas. Il n'y a rien à restituer.").font = F(12, True, INK)
+w4.cell(5, 2).alignment = ind(0); w4.row_dimensions[5].height = 22
+w4.cell(6, 2, "Les deux seules lignes 2027 de la comptabilité sont techniques. Le 2027 se construit — "
+              "et le moteur, lui, ne le construit pas : c'est un modèle MARGINAL, qui applique des coûts "
+              "unitaires 2026 à un volume marginal. Ici on fait l'autre travail : une règle de projection "
+              "par comportement, et le comportement est la colonne du tableau ⑤.")
+w4.cell(6, 2).font = F(8, False, DOUX, True); w4.cell(6, 2).alignment = ind(0)
+w4.row_dimensions[6].height = 16
+
+# ---- (a) LES NEUF SAISIES -------------------------------------------------
+titre(w4, 8, "ⓐ  Les neuf saisies  ·  chacune est une décision, et chacune a un propriétaire",
+      "Six d'entre elles sont les leviers de l'onglet Cadrage, reprises telles quelles. La septième "
+      "n'est pas saisie ici : elle est LIÉE au geste du premier onglet.")
+entete(w4, 11, ["Saisie", None, None, "Valeur retenue", None, "D'où elle vient"], 24)
+SAIS = [("Croissance des effectifs 2027",                    0.062,  "constatée 2026 : +6,2 %"),
+        ("Hausse tarifaire",                                 0.0029, "levier Cadrage · croissance"),
+        ("Inflation des charges externes",                   0.020,  "levier Cadrage · coûts"),
+        ("Effort de productivité achats & structure",        0.0185, "levier Cadrage · coûts"),
+        ("Politique salariale sur la masse permanente",      0.025,  "levier Cadrage · coûts"),
+        ("Variation des effectifs permanents",               0.040,  "levier Cadrage · coûts"),
+        ("Δ budget d'acquisition  (6231)",     "='Le moteur'!F4", "LIÉ au geste, onglet « Le moteur »"),
+        ("Δ budget de marque  (6236)",                       0.100,  "levier Cadrage · croissance"),
+        ("Dotations aux amortissements",                     0.020,  "plan d'amortissement")]
+SA0 = 12
+for j, (lab, val, src) in enumerate(SAIS):
+    r = SA0 + j
+    for c in range(2, NC4 + 1):
+        x = w4.cell(r, c); x.fill = fill(PARM); x.border = Border(bottom=sd("E6E2D6"))
+    w4.cell(r, 2, lab).font = F(8, True, INK); w4.cell(r, 2).alignment = ind(0)
+    x = w4.cell(r, 5, val); x.number_format = '+0.00%;-0.00%;"—"'
+    x.font = F(9, True, AZUR if isinstance(val, str) else INK); x.alignment = R
+    x.fill = fill(PANEL); x.border = Border(*[sd(AZUR if isinstance(val, str) else "C9C3B0")] * 4)
+    w4.cell(r, 7, src).font = F(7.5, False, DOUX, True); w4.cell(r, 7).alignment = ind(0)
+EFF, TAR, INF, PRD, SAL, POS, ACQ, MRQ, DOT = ["$E$%d" % (SA0 + i) for i in range(9)]
+
+# ---- (b) LE VOLUME 2027, et la marche qui ne tombe pas --------------------
+titre(w4, 22, "ⓑ  Le volume 2027  ·  et la seule question qui fasse bouger le 621",
+      "Un vacataire de plus ne se paie pas parce qu'il y a des élèves de plus : il se paie parce "
+      "qu'une CLASSE ouvre. Tant qu'aucune n'ouvre, le 621 ne prend que son prix.")
+entete(w4, 25, ["Grandeur", None, None, "2027", None, "Lecture"], 24)
+VOL = [("Effectifs 2026",                        "='Le moteur'!N%d" % RT1,     '#,##0',  ""),
+       ("Effectifs 2027",                        "=E26*(1+%s)" % EFF,          '#,##0',  "la croissance saisie"),
+       ("Places du réseau",                      "='Le moteur'!O%d" % RT1,     '#,##0',  "135 classes, inchangées depuis 2024"),
+       ("Classes 2026",                          "='Le moteur'!P%d" % RT1,     '#,##0',  ""),
+       ("Capacité moyenne d'une classe",         "=IFERROR(E28/E29,0)",        '#,##0.0', ""),
+       ("Croissance possible avant saturation",  "='Le coût variable'!L%d" % RCN, '0.0%',
+        "le premier campus qui sature : MBway Paris"),
+       ("Classes à ouvrir en 2027",              "=MAX(0,ROUNDUP((E27-E28)/E30,0))", '#,##0',
+        "aucune : la marche ne tombe pas en 2027"),
+       ("Classes 2027",                          "=E29+E32",                   '#,##0',  ""),
+       ("Inducteur du compte 621",               "=IFERROR(E33/E29,0)",        '0.000',
+        "le ratio de CLASSES, pas d'effectifs")]
+for j, (lab, f, nf, lec) in enumerate(VOL):
+    r = 26 + j
+    for c in range(2, NC4 + 1):
+        w4.cell(r, c).fill = fill(PANEL); w4.cell(r, c).border = Border(bottom=sd("EDEEF0"))
+    w4.cell(r, 2, lab).font = F(8, j in (1, 5, 6, 8), INK); w4.cell(r, 2).alignment = ind(0)
+    x = w4.cell(r, 5, f); x.number_format = nf; x.alignment = R
+    x.font = F(8, j in (1, 5, 6, 8), ROUGE_T if j == 5 else INK)
+    w4.cell(r, 7, lec).font = F(7.5, False, DOUX, True); w4.cell(r, 7).alignment = ind(0)
+w4.cell(35, 2, "À +6,2 % l'an, MBway Paris tient jusqu'en 2029. C'est vérifiable ligne à ligne dans "
+               "l'onglet « Le coût variable », dernière colonne — ce n'est pas une affirmation.")
+w4.cell(35, 2).font = F(7.5, False, DOUX, True); w4.cell(35, 2).alignment = ind(0)
+
+# ---- (c) LA PROJECTION, COMPTE PAR COMPTE --------------------------------
+titre(w4, 38, "ⓒ  La projection, compte par compte", 
+      "Montant 2026 lié au tableau ⑤. Chaque compte reçoit un effet volume et un effet prix — "
+      "jamais les deux au hasard : c'est son comportement qui les désigne.", "B26B00")
+entete(w4, 41, ["Compte et libellé", None, "Montant 2026", "Inducteur de volume", "Effet volume",
+                "Effet prix", "Montant 2027", "Variation", "Ce qui décide"], 30)
+RP0 = 42
+LIG = {c[0]: RP0 + i for i, c in enumerate(CPT)}
+MASSE = "=({0}+{1}+{2})/({3}+{4}+{5})".format(*["H%d" % LIG[a] for a in ("6411", "6413", "6414")]
+                                              + ["D%d" % LIG[a] for a in ("6411", "6413", "6414")])
+IDX = "=1+%s-%s" % (INF, PRD)
+PROJ = {
+ "604":  ("=1+%s" % EFF, "=1+%s" % INF, "effectifs", "le remplissage"),
+ "6063": ("=1+%s" % EFF, "=1+%s" % INF, "effectifs", "le remplissage"),
+ "621":  ("=$E$34",      "=1+%s" % INF, "CLASSES, pas effectifs", "l'ouverture d'une classe"),
+ "6411": ("=1+%s" % POS, "=1+%s" % SAL, "postes permanents", "le recrutement"),
+ "6231": (1,             "=1+%s" % ACQ, "—", "LE GESTE — onglet « Le moteur »"),
+ "6413": (1,             "=1+%s" % SAL, "—", "la politique salariale"),
+ "645":  (MASSE,         1,             "la masse salariale", "assis sur la masse"),
+ "613":  (1, IDX, "—", "l'indexation, moins l'effort"),
+ "615":  (1, IDX, "—", "l'indexation, moins l'effort"),
+ "616":  (1, IDX, "—", "l'indexation, moins l'effort"),
+ "625":  (1, IDX, "—", "l'indexation, moins l'effort"),
+ "63511":(1, IDX, "—", "la fiscalité locale"),
+ "6236": (1,             "=1+%s" % MRQ, "—", "le budget de marque"),
+ "6414": (1,             "=1+%s" % SAL, "—", "la politique salariale"),
+ "6226": (1, IDX, "—", "l'indexation, moins l'effort"),
+ "626":  (1, IDX, "—", "l'indexation, moins l'effort"),
+ "6281": (1, IDX, "—", "l'indexation, moins l'effort"),
+ "6331": (MASSE, 1, "la masse salariale", "assis sur la masse"),
+ "6333": (MASSE, 1, "la masse salariale", "assis sur la masse"),
+ "6811": (1,             "=1+%s" % DOT, "—", "le plan d'amortissement")}
+NB7 = ['General', 'General', '#,##0" €"', 'General', '0.000', '0.000', '#,##0" €"', '+0.0%;-0.0%', 'General']
+for j, (cpt, lib, poche, cle, comp, bouge, coul) in enumerate(CPT):
+    r = RP0 + j; vol, prix, ind_, dec = PROJ[cpt]
+    ligne(w4, r, ["%s · %s" % (cpt, lib), None, "='Le coût variable'!D%d" % (RG0 + j),
+                  ind_, vol, prix, "=D{0}*F{0}*G{0}".format(r), "=IFERROR(H{0}/D{0}-1,0)".format(r),
+                  dec], NB7, gauche=(1, 3, 8), fond=CALC)
+    w4.cell(r, 5).font = F(8, False, DOUX); w4.cell(r, 10).font = F(8, False, coul)
+    w4.cell(r, 8).font = F(8, True, INK)
+RPN = RP0 + len(CPT)
+ligne(w4, RPN, ["TOTAL DES CHARGES  ·  dotations incluses", None,
+                "=SUM(D{0}:D{1})".format(RP0, RPN - 1), "", "", "",
+                "=SUM(H{0}:H{1})".format(RP0, RPN - 1),
+                "=IFERROR(H{0}/D{0}-1,0)".format(RPN), ""],
+      NB7, fond=GRIS, gras=True, trait=INK, gauche=(1, 3, 8))
+ligne(w4, RPN + 1, ["Chiffre d'affaires", None, "='Le coût variable'!D%d" % (RGN + 1), "volume × prix",
+                    "=1+%s" % EFF, "=1+%s" % TAR, "=D{0}*F{0}*G{0}".format(RPN + 1),
+                    "=IFERROR(H{0}/D{0}-1,0)".format(RPN + 1), "le socle CRM et le tarif"],
+      NB7, fond=VUE, gras=True, gauche=(1, 3, 8))
+ligne(w4, RPN + 2, ["EBITDA  ·  hors dotations", None,
+                    "=D{0}-D{1}+D{2}".format(RPN + 1, RPN, RP0 + len(CPT) - 1), "", "", "",
+                    "=H{0}-H{1}+H{2}".format(RPN + 1, RPN, RP0 + len(CPT) - 1),
+                    "=IFERROR(H{0}/D{0}-1,0)".format(RPN + 2), ""],
+      NB7, fond=GRIS, gras=True, trait=INK, gauche=(1, 3, 8))
+ligne(w4, RPN + 3, ["Marge d'EBITDA", None, "=IFERROR(D{0}/D{1},0)".format(RPN + 2, RPN + 1), "", "", "",
+                    "=IFERROR(H{0}/H{1},0)".format(RPN + 2, RPN + 1),
+                    "=H{0}-D{0}".format(RPN + 3), ""],
+      NB7, fond=PANEL, gras=True, gauche=(1, 3, 8))
+for c in (4, 8): w4.cell(RPN + 3, c).number_format = '0.00%'
+w4.cell(RPN + 3, 9).number_format = '+0.00" pt";-0.00" pt"'
+for c in (4, 8): w4.cell(RPN + 2, c).font = F(10, True, VERT_T)
+w4.conditional_formatting.add("I{0}:I{1}".format(RP0, RPN - 1),
+    ColorScaleRule(start_type="min", start_color=HM_HAUT, mid_type="percentile", mid_value=50,
+                   mid_color=HM_MED, end_type="max", end_color=HM_BAS))
+
+for c in range(2, NC4 + 1):
+    w4.cell(RPN + 5, c).fill = fill(PANEL); w4.cell(RPN + 5, c).border = Border(top=sd(AZUR))
+    w4.cell(RPN + 6, c).fill = fill(PANEL); w4.cell(RPN + 6, c).border = Border(bottom=sd(AZUR))
+w4.cell(RPN + 5, 2, '="2027 : "&TEXT(H{0},"#,##0 €")&" d\'EBITDA, marge "&TEXT(H{1},"0.0 %")'
+                    '&"  —  contre "&TEXT(D{1},"0.0 %")&" en 2026. Le gain ne vient pas d\'une '
+                    'économie : il vient de "&TEXT(E27-E26,"#,##0")&" élèves de plus dans des '
+                    'classes déjà ouvertes."'.format(RPN + 2, RPN + 3))
+w4.cell(RPN + 5, 2).font = F(9, True, INK); w4.cell(RPN + 5, 2).alignment = ind(0)
+w4.row_dimensions[RPN + 5].height = 18
+w4.cell(RPN + 6, 2, "Le jour où une classe doit ouvrir, la ligne 621 change d'inducteur toute seule — "
+                    "et c'est là que la marge s'arrête de monter. Le classeur dit quand : "
+                    "onglet « Le coût variable », dernière colonne.")
+w4.cell(RPN + 6, 2).font = F(7.5, False, DOUX, True); w4.cell(RPN + 6, 2).alignment = ind(0)
+
 
 wb.save(OUT)
 print("écrit :", OUT)
