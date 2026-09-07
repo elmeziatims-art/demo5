@@ -348,6 +348,13 @@ NL = len(ENTS); RT1 = T1 + NL + 1; RT2 = T2 + NL + 1
 #  Colonnes AD..AJ, repliees. C'est la sortie de Q_HYPOTHESES.sql, collee telle
 #  quelle. Personne ne la regarde ; tout le classeur la lit.
 from openpyxl.worksheet.datavalidation import DataValidation
+#  ELLE RESTE VISIBLE. On ne peut pas cabler une zone qu'on ne voit pas : elle
+#  est groupee, pas masquee. Un clic sur le « − » de la marge la replie le jour
+#  de la demo, un clic sur le « + » la rouvre.
+ws.cell(1, ZC, "LA ZONE D'HYPOTHÈSES  ·  collez ici la sortie de Q_HYPOTHESES.sql").font = F(9, True, AZUR)
+ws.cell(1, ZC).alignment = ind(0)
+ws.cell(2, ZC, "Tout le classeur la lit. Repliez-la d'un clic sur le « − » de la marge quand vous présentez.")
+ws.cell(2, ZC).font = F(7.5, False, DOUX, True); ws.cell(2, ZC).alignment = ind(0)
 for i, h in enumerate(["Ordre", "Famille", "Code", "Libellé", "Cadrage", "Optimiste", "Prudent"]):
     x = ws.cell(ZH, ZC + i, h); x.font = F(8, True, INK); x.fill = fill(GRIS)
     x.border = Border(bottom=sd(INK))
@@ -360,7 +367,6 @@ for j, ligne_ in enumerate(HYP):
 for c in range(ZC, ZC + 7):
     ws.column_dimensions[GL(c)].width = 22 if c == ZC + 3 else 13
     ws.column_dimensions[GL(c)].outlineLevel = 1
-    ws.column_dimensions[GL(c)].hidden = True
 
 # ---- 4. LE GESTE : DEUX budgets, donc DEUX saisies ------------------------
 #  Il n'y en avait qu'une, et c'etait un trou : on pilotait l'acquisition
