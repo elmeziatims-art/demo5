@@ -45,6 +45,12 @@ Deux disciplines de fond, qui expliquent la forme de la plupart de ces requêtes
 | `Q_COCKPIT_COMPLET.sql` | une ligne par campus — 14 par exercice — avec marque et les six colonnes N-1 | non — c'est la source du rapport, Tagetik filtre sur son propre axe |
 | `Q_COCKPIT_DETAIL.sql` | le même cockpit au grain de la **classe** : campus × programme × année d'étude × modalité, **60 lignes** par exercice, plus les libellés (campus, cycle, modalité) et la part dans le campus | idem |
 
+`Q_PORTEFEUILLE_CLASSES.sql` est la version **population** de la même chose :
+pas de paramètre d'entité, 60 lignes, 20 colonnes, et surtout **les codes de
+dimension** (`Marque`, `Campus`) à côté de leurs libellés — sans eux une matrice
+s'affiche mais ne se pilote pas. C'est la requête du *Portefeuille — marque &
+campus*.
+
 `Q_D4_CLASSES.sql` est le **drill natif** sur une ligne de campus : double-clic
 dans Tagetik, et le campus s'ouvre en 4 à 6 lignes — programme × année d'étude ×
 modalité, 17 colonnes, les deux exercices côte à côte. Le cockpit garde ses 14
