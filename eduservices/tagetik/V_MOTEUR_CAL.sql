@@ -27,6 +27,34 @@
    a Tunon Lyon, 117 eleves, qu'a MBway Paris, 382.
 
    =============================================================================
+   DEUX LEVIERS, PAS UN. ET LE PLUS GROS N'ETAIT PAS DANS LE MODELE.
+
+   Le classeur ne pilotait que l'acquisition payante. Or le budget de MARQUE
+   pese 676 344 EUR en 2026 -- 56 % de PLUS que les 434 174 EUR d'acquisition
+   -- et les leads organiques font 43 % du total. On modelisait le plus petit
+   des deux leviers.
+
+   La vue rend donc les deux series, et les deux pentes :
+
+       acquisition   SPEND_ACQ -> LEAD_PAY    ELASTICITE       0,419 a 0,591
+       marque        SPEND_MRQ -> LEAD_ORG    ELASTICITE_ORG   0,280 a 0,358
+
+   A +8 %, et par euro depense, le verdict est net :
+
+       acquisition   34 734 EUR  ->  27,0 inscrits  ->  205 651 EUR de CA
+                     soit 5,92 EUR de CA par euro, CAC marginal 1 287 EUR
+       marque        54 108 EUR  ->  13,8 inscrits  ->  104 058 EUR de CA
+                     soit 1,92 EUR de CA par euro, CAC marginal 3 916 EUR
+
+   L'euro d'acquisition rapporte 3,1 fois l'euro de marque.
+
+   LA RESERVE, ET IL FAUT L'ENONCER SOI-MEME : une regression sur trois
+   exercices ne capte que l'effet de l'ANNEE. La marque se juge sur trois ans.
+   La conclusion defendable n'est donc pas « coupez la marque », c'est : a
+   horizon un an l'acquisition rapporte trois fois plus, et si l'on croit que
+   la marque rapporte a trois ans, il faut le mesurer, pas le supposer.
+
+   =============================================================================
    LA SEULE COLONNE QUI NE SE SOMME PAS : ELASTICITE
 
    Elle est calculee ici parce qu'elle ne peut pas l'etre ailleurs : c'est une
@@ -123,12 +151,25 @@ SELECT
     SUM(CASE WHEN v.EXERCICE = 2024 THEN v.SPEND_ACQ END)           AS SPEND_ACQ_2024,
     SUM(CASE WHEN v.EXERCICE = 2025 THEN v.SPEND_ACQ END)           AS SPEND_ACQ_2025,
     SUM(CASE WHEN v.EXERCICE = 2026 THEN v.SPEND_ACQ END)           AS SPEND_ACQ_2026,
+    SUM(CASE WHEN v.EXERCICE = 2024 THEN v.LEAD_ORG  END)           AS LEAD_ORG_2024,
+    SUM(CASE WHEN v.EXERCICE = 2025 THEN v.LEAD_ORG  END)           AS LEAD_ORG_2025,
+    SUM(CASE WHEN v.EXERCICE = 2026 THEN v.LEAD_ORG  END)           AS LEAD_ORG_2026,
+    SUM(CASE WHEN v.EXERCICE = 2024 THEN v.SPEND_MRQ END)           AS SPEND_MRQ_2024,
+    SUM(CASE WHEN v.EXERCICE = 2025 THEN v.SPEND_MRQ END)           AS SPEND_MRQ_2025,
+    SUM(CASE WHEN v.EXERCICE = 2026 THEN v.SPEND_MRQ END)           AS SPEND_MRQ_2026,
 
     /* ---- la pente log-log, seule colonne non additive -------------------- */
     ( COUNT(*) * SUM(LOG(v.LEAD_PAY) * LOG(v.SPEND_ACQ))
       - SUM(LOG(v.LEAD_PAY)) * SUM(LOG(v.SPEND_ACQ)) )
     / NULLIF( COUNT(*) * SUM(LOG(v.SPEND_ACQ) * LOG(v.SPEND_ACQ))
               - SUM(LOG(v.SPEND_ACQ)) * SUM(LOG(v.SPEND_ACQ)), 0 )  AS ELASTICITE,
+
+    /* la meme pente, cote MARQUE : budget de marque -> leads organiques.
+       Elle existe, elle se mesure, et elle est plus plate que l'autre. */
+    ( COUNT(*) * SUM(LOG(v.LEAD_ORG) * LOG(v.SPEND_MRQ))
+      - SUM(LOG(v.LEAD_ORG)) * SUM(LOG(v.SPEND_MRQ)) )
+    / NULLIF( COUNT(*) * SUM(LOG(v.SPEND_MRQ) * LOG(v.SPEND_MRQ))
+              - SUM(LOG(v.SPEND_MRQ)) * SUM(LOG(v.SPEND_MRQ)), 0 )  AS ELASTICITE_ORG,
 
     /* ---- de quoi calculer la conversion et le CA par inscrit ------------- */
     SUM(CASE WHEN v.EXERCICE = 2026 THEN v.LEAD_TOT  END)           AS LEAD_TOT_N,
@@ -151,6 +192,8 @@ FROM (
                 LEFT(s.ENTITY, CHARINDEX('_', s.ENTITY + '_') - 1)  AS MARQUE,
                 CAST(s.EXERCICE AS INT)                             AS EXERCICE,
                 SUM(s.VOL_LEAD_PAY)                                 AS LEAD_PAY,
+                SUM(s.VOL_LEAD_ORG)                                 AS LEAD_ORG,
+                SUM(s.DEPENSE_MARQUE)                               AS SPEND_MRQ,
                 SUM(s.VOL_LEAD_ORG) + SUM(s.VOL_LEAD_PAY)           AS LEAD_TOT,
                 SUM(s.VOL_LEAD)                                     AS LEAD_BRUT,
                 SUM(s.DEPENSE_ACQ)                                  AS SPEND_ACQ,
@@ -174,7 +217,8 @@ FROM (
         WHERE   CAST(s.EXERCICE AS INT) IN (2024, 2025, 2026)
         GROUP BY s.ENTITY, LEFT(s.ENTITY, CHARINDEX('_', s.ENTITY + '_') - 1),
                  CAST(s.EXERCICE AS INT)
-        HAVING  SUM(s.VOL_LEAD_PAY) > 0 AND SUM(s.DEPENSE_ACQ) > 0
+        HAVING  SUM(s.VOL_LEAD_PAY)  > 0 AND SUM(s.DEPENSE_ACQ)    > 0
+            AND SUM(s.VOL_LEAD_ORG)  > 0 AND SUM(s.DEPENSE_MARQUE) > 0
      ) AS v
 LEFT JOIN azienda AS az
        ON  az.COD_AZIENDA = v.ENTITY
