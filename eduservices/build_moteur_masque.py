@@ -244,7 +244,7 @@ CAMPUS = [a for f in FAM for a in f[3]]
 
 #  Le plan de lignes de l'onglet 4, calcule ici parce que les controles de
 #  l'onglet 3 en ont besoin avant que l'onglet 4 ne soit ecrit.
-TP = 59
+TP = 65
 PLANL = []; ROWP = {}; rr_ = TP
 for lab, cl, regle, cpts, coul in FAM:
     PLANL.append(("fam", rr_, lab, cl, regle, cpts, coul)); rr_ += 1
@@ -284,7 +284,7 @@ for r in (1, 2):
 for c in range(1, NC + 1): ws.cell(3, c).fill = fill(AZUR)
 ws.cell(1, 2, "EDUSERVICES · le moteur d'acquisition").font = F(7.5, False, PALE)
 ws.cell(1, 2).alignment = ind(0)
-ws.cell(2, 2, "CALIBRATION & EFFET D'UN +Δ%  —  campus groupé par marque").font = F(14, True, "FFFFFF")
+ws.cell(2, 2, "LE MOTEUR D'ACQUISITION  —  l'effet d'un euro de plus, campus par campus").font = F(14, True, "FFFFFF")
 ws.cell(2, 2).alignment = ind(0)
 ws.column_dimensions["A"].width = 2.4
 ws.column_dimensions["B"].width = 21; ws.column_dimensions["C"].width = 13
@@ -344,7 +344,7 @@ ws.cell(14, 2).font = F(7.5, False, DOUX, True); ws.cell(14, 2).alignment = ind(
 
 # ---- 17-34. TABLEAU (1) : CE QUE LA VUE RESTITUE --------------------------
 # Aucune formule ici. Ce sont les colonnes de V_MOTEUR_CAL, telles quelles.
-ws.cell(17, 2, "①  CE QUE LA VUE RESTITUE  ·  V_MOTEUR_CAL, une ligne par campus, aucun calcul")
+ws.cell(17, 2, "①  CE QUI VIENT DE LA BASE  ·  une ligne par campus, aucun calcul")
 ws.cell(17, 2).font = F(10, True, AZUR); ws.cell(17, 2).alignment = ind(0)
 ws.cell(18, 2, "Ces dix-neuf colonnes sortent de la base. Elles sont additives : on peut les sommer, "
                "les filtrer, les remonter à la marque — rien n'y est un ratio.")
@@ -391,7 +391,7 @@ for i in range(19):
 
 # ---- 41-58. TABLEAU (2) : CE QUE LE MASQUE CALCULE -------------------------
 # Chaque cellule pointe le tableau du dessus. On clique, on remonte à la vue.
-ws.cell(41, 2, "②  CE QUE LE MASQUE CALCULE  ·  chaque formule pointe une cellule du tableau ①")
+ws.cell(41, 2, "②  CE QUE LE MOTEUR CALCULE  ·  chaque formule pointe une cellule du tableau ①")
 ws.cell(41, 2).font = F(10, True, "B26B00"); ws.cell(41, 2).alignment = ind(0)
 ws.cell(42, 2, "Rien n'est stocké ici. Cliquez une cellule : la formule remonte au tableau du dessus, "
                "et la seule saisie du classeur est F4.")
@@ -559,7 +559,7 @@ M, T = "'Le moteur'!", "'Intégration & contrôles'!"      # les deux sources
 
 w2.cell(5, 2, "La comptabilité ne connaît pas le programme.").font = F(12, True, INK)
 w2.cell(5, 2).alignment = ind(0); w2.row_dimensions[5].height = 22
-w2.cell(6, 2, "AW_002_000004_000001 est au grain CAMPUS × COMPTE. Un coût par élève et par programme "
+w2.cell(6, 2, "La comptabilité est tenue au grain CAMPUS × COMPTE. Un coût par élève et par programme "
               "ne se lit donc pas : il s'alloue. V_ALLOCATION le fait déjà, avec des clés différentes "
               "selon la nature de la charge — et c'est de là que vient tout le reste.")
 w2.cell(6, 2).font = F(8, False, DOUX, True); w2.cell(6, 2).alignment = ind(0)
@@ -891,61 +891,73 @@ w3.cell(RKN + 3, 2).font = F(7.5, False, DOUX, True); w3.cell(RKN + 3, 2).alignm
 # ============================================================================
 #  ONGLET 4 — LE BUDGET 2027
 #
-#  TROIS REPROCHES ONT FAIT CETTE VERSION, ET ILS ETAIENT FONDES.
+#  CET ONGLET SE PROJETTE DEVANT UN CFO. Il est ecrit pour lui, pas pour
+#  l'integrateur, et cela change trois choses concretes :
 #
-#  1. « On ne reprend pas ce que fait le moteur. »  C'etait vrai : la premiere
-#     version saisissait une croissance d'effectifs a la main ET liait le 6231
-#     au geste -- elle payait donc le geste sans encaisser les eleves qu'il
-#     rapporte. Les deux cellules qui comptent sont maintenant LIEES
-#     ('Le moteur'!I58 et J58) et un bloc de reconciliation le prouve.
+#  1. LE RESULTAT EN HAUT. Quatre nombres des la premiere vue -- CA, EBITDA
+#     propre, quote-part du siege, EBITDA net -- avant meme les hypotheses.
+#     On ne fait pas descendre un DAF sur quatre-vingts lignes pour lui donner
+#     le chiffre qu'il est venu chercher.
 #
-#  2. « Est-ce qu'on projette avant cout siege ? »  On projetait APRES, sans le
-#     dire, et surtout en rangeant le siege dans une famille « indexe » -- ce
-#     qui laissait croire qu'il s'indexe alors qu'il se DECIDE puis se cascade.
-#     Corrige : six familles d'inducteur pour le CAMPUS, le siege en bloc a
-#     part, et les DEUX resultats affiches.
+#  2. DES POURCENTAGES, PAS DES COEFFICIENTS. La version precedente affichait
+#     « 1,062 » et « 1,020 ». Personne ne lit un coefficient. Les colonnes
+#     portent maintenant des ecarts -- « +6,9 % » et « +2,0 % » -- et le calcul
+#     s'ecrit D x (1+F) x (1+G). Un zero s'affiche « — » au lieu de « 1,000 ».
 #
-#         EBITDA PROPRE   ce que les campus produisent      32,1 % -> 33,5 %
-#         quote-part siege ce que le siege coute            15,4 % -> 15,0 %
-#         EBITDA NET      celui du groupe                   16,7 % -> 18,5 %
+#  3. LE DETAIL REPLIE. Les vingt comptes sont groupes sous leur famille et
+#     FERMES par defaut. Le CFO voit six familles et trois resultats ; il
+#     ouvre un « + » s'il veut le compte. Le detail n'a pas disparu, il attend.
 #
-#     Et la lecture qui n'apparaissait pas avant : la marge nette gagne 1,9 pt
-#     quand la marge propre n'en gagne que 1,4. La difference ne vient pas des
-#     campus, elle vient du SIEGE QUI SE DILUE -- il croit moins vite que le CA.
-#     C'est un resultat de structure, pas une performance operationnelle, et un
-#     DAF preferera toujours l'entendre de nous que le decouvrir seul.
-#
-#  3. « A-t-on besoin de quatre onglets ? »  Le tableau des vingt comptes vivait
-#     en double, ici et dans l'onglet du cout. Il n'existe plus qu'ici, ou il
-#     porte 2026 ET 2027 au lieu de 2026 seul.
+#  Le siege reste en bloc a part : il ne suit aucun inducteur d'activite, il se
+#  decide puis se cascade. Le ranger dans une famille « indexe » ferait croire
+#  qu'il s'indexe.
 # ============================================================================
 w4 = wb.create_sheet("Budget 2027")
-NC4 = 12
-bandeau(w4, NC4, "BUDGET 2027  —  le CA en quatre lignes, les coûts en six familles", R_FIN + 12)
+NC4 = 13
+bandeau(w4, NC4, "BUDGET 2027  —  le chiffre d'affaires en quatre lignes, les coûts en six familles",
+        R_FIN + 12)
 w4.column_dimensions["A"].width = 2.4; w4.column_dimensions["B"].width = 36
-for c, wd in ((3, 11), (4, 15), (5, 26), (6, 12), (7, 12), (8, 15), (9, 12), (10, 24),
-              (11, 14), (12, 14)): w4.column_dimensions[GL(c)].width = wd
+for c, wd in ((3, 11), (4, 15), (5, 24), (6, 12), (7, 12), (8, 15), (9, 12), (10, 22),
+              (11, 14), (12, 14), (13, 14)): w4.column_dimensions[GL(c)].width = wd
 MO, CO = "'Le moteur'!", "'Le coût variable'!"
 CL = {"VERT": VERT_T, "OCRE": "B26B00", "ROUGE": ROUGE_T, "DOUX": DOUX, "AZUR": AZUR}
 
 w4.cell(5, 2, "La croissance se défait en deux, et la seconde moitié, c'est le moteur.").font = F(12, True, INK)
 w4.cell(5, 2).alignment = ind(0); w4.row_dimensions[5].height = 22
 w4.cell(6, 2, "On sait séparer ce que porte le socle de ce qu'ajoute le budget d'acquisition : "
-              "+181 élèves en 2026, dont 31,8 dus au +10 % d'acquisition et 149,2 au socle. "
-              "Le socle se saisit ; le geste, lui, n'est pas saisi — il est LIÉ aux cellules du "
-              "premier onglet. C'est ce qui fait que ce budget et le moteur disent le même chiffre.")
+              "+181 élèves en 2026, dont 31,8 dus au +10 % d'acquisition et 149,2 au socle. Le socle "
+              "se saisit ; le geste, lui, ne se saisit pas — il vient de l'onglet précédent.")
 w4.cell(6, 2).font = F(8, False, DOUX, True); w4.cell(6, 2).alignment = ind(0)
 w4.row_dimensions[6].height = 16
 
+# ---- LE RESULTAT, AVANT LES HYPOTHESES ------------------------------------
+KP = [(2,  "CHIFFRE D'AFFAIRES", "=H%d" % R_CA,     '#,##0" €"', INK,
+       '="contre "&TEXT(D{0},"#,##0 €")&" en 2026"'.format(R_CA)),
+      (5,  "EBITDA PROPRE",      "=H%d" % R_PROPRE, '#,##0" €"', VERT_T,
+       '="ce que les campus produisent  ·  marge "&TEXT(H{0}/H{1},"0.0 %")'.format(R_PROPRE, R_CA)),
+      (8,  "QUOTE-PART DU SIÈGE", "=H%d" % R_SIEGE, '#,##0" €"', ROUGE_T,
+       '="soit "&TEXT(H{0}/H{1},"0.0 %")&" du chiffre d\'affaires"'.format(R_SIEGE, R_CA)),
+      (11, "EBITDA NET",         "=H%d" % R_NET,    '#,##0" €"', VERT_T,
+       '="marge "&TEXT(D{0}/D{1},"0.0 %")&" → "&TEXT(H{0}/H{1},"0.0 %")'.format(R_NET, R_CA))]
+for col, lab, f, nf, coul, note in KP:
+    for c in (col, col + 1, col + 2):
+        w4.cell(8, c).fill = fill(AZUR if lab == "EBITDA NET" else GRIS)
+        w4.cell(9, c).fill = fill(PANEL); w4.cell(10, c).fill = fill(PANEL)
+        x = w4.cell(11, c); x.fill = fill(PANEL); x.border = Border(bottom=sd(FILET))
+    a = w4.cell(9, col, lab); a.font = F(7, True, INK); a.alignment = ind(1)
+    x = w4.cell(10, col, f); x.font = F(16, False, coul); x.alignment = ind(1); x.number_format = nf
+    n = w4.cell(11, col, note); n.font = F(6.5, False, DOUX, True); n.alignment = ind(1)
+for r, h in ((8, 3), (9, 12), (10, 26), (11, 14)): w4.row_dimensions[r].height = h
+
 # ---- (a) LES SAISIES ------------------------------------------------------
-titre(w4, 8, "ⓐ  Les huit saisies  ·  et la neuvième, qui n'en est pas une",
+titre(w4, 14, "ⓐ  Les huit hypothèses  ·  et la neuvième, qui n'en est pas une",
       "Chacune est une décision, et chacune a un propriétaire. Le Δ budget d'acquisition ne se "
-      "saisit pas ici : il vient du geste de l'onglet « Le moteur ».")
-entete(w4, 11, ["Saisie", None, None, "Valeur retenue", None, "D'où elle vient"], 24)
+      "saisit pas ici : il vient du geste de l'onglet précédent. Fond sable = cellule à saisir.")
+entete(w4, 17, ["Hypothèse", None, None, "Valeur retenue", None, "D'où elle vient"], 24)
 SAIS = [(None, "CE QUI FAIT LE CHIFFRE D'AFFAIRES", None, None),
         (0, "Croissance du socle, hors geste d'acquisition", 0.0509, "constatée 2026, geste défalqué"),
         (0, "Hausse tarifaire",                              0.0029, "levier Cadrage · croissance"),
-        (0, "Δ budget d'acquisition  (6231)", "='Le moteur'!F4", "LIÉ au geste, onglet « Le moteur »"),
+        (0, "Δ budget d'acquisition  (6231)", "='Le moteur'!F4", "LIÉ au geste, onglet précédent"),
         (None, "CE QUI FAIT LES COÛTS", None, None),
         (0, "Inflation des charges externes",                0.020,  "levier Cadrage · coûts"),
         (0, "Effort de productivité achats & structure",     0.0185, "levier Cadrage · coûts"),
@@ -953,9 +965,9 @@ SAIS = [(None, "CE QUI FAIT LE CHIFFRE D'AFFAIRES", None, None),
         (0, "Variation des effectifs permanents",            0.040,  "levier Cadrage · coûts"),
         (0, "Δ budget de marque  (6236)",                    0.100,  "levier Cadrage · croissance"),
         (0, "Dotations aux amortissements",                  0.020,  "plan d'amortissement")]
-REFS = {}
+SA0, REFS = 18, {}
 for j, (kind, lab, val, src) in enumerate(SAIS):
-    r = 12 + j
+    r = SA0 + j
     if kind is None:
         for c in range(2, NC4 + 1): w4.cell(r, c).fill = fill(FOND)
         w4.cell(r, 2, lab).font = F(8, True, AZUR); w4.cell(r, 2).alignment = ind(0)
@@ -986,88 +998,92 @@ def bloc_lignes(w, r0, lignes_, nc):
         w.cell(r, 7, lec).font = F(7.5, False, DOUX, True); w.cell(r, 7).alignment = ind(0)
 
 # ---- (b) LE VOLUME 2027 ---------------------------------------------------
-titre(w4, 24, "ⓑ  Le volume 2027  ·  ce que porte le socle, ce qu'ajoute le geste",
-      "La ligne « ce que le geste ajoute » n'est pas calculée ici : c'est la cellule I58 de l'onglet "
-      "« Le moteur ». Bouger F4 là-bas bouge ce budget-ci.")
-entete(w4, 27, ["Grandeur", None, None, "2027", None, "Lecture"], 24)
-bloc_lignes(w4, 28, [
-    ("Effectifs 2026",                       "={0}N{1}".format(MO, RT1), '#,##0', "restitué", False),
-    ("+ ce que porte le socle",              "=E28*%s" % SOC, '#,##0.0', "rétention, passage, notoriété", False),
-    ("+ ce que le geste ajoute",             "={0}I{1}".format(MO, RT2), '#,##0.0',
-     "LIÉ au moteur — les inscrits gagnés par le Δ budget", False),
-    ("= Effectifs 2027",                     "=E28+E29+E30", '#,##0', "", True),
-    ("Croissance totale",                    "=IFERROR(E31/E28-1,0)", '+0.00%',
-     "elle n'est pas saisie : elle se déduit", False),
+V0 = 34
+titre(w4, 30, "ⓑ  Combien d'élèves en 2027  ·  ce que porte le socle, ce qu'ajoute le geste",
+      "La ligne « ce que le geste ajoute » n'est pas calculée ici : elle vient du moteur "
+      "d'acquisition. Bouger le Δ budget là-bas bouge ce budget-ci.")
+entete(w4, 33, ["Grandeur", None, None, "2027", None, "Lecture"], 24)
+bloc_lignes(w4, V0, [
+    ("Élèves 2026",                          "={0}N{1}".format(MO, RT1), '#,##0', "constaté", False),
+    ("+ ce que porte le socle",              "=E{0}*{1}".format(V0, SOC), '#,##0.0',
+     "rétention, passage, notoriété", False),
+    ("+ ce que le geste d'acquisition ajoute", "={0}I{1}".format(MO, RT2), '#,##0.0',
+     "LIÉ au moteur — les inscrits gagnés", False),
+    ("= Élèves 2027",                        "=E{0}+E{1}+E{2}".format(V0, V0 + 1, V0 + 2), '#,##0', "", True),
+    ("Croissance totale",                    "=IFERROR(E{0}/E{1}-1,0)".format(V0 + 3, V0), '+0.00%',
+     "elle ne se saisit pas : elle se déduit", False),
     ("Places du réseau",                     "={0}O{1}".format(MO, RT1), '#,##0',
      "135 classes, inchangées depuis 2024", False),
     ("Classes 2026",                         "={0}P{1}".format(MO, RT1), '#,##0', "", False),
-    ("Capacité moyenne d'une classe",        "=IFERROR(E33/E34,0)", '#,##0.0', "", False),
+    ("Capacité moyenne d'une classe",        "=IFERROR(E{0}/E{1},0)".format(V0 + 5, V0 + 6), '#,##0.0', "", False),
     ("Croissance possible avant saturation", "={0}L{1}".format(CO, RCN), '0.0%',
      "le premier campus qui sature : MBway Paris", False),
-    ("Classes à ouvrir en 2027",             "=MAX(0,ROUNDUP((E31-E33)/E35,0))", '#,##0',
-     "aucune — et c'est toute la démonstration", True),
-    ("Classes 2027",                         "=E34+E37", '#,##0', "", False),
-    ("Inducteur du compte 621",              "=IFERROR(E38/E34,0)", '0.000',
-     "le ratio de CLASSES, jamais celui des effectifs", False)], NC4)
-w4.cell(31, 5).font = F(10, True, AZUR); w4.cell(37, 5).font = F(10, True, VERT_T)
-w4.cell(41, 2, "À +6 % l'an, MBway Paris tient jusqu'en 2029. Vérifiable ligne à ligne : onglet "
-               "« Le coût variable », dernière colonne du tableau campus.")
-w4.cell(41, 2).font = F(7.5, False, DOUX, True); w4.cell(41, 2).alignment = ind(0)
+    ("Classes à ouvrir en 2027",             "=MAX(0,ROUNDUP((E{0}-E{1})/E{2},0))".format(V0 + 3, V0 + 5, V0 + 7),
+     '#,##0', "aucune — et c'est toute la démonstration", True),
+    ("Classes 2027",                         "=E{0}+E{1}".format(V0 + 6, V0 + 9), '#,##0', "", False),
+    ("Effet volume du compte 621",           "=IFERROR(E{0}/E{1}-1,0)".format(V0 + 10, V0 + 6), '+0.0%;-0.0%;"—"',
+     "il suit les CLASSES, jamais les élèves", False)], NC4)
+w4.cell(V0 + 3, 5).font = F(10, True, AZUR); w4.cell(V0 + 9, 5).font = F(10, True, VERT_T)
+w4.cell(47, 2, "À +6 % l'an, MBway Paris tient jusqu'en 2029 — c'est le premier campus qui butera "
+               "sur ses murs, et le classeur dit lequel et quand.")
+w4.cell(47, 2).font = F(7.5, False, DOUX, True); w4.cell(47, 2).alignment = ind(0)
 
 # ---- (c) LE CHIFFRE D'AFFAIRES 2027 --------------------------------------
-titre(w4, 43, "ⓒ  Le chiffre d'affaires 2027  ·  quatre lignes, et une seule est une décision",
-      "Le socle est déjà inscrit, le geste est celui du moteur, le prix est un arbitrage. "
-      "Rien d'autre n'entre dans le CA.")
-entete(w4, 46, ["Ligne", None, None, "Montant", None, "Lecture"], 24)
-bloc_lignes(w4, 47, [
-    ("Chiffre d'affaires 2026",   CA26, '#,##0" €"', "restitué · 706 + 7062 + 708", False),
-    ("+ ce que porte le socle",   "=E47*%s" % SOC, '#,##0" €"', "la rentrée déjà engagée", False),
+CA0 = 53
+titre(w4, 49, "ⓒ  Le chiffre d'affaires 2027  ·  quatre lignes, et une seule est une décision",
+      "Le socle est déjà inscrit, le geste vient du moteur, le prix est un arbitrage. "
+      "Rien d'autre n'entre dans le chiffre d'affaires.")
+entete(w4, 52, ["Ligne", None, None, "Montant", None, "Lecture"], 24)
+bloc_lignes(w4, CA0, [
+    ("Chiffre d'affaires 2026",   CA26, '#,##0" €"', "constaté · 706 + 7062 + 708", False),
+    ("+ ce que porte le socle",   "=E{0}*{1}".format(CA0, SOC), '#,##0" €"', "la rentrée déjà engagée", False),
     ("+ ce que le geste ajoute",  "={0}J{1}".format(MO, RT2), '#,##0" €"',
      "LIÉ au moteur — le CA gagné par le Δ budget", False),
-    ("+ effet prix",              "=(E47+E48+E49)*%s" % TAR, '#,##0" €"', "la hausse tarifaire", False),
-    ("= Chiffre d'affaires 2027", "=SUM(E47:E50)", '#,##0" €"', "", True)], NC4)
-w4.cell(51, 5).font = F(11, True, AZUR)
-w4.cell(53, 2, '="Sur "&TEXT(E51-E47,"#,##0 €")&" de croissance, "&TEXT(E48/(E51-E47),"0 %")'
-               '&" viennent du socle déjà inscrit, "&TEXT(E49/(E51-E47),"0 %")&" du geste '
-               'd\'acquisition et "&TEXT(E50/(E51-E47),"0 %")&" du prix. Le chiffre d\'affaires '
-               'ne se décrète pas."')
-w4.cell(53, 2).font = F(9, True, INK); w4.cell(53, 2).alignment = ind(0)
+    ("+ effet prix",              "=(E{0}+E{1}+E{2})*{3}".format(CA0, CA0 + 1, CA0 + 2, TAR),
+     '#,##0" €"', "la hausse tarifaire", False),
+    ("= Chiffre d'affaires 2027", "=SUM(E{0}:E{1})".format(CA0, CA0 + 3), '#,##0" €"', "", True)], NC4)
+w4.cell(CA0 + 4, 5).font = F(11, True, AZUR)
+w4.cell(59, 2, '="Sur "&TEXT(E{4}-E{0},"#,##0 €")&" de croissance, "&TEXT(E{1}/(E{4}-E{0}),"0 %")'
+               '&" viennent du socle déjà inscrit, "&TEXT(E{2}/(E{4}-E{0}),"0 %")&" du geste '
+               'd\'acquisition et "&TEXT(E{3}/(E{4}-E{0}),"0 %")&" du prix. Le chiffre d\'affaires '
+               'ne se décrète pas."'.format(CA0, CA0 + 1, CA0 + 2, CA0 + 3, CA0 + 4))
+w4.cell(59, 2).font = F(9, True, INK); w4.cell(59, 2).alignment = ind(0)
 
 # ---- (d) LES COUTS DE CAMPUS : six familles, six regles ------------------
-#  Le siege n'est pas ici. Il ne suit aucun inducteur d'activite : le ranger
-#  dans une famille « indexe » ferait croire qu'il s'indexe, alors qu'il se
-#  decide puis se cascade. Il a son bloc, plus bas.
-titre(w4, 55, "ⓓ  Les coûts de CAMPUS  ·  six familles, six règles",
+titre(w4, 61, "ⓓ  Les coûts de CAMPUS  ·  six familles, six règles",
       "Un budget qui indexe tout au même taux ne dit rien. Celui-ci donne à chaque euro l'inducteur "
-      "de son comportement — et c'est ce qui fait apparaître où est le levier, et surtout où il n'est pas.",
-      "B26B00")
-entete(w4, 58, ["Famille · compte", None, "Montant 2026", "Ce qui la fait bouger", "Effet volume",
+      "de son comportement — c'est ce qui fait apparaître où est le levier, et surtout où il n'est pas. "
+      "Le détail des comptes est replié : cliquez le « + » dans la marge.", "B26B00")
+entete(w4, 64, ["Famille · compte", None, "Montant 2026", "Ce qui la fait bouger", "Effet volume",
                 "Effet prix", "Montant 2027", "Variation", "Bouge si un élève de plus arrive ?"], 30)
-NB7 = ['General', 'General', '#,##0" €"', 'General', '0.000', '0.000', '#,##0" €"', '+0.0%;-0.0%', 'General']
+PC = '+0.0%;-0.0%;"—"'
+NB7 = ['General', 'General', '#,##0" €"', 'General', PC, PC, '#,##0" €"', '+0.0%;-0.0%', 'General']
 FAM_BOUGE = ["OUI — le seul euro qui suive vraiment l'élève",
              "seulement si une classe doit ouvrir",
              "NON — le poste est engagé à l'année",
              "NON — elle suit la masse, pas l'élève",
              "NON — c'est le mur qui coûte, pas l'élève",
-             "c'est la saisie elle-même"]
-MASSE_C = "=(H{0}+H{1})/(D{0}+D{1})".format(ROWP["6411"], ROWP["6413"])
-MASSE_T = "=(H{0}+H{1}+H{2})/(D{0}+D{1}+D{2})".format(ROWP["6411"], ROWP["6413"], ROWP["6414"])
-VOL_EFF = "=$E$31/$E$28"
-REGLE = {"604": (VOL_EFF, "=1+%s" % INF), "6063": (VOL_EFF, "=1+%s" % INF),
-         "621": ("=$E$39", "=1+%s" % INF),
-         "6411": ("=1+%s" % POS, "=1+%s" % SAL), "6413": (1, "=1+%s" % SAL),
-         "645": (MASSE_C, 1), "6231": (1, "=1+%s" % ACQ),
-         "6236": (1, "=1+%s" % MRQ), "6414": (1, "=1+%s" % SAL),
-         "6331": (MASSE_T, 1), "6333": (MASSE_T, 1), "6811": (1, "=1+%s" % DOT)}
+             "c'est la décision elle-même"]
+#  Les regles s'ecrivent en ECARTS, pas en coefficients : « +6,9 % » se lit,
+#  « 1,069 » ne se lit pas. Le calcul devient  2026 x (1+volume) x (1+prix).
+MASSE_C = "=(H{0}+H{1})/(D{0}+D{1})-1".format(ROWP["6411"], ROWP["6413"])
+MASSE_T = "=(H{0}+H{1}+H{2})/(D{0}+D{1}+D{2})-1".format(ROWP["6411"], ROWP["6413"], ROWP["6414"])
+VOL_EFF = "=$E${0}/$E${1}-1".format(V0 + 3, V0)
+IDX = "=%s-%s" % (INF, PRD)
+REGLE = {"604": (VOL_EFF, "=%s" % INF, "les élèves"), "6063": (VOL_EFF, "=%s" % INF, "les élèves"),
+         "621": ("=$E$%d" % (V0 + 11), "=%s" % INF, "les classes"),
+         "6411": ("=%s" % POS, "=%s" % SAL, "les postes"), "6413": (0, "=%s" % SAL, "la paie"),
+         "645": (MASSE_C, 0, "la masse des campus"), "6231": (0, "=%s" % ACQ, "le geste"),
+         "6236": (0, "=%s" % MRQ, "le budget de marque"), "6414": (0, "=%s" % SAL, "la paie"),
+         "6331": (MASSE_T, 0, "la masse totale"), "6333": (MASSE_T, 0, "la masse totale"),
+         "6811": (0, "=%s" % DOT, "le plan d'amortissement")}
 for a in ("613", "615", "616", "625", "63511", "6226", "626", "6281"):
-    REGLE[a] = (1, "=1+%s-%s" % (INF, PRD))
-DIT = {"6236": "décidé — cascade K4", "6414": "politique salariale",
-       "6331": "assis sur la masse", "6333": "assis sur la masse"}
+    REGLE[a] = (0, IDX, "l'indexation")
 
 def ligne_compte(r, a, fond=CALC):
-    vol, prix = REGLE[a]
-    ligne(w4, r, ["      %s · %s" % (a, LIBC_CPT[a]), None, MTT[a], DIT.get(a, ""), vol, prix,
-                  "=D{0}*F{0}*G{0}".format(r), "=IFERROR(H{0}/D{0}-1,0)".format(r), ""],
+    vol, prix, dit = REGLE[a]
+    ligne(w4, r, ["      %s · %s" % (a, LIBC_CPT[a]), None, MTT[a], dit, vol, prix,
+                  "=D{0}*(1+F{0})*(1+G{0})".format(r), "=IFERROR(H{0}/D{0}-1,0)".format(r), ""],
           NB7, fond=fond, gauche=(1, 3, 8))
     w4.cell(r, 2).font = F(8, False, DOUX)
     w4.cell(r, 5).font = F(7.5, False, DOUX, True)
@@ -1094,7 +1110,7 @@ SOM = lambda col, rows: "=" + "+".join("%s%d" % (col, x) for x in rows)
 ligne(w4, R_CAMP, ["TOTAL DES CHARGES DE CAMPUS", None, SOM("D", FAM_R), "", "", "",
                    SOM("H", FAM_R), "=IFERROR(H{0}/D{0}-1,0)".format(R_CAMP), ""],
       NB7, fond=GRIS, gras=True, trait=INK, gauche=(1, 3, 8))
-ligne(w4, R_CA, ["Chiffre d'affaires", None, CA26, "", "", "", "=E51",
+ligne(w4, R_CA, ["Chiffre d'affaires", None, CA26, "", "", "", "=E%d" % (CA0 + 4),
                  "=IFERROR(H{0}/D{0}-1,0)".format(R_CA), "bloc ⓒ ci-dessus"],
       NB7, fond=VUE, gras=True, gauche=(1, 3, 8))
 ligne(w4, R_PROPRE, ["EBITDA PROPRE  ·  avant quote-part du siège", None,
@@ -1110,50 +1126,54 @@ w4.cell(R_SIEGE_T, 2, "LE SIÈGE  ·  il ne suit aucun inducteur d'activité —
 w4.cell(R_SIEGE_T, 2).font = F(9, True, AZUR); w4.cell(R_SIEGE_T, 2).alignment = ind(0)
 w4.row_dimensions[R_SIEGE_T].height = 20
 for a in SIEGE: ligne_compte(ROWP[a], a, fond=PANEL)
-ligne(w4, R_SIEGE, ["QUOTE-PART DU SIÈGE  ·  6236 + 6414 + 6226 + 626 + 6281 + 6331 + 6333", None,
-                    SOM("D", [ROWP[a] for a in SIEGE]), "", "", "",
+ligne(w4, R_SIEGE, ["QUOTE-PART DU SIÈGE", None, SOM("D", [ROWP[a] for a in SIEGE]), "", "", "",
                     SOM("H", [ROWP[a] for a in SIEGE]),
-                    "=IFERROR(H{0}/D{0}-1,0)".format(R_SIEGE), "cascades K1 et K4"],
+                    "=IFERROR(H{0}/D{0}-1,0)".format(R_SIEGE), "marque, holding — cascades K1 et K4"],
       NB7, fond=GRIS, gras=True, trait=INK, gauche=(1, 3, 8))
 ligne(w4, R_NET, ["EBITDA NET  ·  celui du groupe", None, "=D{0}-D{1}".format(R_PROPRE, R_SIEGE),
                   "", "", "", "=H{0}-H{1}".format(R_PROPRE, R_SIEGE),
                   "=IFERROR(H{0}/D{0}-1,0)".format(R_NET), "dotations exclues"],
       NB7, fond=GRIS, gras=True, trait=INK, gauche=(1, 3, 8))
 for c in (4, 8): w4.cell(R_NET, c).font = F(11, True, VERT_T)
-ligne(w4, R_MARGE, ["Marge — propre  ·  nette", None, "=IFERROR(D{0}/D{1},0)".format(R_PROPRE, R_CA),
-                    "", "", "", "=IFERROR(H{0}/H{1},0)".format(R_NET, R_CA),
-                    "=IFERROR(H{0}/H{1},0)-IFERROR(D{2}/D{1},0)".format(R_NET, R_CA, R_NET), ""],
+ligne(w4, R_MARGE, ["Marge d'EBITDA  —  propre", None, "=IFERROR(D{0}/D{1},0)".format(R_PROPRE, R_CA),
+                    "", "", "", "=IFERROR(H{0}/H{1},0)".format(R_PROPRE, R_CA), "", ""],
       NB7, fond=PANEL, gras=True, gauche=(1, 3, 8))
-w4.cell(R_MARGE, 4, "=IFERROR(D{0}/D{1},0)".format(R_PROPRE, R_CA))
-w4.cell(R_MARGE, 8, "=IFERROR(H{0}/H{1},0)".format(R_PROPRE, R_CA))
-w4.cell(R_MARGE, 10, '="nette : "&TEXT(D{0}/D{1},"0.0 %")&"  →  "&TEXT(H{2}/H{1},"0.0 %")'
-                     .format(R_NET, R_CA, R_NET))
+w4.cell(R_MARGE, 10, '="et nette : "&TEXT(D{0}/D{1},"0.0 %")&"  →  "&TEXT(H{0}/H{1},"0.0 %")'
+                     .format(R_NET, R_CA))
 w4.cell(R_MARGE, 10).font = F(8, True, INK); w4.cell(R_MARGE, 10).alignment = ind(0)
 for c in (4, 8): w4.cell(R_MARGE, c).number_format = '0.00%'
-w4.cell(R_MARGE, 9).value = None
 ligne(w4, R_DOTA, ["      6811 · Dotations aux amortissements  ·  sous la ligne d'EBITDA", None,
-                   MTT["6811"], "hors modèle", 1, "=1+%s" % DOT,
-                   "=D{0}*F{0}*G{0}".format(R_DOTA), "=IFERROR(H{0}/D{0}-1,0)".format(R_DOTA), ""],
+                   MTT["6811"], "le plan d'amortissement", 0, "=%s" % DOT,
+                   "=D{0}*(1+F{0})*(1+G{0})".format(R_DOTA),
+                   "=IFERROR(H{0}/D{0}-1,0)".format(R_DOTA), ""],
       NB7, fond=PANEL, gauche=(1, 3, 8))
 w4.cell(R_DOTA, 2).font = F(8, False, DOUX); w4.cell(R_DOTA, 5).font = F(7.5, False, DOUX, True)
 
-# ---- (e) LA RECONCILIATION AVEC LE MOTEUR --------------------------------
+# ---- le detail des comptes, groupe et FERME par defaut -------------------
+#  Le CFO voit six familles et trois resultats. Le detail attend derriere un
+#  « + » dans la marge -- il n'a pas disparu, il ne s'impose pas.
+w4.sheet_properties.outlinePr.summaryBelow = False
+for r in CPT_R + [ROWP[a] for a in SIEGE]:
+    w4.row_dimensions[r].outlineLevel = 1
+    w4.row_dimensions[r].hidden = True
+
+# ---- (e) LA RECONCILIATION AVEC LE SIMULATEUR ----------------------------
 RR = R_FIN
-titre(w4, RR, "ⓔ  Est-ce qu'on retombe sur le moteur ?",
-      "Le CA gagné est le même nombre — c'est le même lien. Le coût de service, lui, est calculé de "
+titre(w4, RR, "ⓔ  Est-ce que ce budget dit la même chose que le moteur ?",
+      "Le CA gagné est le même nombre — c'est la même cellule. Le coût de service, lui, se calcule de "
       "deux façons : le moteur pondère campus par campus, le budget applique un taux au réseau. "
       "L'écart qui en résulte est affiché, pas gommé.")
 entete(w4, RR + 3, ["Ce que le geste rapporte", None, "Le moteur", None, "Le budget 2027", None,
                     "Écart", None, "Pourquoi"], 26)
 L1, L2, L3 = RR + 4, RR + 5, RR + 6
-REC = [("CA gagné par le geste", "={0}J{1}".format(MO, RT2), "=E49",
-        "le même lien — zéro par construction"),
+REC = [("Chiffre d'affaires gagné", "={0}J{1}".format(MO, RT2), "=E%d" % (CA0 + 2),
+        "la même cellule — zéro par construction"),
        ("Coût de servir ces élèves", "={0}I{1}*{0}K{1}".format(MO, RT2),
         "=D{0}*{1}I{2}/{1}N{3}".format(TP, MO, RT2, RT1),
-        "consommables du réseau au prorata des inscrits gagnés"),
+        "consommables du réseau au prorata des élèves gagnés"),
        ("EBITDA gagné", "={0}L{1}".format(MO, RT2),
         "=F{0}-(H{1}-D{1})-F{2}".format(L1, ROWP["6231"], L2),
-        "CA gagné − Δ budget 6231 − coût de service")]
+        "CA gagné − Δ budget d'acquisition − coût de service")]
 for j, (lab, mot, bud, pq) in enumerate(REC):
     r = L1 + j
     for c in range(2, NC4 + 1):
@@ -1168,23 +1188,48 @@ for c in range(2, NC4 + 1):
     w4.cell(L3 + 2, c).fill = fill(PANEL); w4.cell(L3 + 2, c).border = Border(top=sd(AZUR))
     w4.cell(L3 + 3, c).fill = fill(PANEL)
     w4.cell(L3 + 4, c).fill = fill(PANEL); w4.cell(L3 + 4, c).border = Border(bottom=sd(AZUR))
-w4.cell(L3 + 2, 2, '="Le budget 2027 retombe sur l\'EBITDA gagné du moteur à "&TEXT(ABS(H{0}),"#,##0 €")'
+w4.cell(L3 + 2, 2, '="Ce budget retombe sur l\'EBITDA gagné du moteur à "&TEXT(ABS(H{0}),"#,##0 €")'
                    '&" près, soit "&TEXT(ABS(H{0}/D{0}),"0.00 %")&" — et l\'écart a une cause nommée, '
                    'pas une tolérance."'.format(L3))
 w4.cell(L3 + 2, 2).font = F(9, True, INK); w4.cell(L3 + 2, 2).alignment = ind(0)
 w4.row_dimensions[L3 + 2].height = 18
-w4.cell(L3 + 3, 2, '="2027 : marge propre "&TEXT(D{0}/D{1},"0.0 %")&" → "&TEXT(H{0}/H{1},"0.0 %")'
-                   '&",  marge nette "&TEXT(D{2}/D{1},"0.0 %")&" → "&TEXT(H{2}/H{1},"0.0 %")'
-                   '&".  La nette gagne plus que la propre : ce n\'est pas une performance de campus, '
-                   'c\'est le siège qui se dilue — il croît de "&TEXT(H{3}/D{3}-1,"0.0 %")'
-                   '&" quand le CA croît de "&TEXT(H{1}/D{1}-1,"0.0 %")&"."'
-                   .format(R_PROPRE, R_CA, R_NET, R_SIEGE))
+w4.cell(L3 + 3, 2, '="La marge nette gagne "&TEXT((H{2}/H{1}-D{2}/D{1})*100,"0.0")&" pt quand la '
+                   'marge propre n\'en gagne que "&TEXT((H{0}/H{1}-D{0}/D{1})*100,"0.0")&" : la '
+                   'différence ne vient pas des campus, elle vient du siège qui se dilue — il croît '
+                   'de "&TEXT(H{3}/D{3}-1,"0.0 %")&" quand le chiffre d\'affaires croît de "'
+                   '&TEXT(H{1}/D{1}-1,"0.0 %")&"."'.format(R_PROPRE, R_CA, R_NET, R_SIEGE))
 w4.cell(L3 + 3, 2).font = F(9, True, INK); w4.cell(L3 + 3, 2).alignment = ind(0)
 w4.row_dimensions[L3 + 3].height = 18
-w4.cell(L3 + 4, 2, '="Le gain ne vient d\'aucune économie : il vient de "&TEXT(E31-E28,"#,##0")'
-                   '&" élèves de plus dans des classes déjà ouvertes — dont "&TEXT(E30,"#,##0")'
-                   '&" que le geste a payés."')
+w4.cell(L3 + 4, 2, '="Et le gain ne vient d\'aucune économie : il vient de "&TEXT(E{0}-E{1},"#,##0")'
+                   '&" élèves de plus dans des classes déjà ouvertes — dont "&TEXT(E{2},"#,##0")'
+                   '&" que le geste a payés."'.format(V0 + 3, V0, V0 + 2))
 w4.cell(L3 + 4, 2).font = F(7.5, False, DOUX, True); w4.cell(L3 + 4, 2).alignment = ind(0)
+
+# ============================================================================
+#  LA FINITION — parce que le classeur se projette et s'imprime
+#
+#  Un onglet qui sort en paysage sur une page large, avec un pied de page qui
+#  le nomme, ne ressemble pas a un fichier de travail. C'est la difference
+#  entre « voici mon Excel » et « voici le budget ».
+# ============================================================================
+from openpyxl.worksheet.properties import PageSetupProperties
+def finition(w, couleur, gel="D1"):
+    w.sheet_properties.tabColor = couleur
+    w.sheet_properties.pageSetUpPr = PageSetupProperties(fitToPage=True)
+    w.page_setup.orientation = "landscape"
+    w.page_setup.paperSize = w.PAPERSIZE_A4
+    w.page_setup.fitToWidth = 1; w.page_setup.fitToHeight = 0
+    w.print_options.horizontalCentered = True
+    w.page_margins.left = w.page_margins.right = 0.4
+    w.page_margins.top = 0.5; w.page_margins.bottom = 0.5
+    w.oddFooter.left.text = "EDUSERVICES · " + w.title
+    w.oddFooter.left.size = 8; w.oddFooter.left.font = "Arial"
+    w.oddFooter.right.text = "page &P / &N"
+    w.oddFooter.right.size = 8; w.oddFooter.right.font = "Arial"
+    w.sheet_view.zoomScale = 100
+    if gel: w.freeze_panes = gel
+for w_, c_, g_ in ((ws, AZUR, "D1"), (w4, AZUR, "D1"), (w2, GRIS, "D1"), (w3, GRIS, "D1")):
+    finition(w_, c_, g_)
 
 # ---- l'ordre des onglets : par AUDIENCE, pas par sujet --------------------
 #  Deux onglets se montrent en comite -- le geste, puis le budget. Les deux
@@ -1198,5 +1243,5 @@ print("  onglet 2 : poches 12, moyen %d-%d, campus %d-%d, marginal %d, permanent
       % (RB0, RBN, RC0, RCN, RE, RF))
 print("  onglet 3 : paramètres %d-%d, mapping %d-%d, formules %d-%d, contrôles %d-%d"
       % (9, PR_FIN - 1, RM0, RMN - 1, RN0, RNN - 1, RK0, RKN - 1))
-print("  onglet 4 : saisies 12-22, volume 28-39, CA 47-51, coûts %d-%d, siège %d-%d, réconciliation %d-%d"
-      % (TP, R_PROPRE, R_SIEGE_T, R_SIEGE, L1, L3))
+print("  onglet 4 : résultat 9-11, hypothèses %d-%d, volume %d-%d, CA %d-%d, coûts %d-%d, siège %d-%d, réconciliation %d-%d"
+      % (SA0, SA0 + 10, V0, V0 + 11, CA0, CA0 + 4, TP, R_PROPRE, R_SIEGE_T, R_SIEGE, L1, L3))
