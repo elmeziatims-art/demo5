@@ -115,7 +115,7 @@ from openpyxl.utils import get_column_letter as GL
 OUT = "MOTEUR_MASQUE.xlsx"
 INK, AZUR, ROUGE, VERT = "262626", "007AC3", "E5202E", "85BC20"
 PALE, GRIS = "A6D0EA", "E7E6E6"
-VERT_T, ROUGE_T = "5F8A17", "C41822"
+VERT_T, ROUGE_T, OCRE_ = "5F8A17", "C41822", "B26B00"
 FOND, PANEL, FILET, DOUX = "F5F6F7", "FFFFFF", "D5D7DA", "6B7075"
 HM_BAS, HM_MED, HM_HAUT = "F6C9CC", "F7F7F5", "DCEBC0"
 VUE, CALC, PARM = "E8F1F9", "FDF3E7", "F0EDE4"   # les trois fonds qui disent l'origine
@@ -184,6 +184,45 @@ EL_ORG = {e: pente([math.log(v[(e,y)]["mrq"]) for y in (2024,2025,2026)],
 TARIF = sum(k[e]["vac"] for e in ENTS) / sum(v[(e,2026)]["hrs"] for e in ENTS)
 
 # ============================================================================
+#  LES DOUZE LEVIERS, RESTITUES PAR Q_HYPOTHESES
+#
+#  Ils ne sont plus en dur nulle part. La requete tagetik/Q_HYPOTHESES.sql les
+#  rend dans une zone masquee a droite du tableau (colonnes AD..AJ), une ligne
+#  par levier et les trois scenarios en colonnes. Un selecteur en haut du
+#  masque designe la colonne retenue, et chaque taux du classeur est un
+#  INDEX/MATCH sur cette zone.
+#
+#  Consequence, et c'est tout l'interet : on bouge un taux dans Tagetik, on
+#  rafraichit, et les quarante nombres du classeur suivent. On bascule de
+#  scenario, pareil, d'un seul clic.
+#
+#  Les valeurs ci-dessous ne sont qu'une AMORCE pour que le classeur vive hors
+#  connexion. Elles sont les memes que celles de SEED_HYPOTHESES.sql.
+# ============================================================================
+HYP = [(1,  "Croissance", "HYP_ACQ_BUD",      "Variation du budget acquisition",       0.0800,  0.1500, -0.0500),
+       (2,  "Croissance", "HYP_BRAND_BUD",    "Variation du budget de marque",         0.1000,  0.1500, -0.0500),
+       (3,  "Croissance", "HYP_PRICE",        "Hausse tarifaire",                      0.0029,  0.0350,  0.0200),
+       (4,  "Croissance", "HYP_CONV_LEAD",    "Gain conversion Lead → Candidature",    0.0100,  0.0300, -0.0100),
+       (5,  "Croissance", "HYP_CONV_ADM",     "Gain conversion Admis → Inscrit",       0.0100,  0.0250, -0.0100),
+       (6,  "Croissance", "HYP_PASSAGE",      "Amélioration du taux de passage",       0.0050,  0.0150, -0.0100),
+       (7,  "Coûts",      "HYP_INFL_EXT",     "Inflation des charges externes",        0.0200,  0.0150,  0.0300),
+       (8,  "Coûts",      "HYP_SALARY",       "Politique salariale",                   0.0250,  0.0200,  0.0300),
+       (9,  "Coûts",      "HYP_FTE_PERM",     "Variation des effectifs permanents",    0.0400,  0.0300,  0.0500),
+       (10, "Coûts",      "HYP_PRODUCTIVITY", "Effort de productivité",                0.0185,  0.0300,  0.0000),
+       (11, "Coûts",      "HYP_STRUCT_COST",  "Variation des coûts de structure",      0.0000, -0.0300,  0.0400),
+       (12, "Constante",  "HYP_FEE",          "Frais de dossier par nouvel inscrit",  90.0000, 90.0000, 90.0000)]
+ZC = 30                                   # AD : premiere colonne de la zone
+ZH = 3                                    # la ligne d'en-tete de la zone
+ZONE = "'Le moteur'!$%s$%d:$%s$%d" % (GL(ZC + 4), ZH + 1, GL(ZC + 6), ZH + len(HYP))
+ZCODE = "'Le moteur'!$%s$%d:$%s$%d" % (GL(ZC + 2), ZH + 1, GL(ZC + 2), ZH + len(HYP))
+ZTETE = "'Le moteur'!$%s$%d:$%s$%d" % (GL(ZC + 4), ZH, GL(ZC + 6), ZH)
+VERS = "'Le moteur'!$N$4"                 # le selecteur de scenario
+def hyp(code):
+    """Le taux du levier <code>, dans le scenario choisi. Deux MATCH : la ligne
+    par le code, la colonne par le selecteur. Rien n'est ecrit en dur."""
+    return '=INDEX({0},MATCH("{1}",{2},0),MATCH({3},{4},0))'.format(ZONE, code, ZCODE, VERS, ZTETE)
+
+# ============================================================================
 #  LE PLAN DES COMPTES : LEUR FAMILLE D'INDUCTEUR, ET LEUR PERIMETRE
 #
 #  Deux decoupages differents du meme P&L, et il faut les tenir tous les deux.
@@ -232,17 +271,21 @@ LIBC_CPT = {c[0]: c[1] for c in CPT}
 COUL_CPT = {c[0]: c[6] for c in CPT}
 BOUGE = {c[0]: c[5] for c in CPT}
 
-#  Les six familles d'inducteur -- PERIMETRE CAMPUS uniquement.
-FAM = [("①  Suit l'ÉLÈVE",       "604 + 6063", "effectifs × inflation", ["604", "6063"], "VERT"),
-       ("②  Suit la CLASSE",     "621", "classes × inflation", ["621"], "OCRE"),
-       ("③  Suit les POSTES",    "6411 + 6413", "politique salariale, + les postes créés",
-        ["6411", "6413"], "ROUGE"),
-       ("④  Assis sur la MASSE", "645", "au prorata de la masse salariale des campus",
-        ["645"], "ROUGE"),
-       ("⑤  INDEXÉ",             "613 · 615 · 616 · 625 · 63511",
-        "inflation moins l'effort de productivité",
-        ["613", "615", "616", "625", "63511"], "DOUX"),
-       ("⑥  DÉCIDÉ",             "6231", "le geste lui-même", ["6231"], "AZUR")]
+#  Les CINQ familles d'inducteur, PERIMETRE CAMPUS -- et elles suivent
+#  desormais la regle de CAD_PIL, compte pour compte. C'etait la condition pour
+#  tomber sur les memes chiffres que le scenario deploye. On y perd une finesse
+#  (chez CAD_PIL le vacataire suit le CHIFFRE D'AFFAIRES, alors qu'il suit la
+#  CLASSE dans la realite) ; on la garde en reserve, ecrite au bas de l'onglet.
+FAM = [("①  Suit le CHIFFRE D'AFFAIRES", "604 + 6063 + 621",
+        "le CA, moins l'effort de productivité", ["604", "6063", "621"], "VERT"),
+       ("②  Suit la MASSE SALARIALE", "6411 + 6413 + 645",
+        "politique salariale × effectifs permanents", ["6411", "6413", "645"], "ROUGE"),
+       ("③  INDEXÉ  ·  structure de campus", "613 · 615 · 616 · 625",
+        "inflation, moins l'effort, × variation de structure",
+        ["613", "615", "616", "625"], "DOUX"),
+       ("④  INDEXÉ  ·  impôts et taxes", "63511", "inflation, moins l'effort",
+        ["63511"], "DOUX"),
+       ("⑤  DÉCIDÉ", "6231", "le geste d'acquisition lui-même", ["6231"], "AZUR")]
 SIEGE = ["6236", "6414", "6226", "626", "6281", "6331", "6333"]
 DOTA  = "6811"
 CAMPUS = [a for f in FAM for a in f[3]]
@@ -301,19 +344,49 @@ for r, h in ((1,14),(2,24),(3,3),(4,22),(5,8),(6,24),(7,8),(8,3),(9,12),(10,28),
 T1, T2 = 24, 46                          # les deux lignes d'en-tete
 NL = len(ENTS); RT1 = T1 + NL + 1; RT2 = T2 + NL + 1
 
+# ---- LA ZONE D'HYPOTHESES, restituee et masquee ---------------------------
+#  Colonnes AD..AJ, repliees. C'est la sortie de Q_HYPOTHESES.sql, collee telle
+#  quelle. Personne ne la regarde ; tout le classeur la lit.
+from openpyxl.worksheet.datavalidation import DataValidation
+for i, h in enumerate(["Ordre", "Famille", "Code", "Libellé", "Cadrage", "Optimiste", "Prudent"]):
+    x = ws.cell(ZH, ZC + i, h); x.font = F(8, True, INK); x.fill = fill(GRIS)
+    x.border = Border(bottom=sd(INK))
+for j, ligne_ in enumerate(HYP):
+    for i, val in enumerate(ligne_):
+        x = ws.cell(ZH + 1 + j, ZC + i, val); x.fill = fill(VUE); x.font = F(8, False, INK)
+        x.alignment = ind(0) if i in (1, 2, 3) else R
+        x.number_format = '0' if i == 0 else ('+0.00%;-0.00%' if i > 3 and ligne_[2] != "HYP_FEE"
+                                              else ('#,##0" €"' if i > 3 else 'General'))
+for c in range(ZC, ZC + 7):
+    ws.column_dimensions[GL(c)].width = 22 if c == ZC + 3 else 13
+    ws.column_dimensions[GL(c)].outlineLevel = 1
+    ws.column_dimensions[GL(c)].hidden = True
+
 # ---- 4. LE GESTE : DEUX budgets, donc DEUX saisies ------------------------
 #  Il n'y en avait qu'une, et c'etait un trou : on pilotait l'acquisition
 #  (434 174 EUR) sans jamais toucher a la marque (676 344 EUR), soit 56 % de
 #  plus. Les deux leviers sont maintenant a l'ecran, cote a cote.
 for c in range(2, NC + 1):
     x = ws.cell(4, c); x.fill = fill(FOND); x.border = Border(bottom=sd(FILET))
-ws.cell(4, 2, "LE GESTE  ·  les deux seules cellules à saisir").font = F(7.5, True, DOUX)
+ws.cell(4, 2, "LE GESTE  ·  dicté par le scénario").font = F(7.5, True, DOUX)
 ws.cell(4, 2).alignment = ind(0)
-for col_, lab_, val_ in ((4, "Δ budget d'acquisition", 0.08), (8, "Δ budget de marque", 0.08)):
+#  Les deux Δ ne se saisissent plus : ils viennent de la zone d'hypotheses. Le
+#  seul geste du classeur, c'est le SELECTEUR -- un clic qui deplace quarante
+#  nombres, et qui reste coherent avec ce qui est dans Tagetik.
+for col_, lab_, code_ in ((4, "Δ budget d'acquisition", "HYP_ACQ_BUD"),
+                          (8, "Δ budget de marque", "HYP_BRAND_BUD")):
     ws.cell(4, col_, lab_).font = F(7.5, True, DOUX); ws.cell(4, col_).alignment = R
-    g_ = ws.cell(4, col_ + 2, val_); g_.fill = fill(PANEL); g_.font = F(11, True, AZUR)
+    g_ = ws.cell(4, col_ + 2, hyp(code_)); g_.fill = fill(PANEL); g_.font = F(11, True, AZUR)
     g_.alignment = Cn; g_.border = Border(*[sd(AZUR)] * 4)
     g_.number_format = '+0.0%;-0.0%;"—"'
+ws.cell(4, 12, "SCÉNARIO").font = F(7.5, True, DOUX); ws.cell(4, 12).alignment = R
+sel = ws.cell(4, 14, "Cadrage"); sel.fill = fill(PARM); sel.font = F(11, True, OCRE_)
+sel.alignment = Cn; sel.border = Border(*[sd(OCRE_)] * 4)
+dv = DataValidation(type="list", formula1='"Cadrage,Optimiste,Prudent"', allow_blank=False)
+dv.prompt = "Il fixe les douze leviers d'un seul coup."; dv.promptTitle = "Scénario"
+ws.add_data_validation(dv); dv.add(sel)
+ws.cell(4, 16, "un clic ici déplace tout le classeur").font = F(7, False, DOUX, True)
+ws.cell(4, 16).alignment = ind(0)
 
 # ---- 6. LA PHRASE ---------------------------------------------------------
 ws.cell(6, 2, '="Je dépense "&TEXT(H{0},"#,##0 €")&".   J\'encaisse "&TEXT(J{0},"#,##0 €")'
@@ -414,13 +487,27 @@ for i, h in enumerate(H1):
 ws.row_dimensions[T1].height = 34
 
 
+#  L'elasticite n'est plus un nombre pose : c'est LA REGRESSION, ecrite dans la
+#  cellule. Meme formule que la vue -- pente des moindres carres en log-log sur
+#  les trois millesimes -- mais en Excel, sans plage matricielle, donc lisible
+#  et cliquable. LN et non LOG : le LOG() de T-SQL est le neperien.
+def regression(r, cx, cy):
+    """pente = ( n·Sxy − Sx·Sy ) / ( n·Sx² − (Sx)² ),  x = LN(budget), y = LN(leads)"""
+    X = ["LN(%s%d)" % (c, r) for c in cx]; Yy = ["LN(%s%d)" % (c, r) for c in cy]
+    sxy = "+".join("%s*%s" % (a, b) for a, b in zip(X, Yy))
+    sx, sy = "+".join(X), "+".join(Yy)
+    sx2 = "+".join("%s^2" % a for a in X)
+    return "=(3*({0})-({1})*({2}))/(3*({3})-({1})^2)".format(sxy, sx, sy, sx2)
+
 marque_vue = None
 for j, e in enumerate(ENTS):
     r = T1 + 1 + j; d24, d25, d26 = (v[(e, y)] for y in (2024, 2025, 2026))
     mq = e.split("_")[0]
     vals = [MQ[mq] if mq != marque_vue else "", LIBC[e],
-            d24["pay"], d25["pay"], d26["pay"], d24["acq"], d25["acq"], d26["acq"], EL[e],
-            d24["org"], d25["org"], d26["org"], d24["mrq"], d25["mrq"], d26["mrq"], EL_ORG[e],
+            d24["pay"], d25["pay"], d26["pay"], d24["acq"], d25["acq"], d26["acq"],
+            regression(r, "GHI", "DEF"),
+            d24["org"], d25["org"], d26["org"], d24["mrq"], d25["mrq"], d26["mrq"],
+            regression(r, "NOP", "KLM"),
             d26["pay"] + d26["org"], d26["new"], d26["ca"], d26["eff"],
             d26["places"], d26["cls"], d26["hrs"], k[e]["odir"], k[e]["vac"], k[e]["perm"]]
     marque_vue = mq
@@ -1011,7 +1098,7 @@ w3.cell(RKN + 3, 2).font = F(7.5, False, DOUX, True); w3.cell(RKN + 3, 2).alignm
 # ============================================================================
 w4 = wb.create_sheet("Budget 2027")
 NC4 = 13
-bandeau(w4, NC4, "BUDGET 2027  —  le chiffre d'affaires en quatre lignes, les coûts en six familles",
+bandeau(w4, NC4, "BUDGET 2027  —  le chiffre d'affaires en cinq lignes, les coûts en cinq familles",
         R_FIN + 12)
 w4.column_dimensions["A"].width = 2.4; w4.column_dimensions["B"].width = 36
 for c, wd in ((3, 11), (4, 15), (5, 24), (6, 12), (7, 12), (8, 15), (9, 12), (10, 22),
@@ -1047,21 +1134,23 @@ for col, lab, f, nf, coul, note in KP:
 for r, h in ((8, 3), (9, 12), (10, 26), (11, 14)): w4.row_dimensions[r].height = h
 
 # ---- (a) LES SAISIES ------------------------------------------------------
-titre(w4, 14, "ⓐ  Les huit hypothèses  ·  et la neuvième, qui n'en est pas une",
-      "Chacune est une décision, et chacune a un propriétaire. Le Δ budget d'acquisition ne se "
-      "saisit pas ici : il vient du geste de l'onglet précédent. Fond sable = cellule à saisir.")
+titre(w4, 14, "ⓐ  Les hypothèses  ·  huit viennent de Tagetik, une seule est un calage",
+      "Une seule est saisie ici — le calage du socle. Toutes les autres viennent de la ZONE "
+      "D'HYPOTHÈSES restituée par Tagetik : changez le scénario en haut de l'onglet précédent, "
+      "et ces neuf lignes changent ensemble.")
 entete(w4, 17, ["Hypothèse", None, None, "Valeur retenue", None, "D'où elle vient"], 24)
 SAIS = [(None, "CE QUI FAIT LE CHIFFRE D'AFFAIRES", None, None),
-        (0, "Croissance du socle, hors geste d'acquisition", 0.0509, "constatée 2026, geste défalqué"),
-        (0, "Hausse tarifaire",                              0.0029, "levier Cadrage · croissance"),
-        (0, "Δ budget d'acquisition  (6231)", "='Le moteur'!F4", "LIÉ au geste, onglet précédent"),
+        (0, "Croissance du socle", 0.031505,
+         "CALAGE sur le scénario Cadrage de CAD_PIL — absorbe conversion et passage"),
+        (0, "Hausse tarifaire", hyp("HYP_PRICE"), "zone d'hypothèses · HYP_PRICE"),
+        (0, "Δ budget d'acquisition", "='Le moteur'!F4", "onglet précédent · HYP_ACQ_BUD"),
+        (0, "Δ budget de marque", "='Le moteur'!J4", "onglet précédent · HYP_BRAND_BUD"),
         (None, "CE QUI FAIT LES COÛTS", None, None),
-        (0, "Inflation des charges externes",                0.020,  "levier Cadrage · coûts"),
-        (0, "Effort de productivité achats & structure",     0.0185, "levier Cadrage · coûts"),
-        (0, "Politique salariale sur la masse permanente",   0.025,  "levier Cadrage · coûts"),
-        (0, "Variation des effectifs permanents",            0.040,  "levier Cadrage · coûts"),
-        (0, "Δ budget de marque  (6236)", "='Le moteur'!J4", "LIÉ au second geste, onglet précédent"),
-        (0, "Dotations aux amortissements",                  0.020,  "plan d'amortissement")]
+        (0, "Inflation des charges externes", hyp("HYP_INFL_EXT"), "zone d'hypothèses · HYP_INFL_EXT"),
+        (0, "Effort de productivité", hyp("HYP_PRODUCTIVITY"), "zone d'hypothèses · HYP_PRODUCTIVITY"),
+        (0, "Politique salariale", hyp("HYP_SALARY"), "zone d'hypothèses · HYP_SALARY"),
+        (0, "Variation des effectifs permanents", hyp("HYP_FTE_PERM"), "zone d'hypothèses · HYP_FTE_PERM"),
+        (0, "Variation des coûts de structure", hyp("HYP_STRUCT_COST"), "zone d'hypothèses · HYP_STRUCT_COST")]
 SA0, REFS = 18, {}
 for j, (kind, lab, val, src) in enumerate(SAIS):
     r = SA0 + j
@@ -1079,10 +1168,11 @@ for j, (kind, lab, val, src) in enumerate(SAIS):
     x.fill = fill(PANEL); x.border = Border(*[sd(AZUR if lie else "C9C3B0")] * 4)
     w4.cell(r, 7, src).font = F(7.5, False, DOUX, lie); w4.cell(r, 7).alignment = ind(0)
     REFS[lab.split("  (")[0]] = "$E$%d" % r
-SOC, TAR, ACQ = REFS["Croissance du socle, hors geste d'acquisition"], REFS["Hausse tarifaire"], REFS["Δ budget d'acquisition"]
-INF, PRD = REFS["Inflation des charges externes"], REFS["Effort de productivité achats & structure"]
-SAL, POS = REFS["Politique salariale sur la masse permanente"], REFS["Variation des effectifs permanents"]
-MRQ, DOT = REFS["Δ budget de marque"], REFS["Dotations aux amortissements"]
+SOC, TAR = REFS["Croissance du socle"], REFS["Hausse tarifaire"]
+ACQ, MRQ = REFS["Δ budget d'acquisition"], REFS["Δ budget de marque"]
+INF, PRD = REFS["Inflation des charges externes"], REFS["Effort de productivité"]
+SAL, POS = REFS["Politique salariale"], REFS["Variation des effectifs permanents"]
+STR = REFS["Variation des coûts de structure"]
 
 def bloc_lignes(w, r0, lignes_, nc):
     """Un bloc « libelle · valeur · lecture ». La valeur est en E, la lecture en G."""
@@ -1152,7 +1242,7 @@ w4.cell(61, 2, '="Sur "&TEXT(E{5}-E{0},"#,##0 €")&" de croissance, "&TEXT(E{1}
 w4.cell(61, 2).font = F(9, True, INK); w4.cell(61, 2).alignment = ind(0)
 
 # ---- (d) LES COUTS DE CAMPUS : six familles, six regles ------------------
-titre(w4, 63, "ⓓ  Les coûts de CAMPUS  ·  six familles, six règles",
+titre(w4, 63, "ⓓ  Les coûts de CAMPUS  ·  cinq familles, cinq règles",
       "Un budget qui indexe tout au même taux ne dit rien. Celui-ci donne à chaque euro l'inducteur "
       "de son comportement — c'est ce qui fait apparaître où est le levier, et surtout où il n'est pas. "
       "Le détail des comptes est replié : cliquez le « + » dans la marge.", "B26B00")
@@ -1160,27 +1250,40 @@ entete(w4, 66, ["Famille · compte", None, "Montant 2026", "Ce qui la fait bouge
                 "Effet prix", "Montant 2027", "Variation", "Bouge si un élève de plus arrive ?"], 30)
 PC = '+0.0%;-0.0%;"—"'
 NB7 = ['General', 'General', '#,##0" €"', 'General', PC, PC, '#,##0" €"', '+0.0%;-0.0%', 'General']
-FAM_BOUGE = ["OUI — le seul euro qui suive vraiment l'élève",
-             "seulement si une classe doit ouvrir",
-             "NON — le poste est engagé à l'année",
-             "NON — elle suit la masse, pas l'élève",
+FAM_BOUGE = ["OUI — ils suivent le chiffre d'affaires",
+             "NON — la masse est engagée à l'année",
              "NON — c'est le mur qui coûte, pas l'élève",
+             "NON — assis sur la base fiscale",
              "c'est la décision elle-même"]
-#  Les regles s'ecrivent en ECARTS, pas en coefficients : « +6,9 % » se lit,
-#  « 1,069 » ne se lit pas. Le calcul devient  2026 x (1+volume) x (1+prix).
-MASSE_C = "=(H{0}+H{1})/(D{0}+D{1})-1".format(ROWP["6411"], ROWP["6413"])
-MASSE_T = "=(H{0}+H{1}+H{2})/(D{0}+D{1}+D{2})-1".format(ROWP["6411"], ROWP["6413"], ROWP["6414"])
-VOL_EFF = "=$E${0}/$E${1}-1".format(V0 + 4, V0)
-IDX = "=%s-%s" % (INF, PRD)
-REGLE = {"604": (VOL_EFF, "=%s" % INF, "les élèves"), "6063": (VOL_EFF, "=%s" % INF, "les élèves"),
-         "621": ("=$E$%d" % (V0 + 12), "=%s" % INF, "les classes"),
-         "6411": ("=%s" % POS, "=%s" % SAL, "les postes"), "6413": (0, "=%s" % SAL, "la paie"),
-         "645": (MASSE_C, 0, "la masse des campus"), "6231": (0, "=%s" % ACQ, "le geste"),
-         "6236": (0, "=%s" % MRQ, "le budget de marque"), "6414": (0, "=%s" % SAL, "la paie"),
-         "6331": (MASSE_T, 0, "la masse totale"), "6333": (MASSE_T, 0, "la masse totale"),
-         "6811": (0, "=%s" % DOT, "le plan d'amortissement")}
-for a in ("613", "615", "616", "625", "63511", "6226", "626", "6281"):
-    REGLE[a] = (0, IDX, "l'indexation")
+#  LA REGLE DE CAD_PIL, COMPTE POUR COMPTE. On l'a décodée dans son onglet
+#  _CALC_PNL et reproduite ici à six euros près sur vingt millions. C'est ce
+#  qui fait que le Budget 2027 tombe sur le scénario déployé, et non à côté.
+#
+#      604 6063 621          CA × (1 − productivité)
+#      6411 6413 6414 645    (1 + salaire) × (1 + postes)
+#      613 615 616 625       (1 + inflation) × (1 − productivité) × (1 + structure)
+#      6226 626 6281         idem — la structure du siège suit la même règle
+#      6331 6333 63511       (1 + inflation) × (1 − productivité)
+#      6231                  1 + Δ acquisition
+#      6236                  1 + Δ marque
+#      6811                  1 + inflation
+CAF = "($E${0}/$E${1}-1)".format(CA0 + 5, CA0)      # la croissance du CA, moteur du variable
+IDX = "=(1+{0})*(1-{1})-1".format(INF, PRD)         # indexé, moins l'effort
+IDS = "=(1+{0})*(1-{1})*(1+{2})-1".format(INF, PRD, STR)   # idem, plus la structure
+REGLE = {"604": ("=" + CAF, "=-%s" % PRD, "le chiffre d'affaires"),
+         "6063": ("=" + CAF, "=-%s" % PRD, "le chiffre d'affaires"),
+         "621": ("=" + CAF, "=-%s" % PRD, "le chiffre d'affaires"),
+         "6411": ("=%s" % POS, "=%s" % SAL, "les postes"),
+         "6413": ("=%s" % POS, "=%s" % SAL, "les postes"),
+         "645": ("=%s" % POS, "=%s" % SAL, "les postes"),
+         "6414": ("=%s" % POS, "=%s" % SAL, "les postes"),
+         "6231": (0, "=%s" % ACQ, "le geste"),
+         "6236": (0, "=%s" % MRQ, "le budget de marque"),
+         "6811": (0, "=%s" % INF, "l'indexation")}
+for a in ("613", "615", "616", "625", "6226", "626", "6281"):
+    REGLE[a] = (0, IDS, "l'indexation et la structure")
+for a in ("63511", "6331", "6333"):
+    REGLE[a] = (0, IDX, "l'indexation, moins l'effort")
 
 def ligne_compte(r, a, fond=CALC):
     vol, prix, dit = REGLE[a]
@@ -1224,7 +1327,7 @@ for c in (4, 8): w4.cell(R_PROPRE, c).font = F(10, True, VERT_T)
 
 # ---- le siege, en bloc a part --------------------------------------------
 for c in range(2, NC4 + 1): w4.cell(R_SIEGE_T, c).fill = fill(FOND)
-w4.cell(R_SIEGE_T, 2, "LE SIÈGE  ·  il ne suit aucun inducteur d'activité — il se décide, puis se cascade")
+w4.cell(R_SIEGE_T, 2, "LE SIÈGE  ·  mêmes règles, périmètre à part — c'est lui qui sépare l'EBITDA propre de l'EBITDA net")
 w4.cell(R_SIEGE_T, 2).font = F(9, True, AZUR); w4.cell(R_SIEGE_T, 2).alignment = ind(0)
 w4.row_dimensions[R_SIEGE_T].height = 20
 for a in SIEGE: ligne_compte(ROWP[a], a, fond=PANEL)
@@ -1245,7 +1348,7 @@ w4.cell(R_MARGE, 10, '="et nette : "&TEXT(D{0}/D{1},"0.0 %")&"  →  "&TEXT(H{0}
 w4.cell(R_MARGE, 10).font = F(8, True, INK); w4.cell(R_MARGE, 10).alignment = ind(0)
 for c in (4, 8): w4.cell(R_MARGE, c).number_format = '0.00%'
 ligne(w4, R_DOTA, ["      6811 · Dotations aux amortissements  ·  sous la ligne d'EBITDA", None,
-                   MTT["6811"], "le plan d'amortissement", 0, "=%s" % DOT,
+                   MTT["6811"], "l'indexation", 0, "=%s" % INF,
                    "=D{0}*(1+F{0})*(1+G{0})".format(R_DOTA),
                    "=IFERROR(H{0}/D{0}-1,0)".format(R_DOTA), ""],
       NB7, fond=PANEL, gauche=(1, 3, 8))
@@ -1262,17 +1365,17 @@ for r in CPT_R + [ROWP[a] for a in SIEGE]:
 # ---- (e) LA RECONCILIATION AVEC LE SIMULATEUR ----------------------------
 RR = R_FIN
 titre(w4, RR, "ⓔ  Est-ce que ce budget dit la même chose que le moteur ?",
-      "Le CA gagné est le même nombre — c'est la même cellule. Le coût de service, lui, se calcule de "
-      "deux façons : le moteur pondère campus par campus, le budget applique un taux au réseau. "
-      "L'écart qui en résulte est affiché, pas gommé.")
+      "Le CA gagné est le même nombre — c'est la même cellule. Le coût de service, lui, obéit à deux "
+      "doctrines : le budget applique la règle de CAD_PIL, où le vacataire suit le chiffre d'affaires ; "
+      "le moteur le fait suivre la CLASSE, ce qui est plus juste. L'écart est affiché, pas gommé.")
 entete(w4, RR + 3, ["Ce que le geste rapporte", None, "Le moteur", None, "Le budget 2027", None,
                     "Écart", None, "Pourquoi"], 26)
 L1, L2, L3 = RR + 4, RR + 5, RR + 6
 REC = [("CA gagné par le geste d'acquisition", "={0}J{1}".format(MO, RT2), "=E%d" % (CA0 + 2),
         "la même cellule — zéro par construction"),
        ("Coût de servir ces élèves", "={0}I{1}*{0}K{1}".format(MO, RT2),
-        "=D{0}*{1}I{2}/{1}U{3}".format(TP, MO, RT2, RT1),
-        "consommables du réseau au prorata des élèves gagnés"),
+        "=D{0}*{1}J{2}/D{3}*(1-{4})".format(TP, MO, RT2, R_CA, PRD),
+        "le moteur suit la CLASSE, le budget suit le CA — c'est là qu'ils divergent"),
        ("EBITDA gagné", "={0}L{1}".format(MO, RT2),
         "=F{0}-(H{1}-D{1})-F{2}".format(L1, ROWP["6231"], L2),
         "CA gagné − Δ budget d'acquisition − coût de service")]
@@ -1290,9 +1393,11 @@ for c in range(2, NC4 + 1):
     w4.cell(L3 + 2, c).fill = fill(PANEL); w4.cell(L3 + 2, c).border = Border(top=sd(AZUR))
     w4.cell(L3 + 3, c).fill = fill(PANEL)
     w4.cell(L3 + 4, c).fill = fill(PANEL); w4.cell(L3 + 4, c).border = Border(bottom=sd(AZUR))
-w4.cell(L3 + 2, 2, '="Ce budget retombe sur l\'EBITDA gagné du moteur à "&TEXT(ABS(H{0}),"#,##0 €")'
-                   '&" près, soit "&TEXT(ABS(H{0}/D{0}),"0.00 %")&" — et l\'écart a une cause nommée, '
-                   'pas une tolérance."'.format(L3))
+w4.cell(L3 + 2, 2, '="Ce budget reproduit le scénario Cadrage de CAD_PIL à l\'euro : "'
+                   '&TEXT(H{0},"#,##0 €")&" de chiffre d\'affaires, "&TEXT(H{1},"#,##0 €")'
+                   '&" d\'EBITDA net. L\'écart de "&TEXT(ABS(H{2}),"#,##0 €")&" ci-dessus est le prix '
+                   'de sa doctrine : chez lui le vacataire suit le CA, chez nous il suit la classe."'
+                   .format(R_CA, R_NET, L3))
 w4.cell(L3 + 2, 2).font = F(9, True, INK); w4.cell(L3 + 2, 2).alignment = ind(0)
 w4.row_dimensions[L3 + 2].height = 18
 w4.cell(L3 + 3, 2, '="La marge nette gagne "&TEXT((H{2}/H{1}-D{2}/D{1})*100,"0.0")&" pt quand la '
