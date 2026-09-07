@@ -1,0 +1,118 @@
+# Les requêtes du cockpit EDUSERVICES — jeu courant
+
+Version du 07/09/2026. Tout ce qui est listé ici tourne sur `TGK_MSSQL_07`,
+scénario `2027BUD_V1`, exercices 2025 et 2026.
+
+## Les trois règles qui n'ont jamais bougé
+
+Le loader Tagetik enveloppe la requête dans `SELECT COUNT(*) FROM ( … ) X`.
+D'où, dans **toutes** les requêtes de restitution :
+
+- **pas de CTE** (`WITH`), **pas de `ORDER BY`** au niveau extérieur, **pas de `;`**
+  final. Un `ORDER BY` reste permis à l'intérieur d'un `TOP 1` — c'est le cas
+  dans `Q_COCKPIT_COMPLET`, et c'est le seul.
+- **pas de crochets** dans les alias : Tagetik les refuse. Guillemets doubles,
+  `AS "Libellé compte"`.
+- le périmètre s'hérite de la cellule cliquée :
+  `WHERE ENTITY IN (${$Entity(HIERARCHY("EDU")).lowest})`. Les accolades sont
+  obligatoires. `.lowest` résout un nœud en ses feuilles et une feuille en
+  elle-même : **une seule requête sert les trois niveaux**, groupe, marque et
+  campus.
+
+Deux disciplines de fond, qui expliquent la forme de la plupart de ces requêtes :
+
+- **aucune division dans une requête.** Une moyenne, un taux, un indice ne
+  survivent pas à une somme. La requête rend le numérateur et le dénominateur,
+  le classeur divise après avoir sommé. C'est ce qui rend les pages justes à
+  tous les niveaux de la hiérarchie sans que la requête sache où elle tourne.
+- **une structure de lignes stable.** Les listes de comptes sont écrites dans
+  un bloc `VALUES` joint en `LEFT JOIN` : un compte sans mouvement rend zéro,
+  il ne disparaît pas. Le nombre de lignes est donc connu d'avance, et les
+  graphes n'ont plus de trous.
+
+---
+
+## Le socle
+
+| Fichier | Ce que c'est |
+|---|---|
+| `V_ALLOCATION.sql` | la vue qui porte le modèle : CA du socle CRM, coûts variables et directs lus en compta, siège redescendu par la cascade K1..K4. **Tout le reste s'appuie dessus.** |
+
+## Le cockpit
+
+| Fichier | Rend | Paramétré |
+|---|---|---|
+| `Q_COCKPIT_COMPLET.sql` | une ligne par campus, avec marque, et les six colonnes N-1 (dont inscrits et acquisition) pour calculer les évolutions | non — c'est la source du rapport, Tagetik filtre sur son propre axe |
+
+## Les trois graphes
+
+Chacune rend **exactement** le tableau que le graphe consomme, pas une colonne
+de plus, et porte la marque pour qu'une matrice puisse filtrer dessus.
+
+| Fichier | Graphe | Colonnes |
+|---|---|---|
+| `Q_G1_PONT.sql` | bridge EBITDA 2025 → 2026 | 5 — Étape, Socle invisible, Ancre, Hausse, Baisse |
+| `Q_G2_MARGE.sql` | marge EBITDA par marque | 4 — dynamique : marques sur un nœud, campus sur une marque |
+| `Q_G3_TENSION.sql` | acquisition, dépenses contre inscrits, base 100 | 3 |
+
+## Drill 1 — « pourquoi l'EBITDA a bougé »
+
+| Fichier | Rend |
+|---|---|
+| `Q_D1_SOCLE.sql` | **la version courante.** 15 colonnes, une ligne par campus : effectifs, valeurs unitaires, coûts directs, siège, EBITDA. La requête envoie tout le matériau, `DRILL1_EXCEL.xlsx` calcule les cinq effets. |
+| `Q_D1_TABLEAU.sql` | variante où la requête calcule elle-même les 7 lignes d'effets |
+| `Q_D1_GRAPHE.sql` | variante idem, mise en forme cascade (5 colonnes) |
+
+Les deux variantes restent valables ; elles calculent en base ce que le
+classeur calcule aujourd'hui. À garder si vous préférez un drill sans formule.
+
+## Drill 2 — « de quoi cet EBITDA est fait »
+
+| Fichier | Rend |
+|---|---|
+| `Q_D2_SOCLE.sql` | **16 lignes, 6 colonnes.** Le compte d'exploitation poste par poste : 3 comptes de produit (706, 7062, 708), 12 comptes de charge, plus le siège. Montants signés — leur somme vaut l'EBITDA. |
+| `Q_D2_CA_COMPTA.sql` | contrôle autonome : le CA vu par les comptes de produit, une ligne |
+
+`DRILL2_EXCEL.xlsx` va chercher chaque ligne par son `Compte` avec une
+`RECHERCHEV`. **L'ordre n'est pas l'affaire de la requête** — le classeur le
+fixe lui-même, ce qui tombe bien puisque `ORDER BY` est interdit.
+
+## Drill 3 — « d'où vient ce chiffre d'affaires »
+
+Deux requêtes qui répondent à la même question par deux chemins. Un chiffre qui
+arrive deux fois par deux chemins différents est un chiffre vérifié.
+
+| Fichier | Chaîne | Rend |
+|---|---|---|
+| `Q_D3_CA_CRM.sql` | le **pilotage** — effectifs × droits de scolarité | 3 lignes, 8 colonnes : volumes et montants, jamais de prix moyen |
+| `Q_D3_CA_COMPTA.sql` | le **constat** — comptes 706, 7062, 708 | 3 lignes, 4 colonnes |
+
+`DRILL3_EXCEL.xlsx` les met face à face, puis décompose la variation en effet
+volume et effet prix. Sans terme croisé : volume valorisé au prix de N-1, prix
+appliqué au volume de N.
+
+## Maintenance
+
+| Fichier | Ce que ça fait |
+|---|---|
+| `FIX_CA_COMPTA_2024_2025.sql` | **à lancer dans SSMS, pas dans le loader.** Réaligne les comptes de produit sur le socle CRM en recalculant depuis le CRM — aucun montant en dur, donc relançable. Passé le 06/09 : les trois exercices tombent au centime. |
+
+---
+
+## La correspondance des comptes
+
+Vérifiée sur les 70 lignes de 2026, sans une seule exception.
+
+| Compte | Ce que c'est | Inducteur CRM |
+|---|---|---|
+| `706` | scolarité des étudiants en **initial** | `VOL_EFF × REV_STUD` |
+| `7062` | scolarité des **alternants** | `VOL_EFF × REV_STUD` |
+| `708` | **frais d'inscription** | `VOL_NEW × REV_FRAIS_INS` |
+
+Les frais d'inscription se paient une fois, à l'entrée : leur volume est
+`VOL_NEW`, pas l'effectif total. C'est pourquoi les trois volumes ne
+s'additionnent jamais entre eux.
+
+**Coûts variables** : 621, 604, 6063, 6231.
+**Coûts directs** : 6411, 6413, 645, 613, 615, 616, 625, 63511.
+**Siège** (porté par GRP, redescendu) : 6236, 6414, 6226, 626, 6281, 6331, 6333.
