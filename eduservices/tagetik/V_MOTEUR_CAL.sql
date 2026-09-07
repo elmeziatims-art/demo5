@@ -78,6 +78,30 @@
    fois.
 
    =============================================================================
+   ET LES ENSEIGNANTS PERMANENTS ?
+
+   Ils sont dans la vue -- COUT_PERM_N, compte 6411, 3 841 070 EUR en 2026 --
+   et ils sont alloues a l'HEURE, exactement comme les vacataires. Ils pesent
+   meme 58,6 % du cout d'enseignement du reseau. Et pourtant ils ne sont pas
+   dans le cout marginal, pour une raison qui n'a rien d'un oubli :
+
+       un poste permanent est un ENGAGEMENT DE CAPACITE. Il est paye pareil
+       que la salle contienne 24 ou 32 etudiants. Il ne varie pas avec
+       l'eleve, il varie avec le NOMBRE DE POSTES -- c'est-a-dire par palier,
+       et le palier suivant n'est pas une classe, c'est un campus.
+
+   Le vacataire est la seule ressource enseignante que l'on achete a la
+   classe : c'est pour cela qu'il est le seul a entrer dans le cout marginal,
+   et seulement quand une classe doit ouvrir. Accessoirement, le 621 est du
+   PERSONNEL EXTERIEUR : une facture, donc sans charges sociales 645 en plus,
+   contrairement au 6411.
+
+   Sur 20,6 MEUR de charges, 1,13 MEUR seulement -- 5,5 % -- bougent quand un
+   eleve de plus s'assoit. Tout le reste est de la capacite deja engagee, et
+   c'est precisement ce qui rend le geste d'acquisition aussi rentable tant
+   qu'il reste des places.
+
+   =============================================================================
    ET NON, ON NE S'ARRETE PAS AU CA
 
    Un DAF n'arbitre pas sur du chiffre d'affaires. « +205 651 EUR de CA » sans
@@ -115,8 +139,10 @@ SELECT
     SUM(CASE WHEN v.EXERCICE = 2026 THEN v.EFFECTIFS END)           AS EFFECTIFS_N,
     SUM(CASE WHEN v.EXERCICE = 2026 THEN v.PLACES    END)           AS PLACES_N,
     SUM(CASE WHEN v.EXERCICE = 2026 THEN v.CLASSES   END)           AS CLASSES_N,
+    SUM(CASE WHEN v.EXERCICE = 2026 THEN v.HEURES    END)           AS HEURES_N,
     MAX(k.COUT_CONSO)                                               AS COUT_CONSO_N,
     MAX(k.COUT_VACAT)                                               AS COUT_VACAT_N,
+    MAX(k.COUT_PERM)                                                AS COUT_PERM_N,
 
     /* ---- controle : doit valoir zero ------------------------------------- */
     SUM(v.LEAD_TOT) - SUM(v.LEAD_BRUT)                              AS ECART_LEADS
@@ -134,6 +160,15 @@ FROM (
                 SUM(s.VOL_CLASS * CASE WHEN s.PROGRAMME LIKE 'BAC%' THEN 32
                                        WHEN s.PROGRAMME LIKE 'MAS%' THEN 26
                                        ELSE 30 END)                 AS PLACES,
+                /* les heures d'enseignement : c'est la cle d'allocation du 621 et du
+                   6411, et le denominateur du tarif horaire. Meme maquette pedagogique
+                   que le classeur, onglet « Integration & controles ». */
+                SUM(s.VOL_CLASS * CASE WHEN s.PROGRAMME LIKE 'BAC%' AND s.MODALITE = 'INIT' THEN 600
+                                       WHEN s.PROGRAMME LIKE 'BAC%'                         THEN 480
+                                       WHEN s.PROGRAMME LIKE 'MAS%' AND s.MODALITE = 'INIT' THEN 520
+                                       WHEN s.PROGRAMME LIKE 'MAS%'                         THEN 420
+                                       WHEN s.MODALITE = 'INIT'                             THEN 1000
+                                       ELSE 700 END)                AS HEURES,
                 SUM(s.VOL_NEW * s.REV_STUD + s.VOL_NEW * s.REV_FRAIS_INS) AS CA_NEW
         FROM    AW_002_000002_000001 AS s
         WHERE   CAST(s.EXERCICE AS INT) IN (2024, 2025, 2026)
@@ -150,7 +185,8 @@ LEFT JOIN (
            c'est le budget d'acquisition, deja soustrait comme Delta budget. */
         SELECT  d.ENTITY,
                 SUM(CASE WHEN d.ACCOUNT IN ('604', '6063') THEN d.AMOUNT ELSE 0 END) AS COUT_CONSO,
-                SUM(CASE WHEN d.ACCOUNT = '621'            THEN d.AMOUNT ELSE 0 END) AS COUT_VACAT
+                SUM(CASE WHEN d.ACCOUNT = '621'            THEN d.AMOUNT ELSE 0 END) AS COUT_VACAT,
+                SUM(CASE WHEN d.ACCOUNT = '6411'           THEN d.AMOUNT ELSE 0 END) AS COUT_PERM
         FROM    AW_002_000004_000001 AS d
         WHERE   CAST(d.EXERCICE AS INT) = 2026
         GROUP BY d.ENTITY
