@@ -111,6 +111,17 @@ arrive deux fois par deux chemins différents est un chiffre vérifié.
 volume et effet prix. Sans terme croisé : volume valorisé au prix de N-1, prix
 appliqué au volume de N.
 
+## Le moteur
+
+| Fichier | Rend |
+|---|---|
+| `Q_MOTEUR_CALIBRATION.sql` | une ligne par campus, 13 colonnes : les séries leads/budget sur 3 exercices, **l'élasticité calculée en SQL**, la conversion et le CA par inscrit. Alimente l'onglet *Le moteur (modèle)*. |
+
+L'élasticité est une **régression des moindres carrés**, donc une agrégation :
+elle s'écrit avec des `SUM`, sans CTE. Vérifiée identique à `SLOPE` d'Excel au
+dix-millième sur les 14 campus. Le Δ de budget reste une **saisie** : les cinq
+colonnes du geste restent dans le classeur.
+
 ## Maintenance
 
 | Fichier | Ce que ça fait |
