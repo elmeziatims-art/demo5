@@ -16,6 +16,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.chart import BarChart, LineChart, Reference
 from openpyxl.chart.label import DataLabelList
+from openpyxl.chart.marker import DataPoint
 from openpyxl.chart.text import RichText
 from openpyxl.drawing.text import (RichTextProperties, Paragraph, ParagraphProperties,
                                    CharacterProperties, Font as PoliceDessin)
@@ -141,7 +142,7 @@ ws.sheet_view.showGridLines = False
 NCOL = 19
 for c, w in ((1, 2.0), (2, 46.0), (3, 14.5), (4, 14.5), (5, 14.5), (6, 14.5),
              (7, 2.0), (8, 2.0), (9, 2.0), (10, 25.0), (11, 9.5), (12, 2.0), (13, 12.0),
-             (16, 8.0), (17, 12.0), (18, 12.0), (19, 12.0)):
+             (16, 8.0), (17, 14.0), (18, 12.0), (19, 12.0), (20, 11.0)):
     ws.column_dimensions[GL(c)].width = w
 for r, h in {4: 6.0, 5: 20.0, 6: 12.0, 7: 15.0, 8: 24.0, 9: 15.0, 10: 24.0, 11: 18.0,
              12: 16.5, 13: 16.5, 14: 16.5, 15: 16.5, 16: 12.0, 17: 6.0, 18: 24.0,
@@ -251,71 +252,111 @@ for i, (m, k) in enumerate([("MBway", 1.20), ("ISCOM", 1.15),
     for c in (10, 11):
         ws.cell(r, c).border = Border(bottom=sd(FIN), left=sd(FIN), right=sd(FIN))
 
-# --- zone de donnees du graphique (hors zone d'impression) -----------------
-#  EBITDA reel 2024-2026 reconstitue depuis l'onglet PNL (comptes 70x moins 6xx
-#  hors 6811). Le controle tombe juste sur 2026 : 3 845 790 EUR.
-mettre(ws, 4, 16, "Données du graphique", F(8, True, GRIS), ind(0))
-for i, lib in enumerate(("Exercice", "Réel", "Budget 2027", "Objectif")):
+# --- zone de donnees des graphiques (hors zone d'impression) ---------------
+#  Reel 2024-2026 reconstitue depuis l'onglet PNL : comptes 70x pour le chiffre
+#  d'affaires, moins les 6xx hors 6811 pour l'EBITDA. Controle : 2026 retombe
+#  sur 23 098 985 EUR et 3 845 790 EUR.
+mettre(ws, 4, 16, "Données des graphiques", F(8, True, GRIS), ind(0))
+for i, lib in enumerate(("Exercice", "Chiffre d'affaires", "EBITDA",
+                         "Objectif EBITDA", "Marge EBITDA")):
     mettre(ws, 5, 16 + i, lib, F(8, True, GRIS), Ce if i else ind(0))
-GRAPHE = [(2024, 3151035, None, 4095766.36),
-          (2025, 3467768, None, 4095766.36),
-          (2026, 3845790, None, 4095766.36),
-          (2027, None, 6744302.91, 4095766.36)]
-for i, (an, reel, bud, obj) in enumerate(GRAPHE):
+GRAPHE = [(2024, 20567210, 3151035, 4095766.36, .1532),
+          (2025, 21758770, 3467768, 4095766.36, .1594),
+          (2026, 23098985, 3845790, 4095766.36, .1665),
+          (2027, 26814168.68, 6744302.91, 4095766.36, .2515)]
+for i, (an, ca, eb, obj, mg) in enumerate(GRAPHE):
     r = 6 + i
     mettre(ws, r, 16, an, F(8, False, GRIS), Ce, "0")
-    for j, v in enumerate((reel, bud, obj)):
-        if v is not None:
-            mettre(ws, r, 17 + j, v, F(8, False, GRIS), Dr, NB)
+    for j, (v, f) in enumerate(((ca, NB), (eb, NB), (obj, NB), (mg, PCT))):
+        mettre(ws, r, 17 + j, v, F(8, False, GRIS), Dr, f)
 
 police = CharacterProperties(latin=PoliceDessin(typeface=UI), sz=800, solidFill=NOIR)
-def texte_arial():
+def texte_arial(taille=800):
+    cp = CharacterProperties(latin=PoliceDessin(typeface=UI), sz=taille, solidFill=NOIR)
     return RichText(bodyPr=RichTextProperties(),
-                    p=[Paragraph(pPr=ParagraphProperties(defRPr=police), endParaRPr=police)])
+                    p=[Paragraph(pPr=ParagraphProperties(defRPr=cp), endParaRPr=cp)])
+def titrer(graphe, texte):
+    gras = CharacterProperties(latin=PoliceDessin(typeface=UI), sz=1000, b=True,
+                               solidFill=NOIR)
+    graphe.title = texte
+    graphe.title.tx.rich.p[0].pPr = ParagraphProperties(defRPr=gras)
+    graphe.title.tx.rich.p[0].r[0].rPr = gras
 
-barres = BarChart()
-barres.type = "col"
-barres.grouping = "stacked"
-barres.overlap = 100
-barres.gapWidth = 60
-barres.add_data(Reference(ws, min_col=17, max_col=18, min_row=5, max_row=9),
-                titles_from_data=True)
-barres.set_categories(Reference(ws, min_col=16, min_row=6, max_row=9))
-barres.series[0].graphicalProperties.solidFill = ENCRE
-barres.series[1].graphicalProperties.solidFill = "2E75B6"
-barres.dLbls = DataLabelList()
-barres.dLbls.showVal = True
-barres.dLbls.numFmt = '#,##0'
-barres.dLbls.txPr = texte_arial()
+def point_budget(serie, couleur):
+    """La colonne 2027 n'est pas un realise : elle se distingue."""
+    pt = DataPoint(idx=3)
+    pt.graphicalProperties.solidFill = couleur
+    serie.data_points = [pt]
 
-repere = LineChart()
-repere.add_data(Reference(ws, min_col=19, min_row=5, max_row=9), titles_from_data=True)
-repere.series[0].graphicalProperties.line.solidFill = ROUGE
-repere.series[0].graphicalProperties.line.dashStyle = "dash"
-repere.series[0].graphicalProperties.line.width = 18000
-repere.series[0].smooth = False
-repere.y_axis.axId = barres.y_axis.axId
-repere.x_axis.axId = barres.x_axis.axId
-barres += repere
+#  --- graphique 1 : le chiffre d'affaires et l'EBITDA, meme axe ------------
+volumes = BarChart()
+volumes.type = "col"
+volumes.grouping = "clustered"
+volumes.gapWidth = 60
+volumes.overlap = -15
+volumes.add_data(Reference(ws, min_col=17, max_col=18, min_row=5, max_row=9),
+                 titles_from_data=True)
+volumes.set_categories(Reference(ws, min_col=16, min_row=6, max_row=9))
+volumes.series[0].graphicalProperties.solidFill = "9DC3E6"      # chiffre d'affaires
+volumes.series[1].graphicalProperties.solidFill = ENCRE         # EBITDA
+point_budget(volumes.series[0], "C9DEF2")
+point_budget(volumes.series[1], "2E75B6")
+volumes.dLbls = DataLabelList()
+volumes.dLbls.showVal = True
+#  huit etiquettes sur 10 cm : en euros pleins elles se chevauchent, en millions
+#  a une decimale elles tiennent et restent lisibles.
+volumes.dLbls.numFmt = '#,##0.0,," M€"'
+volumes.dLbls.txPr = texte_arial(700)
 
-barres.title = "EBITDA : réel 2024-2026 et budget 2027"
-barres.y_axis.numFmt = '#,##0" €"'
-barres.y_axis.majorGridlines.spPr = None
-barres.x_axis.delete = False
-barres.y_axis.delete = False
-barres.x_axis.axPos = "b"
-barres.y_axis.axPos = "l"
-barres.x_axis.numFmt = "0"
-titre_gras = CharacterProperties(latin=PoliceDessin(typeface=UI), sz=1000, b=True,
-                                solidFill=NOIR)
-barres.title.tx.rich.p[0].pPr = ParagraphProperties(defRPr=titre_gras)
-barres.title.tx.rich.p[0].r[0].rPr = titre_gras
-barres.legend.position = "b"
-barres.legend.overlay = False
-barres.txPr = texte_arial()
-barres.height = 7.1
-barres.width = 10.4
-ws.add_chart(barres, "H5")
+objectif = LineChart()
+objectif.add_data(Reference(ws, min_col=19, min_row=5, max_row=9), titles_from_data=True)
+objectif.series[0].graphicalProperties.line.solidFill = ROUGE
+objectif.series[0].graphicalProperties.line.dashStyle = "dash"
+objectif.series[0].graphicalProperties.line.width = 18000
+objectif.series[0].smooth = False
+objectif.y_axis.axId = volumes.y_axis.axId
+objectif.x_axis.axId = volumes.x_axis.axId
+volumes += objectif
+
+titrer(volumes, "Chiffre d'affaires et EBITDA — réel 2024-2026, budget 2027")
+volumes.y_axis.numFmt = '#,##0" €"'
+volumes.x_axis.numFmt = "0"
+volumes.x_axis.delete = False
+volumes.y_axis.delete = False
+volumes.x_axis.axPos = "b"
+volumes.y_axis.axPos = "l"
+volumes.legend.position = "b"
+volumes.legend.overlay = False
+volumes.txPr = texte_arial()
+volumes.height = 7.4
+volumes.width = 10.4
+ws.add_chart(volumes, "H5")
+
+#  --- graphique 2 : la marge, que l'axe en euros ne peut pas montrer -------
+marge = BarChart()
+marge.type = "col"
+marge.grouping = "clustered"
+marge.gapWidth = 90
+marge.add_data(Reference(ws, min_col=20, min_row=5, max_row=9), titles_from_data=True)
+marge.set_categories(Reference(ws, min_col=16, min_row=6, max_row=9))
+marge.series[0].graphicalProperties.solidFill = ENCRE
+point_budget(marge.series[0], "2E75B6")
+marge.dLbls = DataLabelList()
+marge.dLbls.showVal = True
+marge.dLbls.numFmt = '0.0%'
+marge.dLbls.txPr = texte_arial()
+titrer(marge, "Marge EBITDA")
+marge.y_axis.numFmt = "0%"
+marge.x_axis.numFmt = "0"
+marge.x_axis.delete = False
+marge.y_axis.delete = False
+marge.x_axis.axPos = "b"
+marge.y_axis.axPos = "l"
+marge.legend = None
+marge.txPr = texte_arial()
+marge.height = 4.6
+marge.width = 10.4
+ws.add_chart(marge, "H31")
 
 ws.freeze_panes = "B10"
 impression(ws, "1:3", "A1:M44")
@@ -465,7 +506,7 @@ impression(p, "1:3", "A1:L57")
 # ============================================================================
 #  NORMALISATION ET CONTROLES
 # ============================================================================
-for feuille, nl, nc in ((ws, 46, 19), (p, 58, NC2)):
+for feuille, nl, nc in ((ws, 46, 20), (p, 58, NC2)):
     for r in range(1, nl + 1):
         for c in range(1, nc + 1):
             x = feuille.cell(r, c)
