@@ -142,7 +142,7 @@ ws.sheet_view.showGridLines = False
 NCOL = 19
 for c, w in ((1, 2.0), (2, 46.0), (3, 14.5), (4, 14.5), (5, 14.5), (6, 14.5),
              (7, 2.0), (8, 2.0), (9, 2.0), (10, 25.0), (11, 9.5), (12, 2.0), (13, 12.0),
-             (16, 8.0), (17, 14.0), (18, 12.0), (19, 12.0), (20, 11.0)):
+             (16, 8.0), (17, 13.0), (18, 12.0), (19, 11.0), (20, 13.0)):
     ws.column_dimensions[GL(c)].width = w
 for r, h in {4: 6.0, 5: 20.0, 6: 12.0, 7: 15.0, 8: 24.0, 9: 15.0, 10: 24.0, 11: 18.0,
              12: 16.5, 13: 16.5, 14: 16.5, 15: 16.5, 16: 12.0, 17: 6.0, 18: 24.0,
@@ -257,17 +257,20 @@ for i, (m, k) in enumerate([("MBway", 1.20), ("ISCOM", 1.15),
 #  d'affaires, moins les 6xx hors 6811 pour l'EBITDA. Controle : 2026 retombe
 #  sur 23 098 985 EUR et 3 845 790 EUR.
 mettre(ws, 4, 16, "Données des graphiques", F(8, True, GRIS), ind(0))
-for i, lib in enumerate(("Exercice", "Chiffre d'affaires", "EBITDA",
-                         "Objectif EBITDA", "Marge EBITDA")):
+#  L'ordre des colonnes n'est pas cosmetique : les quatre premieres sont celles
+#  que rend Q_GRAPHE_TRAJECTOIRE, donc collables d'un bloc. La cinquieme,
+#  l'objectif, est une cellule, pas une donnee de base.
+for i, lib in enumerate(("Exercice", "CA", "EBITDA", "Marge EBITDA",
+                         "Objectif EBITDA")):
     mettre(ws, 5, 16 + i, lib, F(8, True, GRIS), Ce if i else ind(0))
-GRAPHE = [(2024, 20567210, 3151035, 4095766.36, .1532),
-          (2025, 21758770, 3467768, 4095766.36, .1594),
-          (2026, 23098985, 3845790, 4095766.36, .1665),
-          (2027, 26814168.68, 6744302.91, 4095766.36, .2515)]
-for i, (an, ca, eb, obj, mg) in enumerate(GRAPHE):
+GRAPHE = [(2024, 20567210, 3151035, .1532, 4095766.36),
+          (2025, 21758770, 3467768, .1594, 4095766.36),
+          (2026, 23098985, 3845790, .1665, 4095766.36),
+          (2027, 26814168.68, 6744302.91, .2515, 4095766.36)]
+for i, (an, ca, eb, mg, obj) in enumerate(GRAPHE):
     r = 6 + i
     mettre(ws, r, 16, an, F(8, False, GRIS), Ce, "0")
-    for j, (v, f) in enumerate(((ca, NB), (eb, NB), (obj, NB), (mg, PCT))):
+    for j, (v, f) in enumerate(((ca, NB), (eb, NB), (mg, PCT), (obj, NB))):
         mettre(ws, r, 17 + j, v, F(8, False, GRIS), Dr, f)
 
 police = CharacterProperties(latin=PoliceDessin(typeface=UI), sz=800, solidFill=NOIR)
@@ -309,7 +312,7 @@ volumes.dLbls.numFmt = '#,##0.0,," M€"'
 volumes.dLbls.txPr = texte_arial(700)
 
 objectif = LineChart()
-objectif.add_data(Reference(ws, min_col=19, min_row=5, max_row=9), titles_from_data=True)
+objectif.add_data(Reference(ws, min_col=20, min_row=5, max_row=9), titles_from_data=True)
 objectif.series[0].graphicalProperties.line.solidFill = ROUGE
 objectif.series[0].graphicalProperties.line.dashStyle = "dash"
 objectif.series[0].graphicalProperties.line.width = 18000
@@ -337,7 +340,7 @@ marge = BarChart()
 marge.type = "col"
 marge.grouping = "clustered"
 marge.gapWidth = 90
-marge.add_data(Reference(ws, min_col=20, min_row=5, max_row=9), titles_from_data=True)
+marge.add_data(Reference(ws, min_col=19, min_row=5, max_row=9), titles_from_data=True)
 marge.set_categories(Reference(ws, min_col=16, min_row=6, max_row=9))
 marge.series[0].graphicalProperties.solidFill = ENCRE
 point_budget(marge.series[0], "2E75B6")
