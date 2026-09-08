@@ -197,20 +197,22 @@ TARIF = sum(k[e]["vac"] for e in ENTS) / sum(v[(e,2026)]["hrs"] for e in ENTS)
 #  scenario, pareil, d'un seul clic.
 #
 #  Les valeurs ci-dessous ne sont qu'une AMORCE pour que le classeur vive hors
-#  connexion. Elles sont les memes que celles de SEED_HYPOTHESES.sql.
+#  connexion. Elles sont la SOMME des deformations constatees dans le cube --
+#  cette table stocke des saisies successives, et la valeur d'un levier est
+#  leur somme. Verifie levier par levier contre le classeur de cadrage.
 # ============================================================================
 HYP = [(1,  "Croissance", "HYP_ACQ_BUD",      "Variation du budget acquisition",       0.0800,  0.1500, -0.0500),
        (2,  "Croissance", "HYP_BRAND_BUD",    "Variation du budget de marque",         0.1000,  0.1500, -0.0500),
        (3,  "Croissance", "HYP_PRICE",        "Hausse tarifaire",                      0.0029,  0.0350,  0.0200),
-       (4,  "Croissance", "HYP_CONV_LEAD",    "Gain conversion Lead → Candidature",    0.0100,  0.0300, -0.0100),
-       (5,  "Croissance", "HYP_CONV_ADM",     "Gain conversion Admis → Inscrit",       0.0100,  0.0250, -0.0100),
-       (6,  "Croissance", "HYP_PASSAGE",      "Amélioration du taux de passage",       0.0050,  0.0150, -0.0100),
+       (4,  "Croissance", "HYP_CNV_LEAD_CAND",    "Gain conversion Lead → Candidature",    0.0100,  0.0300, -0.0100),
+       (5,  "Croissance", "HYP_CNV_ADM_INS",     "Gain conversion Admis → Inscrit",       0.0100,  0.0250, -0.0100),
+       (6,  "Croissance", "HYP_PASS_RATE",      "Amélioration du taux de passage",       0.0050,  0.0150, -0.0100),
        (7,  "Coûts",      "HYP_INFL_EXT",     "Inflation des charges externes",        0.0200,  0.0150,  0.0300),
        (8,  "Coûts",      "HYP_SALARY",       "Politique salariale",                   0.0250,  0.0200,  0.0300),
        (9,  "Coûts",      "HYP_FTE_PERM",     "Variation des effectifs permanents",    0.0400,  0.0300,  0.0500),
        (10, "Coûts",      "HYP_PRODUCTIVITY", "Effort de productivité",                0.0185,  0.0300,  0.0000),
        (11, "Coûts",      "HYP_STRUCT_COST",  "Variation des coûts de structure",      0.0000, -0.0300,  0.0400),
-       (12, "Constante",  "HYP_FEE",          "Frais de dossier par nouvel inscrit",  90.0000, 90.0000, 90.0000)]
+       (12, "Constante",  "HYP_FILE_FEE",          "Frais de dossier par nouvel inscrit",  90.0000, 90.0000, 90.0000)]
 ZC = 30                                   # AD : premiere colonne de la zone
 ZH = 3                                    # la ligne d'en-tete de la zone
 ZONE = "'Le moteur'!$%s$%d:$%s$%d" % (GL(ZC + 4), ZH + 1, GL(ZC + 6), ZH + len(HYP))
@@ -362,7 +364,7 @@ for j, ligne_ in enumerate(HYP):
     for i, val in enumerate(ligne_):
         x = ws.cell(ZH + 1 + j, ZC + i, val); x.fill = fill(VUE); x.font = F(8, False, INK)
         x.alignment = ind(0) if i in (1, 2, 3) else R
-        x.number_format = '0' if i == 0 else ('+0.00%;-0.00%' if i > 3 and ligne_[2] != "HYP_FEE"
+        x.number_format = '0' if i == 0 else ('+0.00%;-0.00%' if i > 3 and ligne_[2] != "HYP_FILE_FEE"
                                               else ('#,##0" €"' if i > 3 else 'General'))
 for c in range(ZC, ZC + 7):
     ws.column_dimensions[GL(c)].width = 22 if c == ZC + 3 else 13

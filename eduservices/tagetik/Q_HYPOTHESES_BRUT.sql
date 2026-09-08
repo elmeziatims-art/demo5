@@ -1,18 +1,17 @@
 /* =============================================================================
-   Q_HYPOTHESES_BRUT  —  trois lignes, a lancer UNE FOIS, pour lever les
-   dernieres incertitudes de nommage.
+   Q_HYPOTHESES_BRUT  —  la table telle quelle, pour verifier a l'oeil.
 
-   Elle ne sert pas au rapport. Elle sert a repondre a trois questions que je ne
-   peux pas trancher depuis mes exports, et sur lesquelles je ne veux plus
-   deviner :
+   Elle a servi une fois et a tout appris : les vrais noms de colonnes
+   (PARAMETRE, MEASURE, VERSION), l'absence de colonne EXERCICE, les codes
+   reels des douze leviers -- et surtout que la table stocke des DEFORMATIONS,
+   donc plusieurs lignes pour une meme cle.
 
-     - comment s'appelle la colonne qui porte le scenario ? VERSION ?
-     - quelles sont les valeurs exactes ? V01/V02/V03, ou autre chose ?
-     - quels sont les codes reels des douze leviers, et sur quelle ENTITY ?
-
-   Une fois la sortie sous les yeux, Q_HYPOTHESES est juste ou se corrige en
-   deux lignes.
+   On la garde parce qu'elle sert a deux choses : verifier apres une saisie que
+   la deformation est bien passee, et retrouver la valeur nette d'un levier
+   sans passer par le rapport.
    ============================================================================= */
-SELECT TOP 60 *
+SELECT h.PARAMETRE, h.VERSION, COUNT(*) AS LIGNES, SUM(h.MEASURE) AS VALEUR_NETTE
 FROM   AW_002_000001_000001 AS h
-WHERE  h.ACCOUNT LIKE 'HYP%'
+WHERE  h.PARAMETRE LIKE 'HYP%'
+  AND  h.SCENARIO = '2027BUD_V1'
+GROUP BY h.PARAMETRE, h.VERSION
