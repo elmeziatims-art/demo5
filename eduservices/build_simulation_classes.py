@@ -53,12 +53,39 @@ Ces lignes sont PUREMENT ADDITIVES : les cinq lecteurs du cube filtrent deja
 HYP_PRICE_COEF, V_ALLOCATION et DIAG_COCKPIT_VIDE sur PARAMETRE LIKE 'ALLOC_').
 Rien de ce qui existe ne les voit. Le cadrage n'est pas touche.
 
-LES TROIS FICHIERS SQL QUI VONT AVEC
+ET L'EFFET SUR LES AUTRES GROUPES, QUI EST LE VRAI SUJET
 
-    V_SIMULATION_CLASSES  la base : effectif construit, capacite ouverte, cout
-                          poste par poste, couts UNITAIRES (vacataires par
-                          groupe, consommables par eleve, permanents par groupe)
-                          et CAC marginal du campus.
+Fermer un groupe ne fait pas disparaitre les permanents, les murs, la marque et
+le siege : ca les fait CHANGER DE PORTEUR. Le masque le montre ligne a ligne,
+avec la mecanique exacte de l'onglet Allocation (_CALC_ALLOC, ou VOL_CLASS est
+une colonne et ou toute la cascade se rejoue en formules) :
+
+    permanents (6411)         restent, et se repartissent sur les HEURES qui
+                              restent -- donc au prorata des groupes de chaque
+                              classe
+    structure, marque, siege  restent, et se repartissent sur les GROUPES qui
+                              restent
+
+La colonne « Couts fixes realloues » totalise donc ZERO : elle ne cree ni ne
+detruit de charge, elle la deplace. Et la somme des marges completes apres
+redistribution rend exactement l'EBITDA du campus apres decision -- c'est le
+controle affiche en gris sous la cascade, verifie a 0,000000 sur les trois
+gestes de la demo.
+
+D'ou le moment le plus parlant de la demo : a Pigier Bordeaux, fermer un groupe
+de BTS 2e annee fait MONTER la marge complete affichee du BTS 2e annee, de
+3 971 a 60 791 EUR, parce qu'il porte moins de charge -- pendant que le campus
+perd 16 445 EUR. Le rapport au cout complet dit que ca va mieux, la caisse dit
+le contraire.
+
+LES QUATRE FICHIERS SQL QUI VONT AVEC
+
+    V_SIMULATION_CLASSES  wrapper mince sur V_CAMPUS_CLASSE, qui definit deja
+                          la capacite, les places, le remplissage, la
+                          contribution et le point mort. N'ajoute que le
+                          sureffectif, les couts UNITAIRES (vacataires par
+                          groupe, consommables par eleve, permanents par
+                          groupe) et le CAC marginal du campus.
     Q_SIMULATION_CLASSES  la requete du masque, sans CTE ni ORDER BY ni ';',
                           alias entre guillemets doubles et sans accent.
     V_SIMULATION_SAISIE   la meme arithmetique cote serveur, a partir de ce qui
@@ -223,7 +250,7 @@ DN = "Donnees!"
 LIM = 400                       # marge large : la requete peut grossir sans retoucher le masque
 RG = lambda col: "%s$%s$%d:$%s$%d" % (DN, col, D0, col, LIM)
 CL = lambda col: "%s$%s$1:$%s$%d" % (DN, col, col, LIM)
-IX = lambda col, r: "INDEX(%s,$U%d)" % (CL(col), r)
+IX = lambda col, r: "INDEX(%s,$W%d)" % (CL(col), r)
 
 # =============================================================================
 #  1. SIMULATION — le masque
@@ -232,10 +259,11 @@ ws = wb.create_sheet("Simulation", 0)
 ws.sheet_view.showGridLines = False
 LARG = {"A": 1.8, "B": 26, "C": 11, "D": 11, "E": 8.5, "F": 8.5, "G": 11, "H": 11,
         "I": 11.5, "J": 13, "K": 13, "L": 13, "M": 9.5, "N": 11.5, "O": 10, "P": 11,
-        "Q": 12.5, "R": 12.5, "S": 13.5, "T": 1.8}
+        "Q": 12.5, "R": 12.5, "S": 13, "T": 13, "U": 14, "V": 1.8}
 for c, w in LARG.items():
     ws.column_dimensions[c].width = w
-for c in ("U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD", "AE"):
+for c in ("W", "X", "Y", "Z", "AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH",
+          "AI", "AJ", "AK", "AL"):
     ws.column_dimensions[c].width = 11
     ws.column_dimensions[c].hidden = True
 
@@ -246,8 +274,10 @@ R_B, R_BH, R_L0 = 19, 20, 21
 R_LTOT, R_LFIG = R_L0 + 7, R_L0 + 8
 R_R0, R_REFF = 21, 27
 R_C0 = 29                       # la cascade EBITDA, cinq lignes
+R_CTRL = 34                     # le controle
 R_N0 = 36
-CODE = "$AC$4"                  # le code campus, en technique
+CODE = "$AI$4"                  # le code campus, en technique
+AMT = 21                        # la colonne des montants des deux blocs (U)
 
 def po(r, c, v=None, f=None, nf=None, al=None, fl=None, bd=None):
     x = ws.cell(r, c, v)
@@ -260,12 +290,13 @@ def po(r, c, v=None, f=None, nf=None, al=None, fl=None, bd=None):
 
 #  ---- bandeau -------------------------------------------------------------
 ws.row_dimensions[R_BAN].height = 26
-for c in range(1, 21):
+for c in range(1, 23):
     po(R_BAN, c, None, fl=AZUR)
 po(R_BAN, 2, "SIMULATION D'OUVERTURE ET DE FERMETURE DE CLASSE",
    f=F(13, True, PANEL), al=ind(0), fl=AZUR)
 po(R_SUB, 2, "Budget 2027 construit par le cadrage · version V01 — ce que valent vraiment "
-             "un groupe de plus et un groupe de moins", f=F(8.5, False, DOUX), al=ind(0))
+             "un groupe de plus et un groupe de moins, et sur qui la charge retombe",
+   f=F(8.5, False, DOUX), al=ind(0))
 
 #  ---- selecteur et hypotheses ---------------------------------------------
 po(R_PAR, 2, "Campus", f=F(9, True), al=ind(0))
@@ -276,28 +307,33 @@ dv = DataValidation(type="list", formula1="=Libelles!$C$5:$C$%d" % (4 + len(LIB_
 ws.add_data_validation(dv); dv.add(sel)
 po(R_PAR, 6, "capacité par groupe : Bachelor 32 · Mastère 26 · BTS 30",
    f=F(8, False, DOUX, True), al=ind(0))
-po(R_PAR, 12, "SI UN GROUPE FERME, QU'EST-CE QU'ON SUPPRIME VRAIMENT ?",
+po(R_PAR, 13, "SI UN GROUPE FERME, QU'EST-CE QU'ON SUPPRIME VRAIMENT ?",
    f=F(8.5, True, AZUR), al=ind(0))
 for r, lib in ((R_P2, "Part des enseignants permanents effectivement supprimée"),
                (R_P3, "Part de la structure du campus effectivement supprimée")):
-    po(r, 12, lib, f=F(8.5), al=ind(0))
-    po(r, 19, 0.0, f=F(9, True), nf=PCT0, al=C_, fl=JAUNE, bd=Border(*[sd(AZUR)] * 4))
+    po(r, 13, lib, f=F(8.5), al=ind(0))
+    po(r, AMT, 0.0, f=F(9, True), nf=PCT0, al=C_, fl=JAUNE, bd=Border(*[sd(AZUR)] * 4))
 dvp = DataValidation(type="decimal", operator="between", formula1=0, formula2=1,
                      allow_blank=False, error="Une part entre 0 % et 100 %.",
                      errorTitle="Hors bornes")
-ws.add_data_validation(dvp); dvp.add("S%d:S%d" % (R_P2, R_P3))
+ws.add_data_validation(dvp); dvp.add("U%d:U%d" % (R_P2, R_P3))
 
-po(R_PAR, 29, '=INDEX(Libelles!$B$1:$B$40,MATCH($C$4,Libelles!$C$1:$C$40,0))')
-po(R_CONS, 29, "=SUMPRODUCT((%s=%s)*(%s>%s)*(%s-%s))"
+po(R_PAR, 35, '=INDEX(Libelles!$B$1:$B$40,MATCH($C$4,Libelles!$C$1:$C$40,0))')
+po(R_CONS, 35, "=SUMPRODUCT((%s=%s)*(%s>%s)*(%s-%s))"
    % (RG("A"), CODE, RG("J"), RG("I"), RG("J"), RG("I")))
-po(R_CONS, 30, "=SUMPRODUCT((%s=%s)*(%s>%s)*(%s-%s))"
+po(R_CONS, 36, "=SUMPRODUCT((%s=%s)*(%s>%s)*(%s-%s))"
    % (RG("A"), CODE, RG("I"), RG("J"), RG("I"), RG("J")))
+#  les deux poches a redistribuer : ce qui RESTE a porter apres decision
+po(R_CONS, 37, "=SUMIFS(%s,%s,%s)-SUM(AA%d:AA%d)" % (RG("O"), RG("A"), CODE, R_D0, R_TOT - 1))
+po(R_CONS, 38, "=SUMIFS(%s,%s,%s)+SUMIFS(%s,%s,%s)+SUMIFS(%s,%s,%s)-SUM(AB%d:AB%d)"
+   % (RG("P"), RG("A"), CODE, RG("Q"), RG("A"), CODE, RG("R"), RG("A"), CODE,
+      R_D0, R_TOT - 1))
 
 po(R_CONS, 2,
    '="Le cadrage a construit "&TEXT(SUMIFS(%s,%s,%s),"#,##0")&" étudiants pour "'
    '&TEXT(SUMIFS(%s,%s,%s),"#,##0")&" places ouvertes : "'
-   '&IF($AC$8<0.5,"aucun sans place",TEXT($AC$8,"#,##0")&" sans place")'
-   '&", et "&TEXT($AD$8,"#,##0")&" places vides."'
+   '&IF($AI$8<0.5,"aucun sans place",TEXT($AI$8,"#,##0")&" sans place")'
+   '&", et "&TEXT($AJ$8,"#,##0")&" places vides."'
    % (RG("J"), RG("A"), CODE, RG("I"), RG("A"), CODE),
    f=F(9.5, True, INK), al=ind(0))
 ws.row_dimensions[R_CONS].height = 16
@@ -306,8 +342,9 @@ ws.row_dimensions[R_CONS].height = 16
 po(R_GRP, 5, "CE QUE LE CADRAGE A CONSTRUIT", f=F(8, True, AZUR), al=ind(0))
 po(R_GRP, 13, "VOTRE DÉCISION", f=F(8, True, AZUR), al=ind(0))
 po(R_GRP, 15, "CE QUE ÇA DONNE", f=F(8, True, AZUR), al=ind(0))
-po(R_GRP, 17, "L'EFFET", f=F(8, True, AZUR), al=ind(0))
-for c in range(5, 20):
+po(R_GRP, 17, "L'EFFET DIRECT", f=F(8, True, AZUR), al=ind(0))
+po(R_GRP, 20, "ET SUR LES AUTRES", f=F(8, True, AZUR), al=ind(0))
+for c in range(5, 22):
     x = ws.cell(R_GRP, c)
     if x.value is None:
         x.font = F(8, True, AZUR); x.alignment = ind(0)
@@ -323,7 +360,8 @@ ENTETES = [(2, "Programme", ind(0)), (3, "Année", C_), (4, "Modalité", C_),
            (12, "Marge complète", WR), (13, "Groupes\n+ / −", WR),
            (14, "Étudiants recrutés", WR), (15, "Places après", WR),
            (16, "Effectif retenu", WR), (17, "Δ chiffre d'affaires", WR),
-           (18, "Δ coûts", WR), (19, "Δ EBITDA", WR)]
+           (18, "Δ coûts directs", WR), (19, "Δ EBITDA direct", WR),
+           (20, "Coûts fixes réalloués", WR), (21, "Marge complète après", WR)]
 ws.row_dimensions[R_HDR].height = 30
 for c, t, al in ENTETES:
     po(R_HDR, c, t, f=F(8, True, PANEL), al=al, fl=AZUR, bd=Border(bottom=sd(INK)))
@@ -332,8 +370,8 @@ for c, t, al in ENTETES:
 for i in range(NLIG):
     r = R_D0 + i
     ws.row_dimensions[r].height = 15
-    g = "$U%d=0" % r
-    po(r, 21, '=IF(ISERROR(MATCH(%s&"#"&%d,Donnees!$AB$1:$AB$400,0)),0,'
+    g = "$W%d=0" % r
+    po(r, 23, '=IF(ISERROR(MATCH(%s&"#"&%d,Donnees!$AB$1:$AB$400,0)),0,'
               'MATCH(%s&"#"&%d,Donnees!$AB$1:$AB$400,0))' % (CODE, i + 1, CODE, i + 1))
     po(r, 2, '=IF(%s,"",INDEX(Libelles!$F$1:$F$40,MATCH(%s,Libelles!$E$1:$E$40,0)))'
        % (g, IX("C", r)), al=ind(1))
@@ -356,18 +394,35 @@ for i in range(NLIG):
     po(r, 15, '=IF(%s,"",($E%d+$M%d)*%s)' % (g, r, r, IX("H", r)), nf=ENT, al=D_)
     po(r, 16, '=IF(%s,"",MIN($G%d+$N%d,$O%d))' % (g, r, r, r), nf=NB1, al=D_)
     po(r, 17, '=IF(%s,"",($P%d-$H%d)*$J%d/$G%d)' % (g, r, r, r, r), nf=EURS, al=D_)
-    #  les composantes du cout, en technique
-    po(r, 22, '=IF(%s,0,$M%d*%s)' % (g, r, IX("W", r)))                       # vacataires
-    po(r, 23, '=IF(%s,0,($P%d-$H%d)*%s)' % (g, r, r, IX("Y", r)))             # consommables
-    po(r, 24, '=IF(%s,0,MAX(0,$P%d-MIN($G%d,$O%d))*%s)' % (g, r, r, r, IX("S", r)))
-    po(r, 25, '=IF(%s,0,MAX(0,-$M%d)*%s*$S$5)' % (g, r, IX("X", r)))          # permanents
-    po(r, 26, '=IF(%s,0,MAX(0,-$M%d)*%s/MAX($E%d,1)*$S$6)' % (g, r, IX("P", r), r))
+    #  les composantes du cout direct, en technique
+    po(r, 24, '=IF(%s,0,$M%d*%s)' % (g, r, IX("W", r)))                       # vacataires
+    po(r, 25, '=IF(%s,0,($P%d-$H%d)*%s)' % (g, r, r, IX("Y", r)))             # consommables
+    po(r, 26, '=IF(%s,0,MAX(0,$P%d-MIN($G%d,$O%d))*%s)' % (g, r, r, r, IX("S", r)))
+    po(r, 27, '=IF(%s,0,MAX(0,-$M%d)*%s*$U$5)' % (g, r, IX("X", r)))          # permanents
+    po(r, 28, '=IF(%s,0,MAX(0,-$M%d)*%s/MAX($E%d,1)*$U$6)' % (g, r, IX("P", r), r))
     #  ce que les places d'aujourd'hui ne permettent pas de livrer, decision a zero
-    po(r, 27, '=IF(%s,0,($H%d-$G%d)*$J%d/$G%d)' % (g, r, r, r, r))
-    po(r, 28, '=IF(%s,0,($H%d-$G%d)*%s)' % (g, r, r, IX("Y", r)))
-    po(r, 18, '=IF(%s,"",$V%d+$W%d+$X%d-$Y%d-$Z%d)' % (g, r, r, r, r, r), nf=EURS, al=D_)
+    po(r, 29, '=IF(%s,0,($H%d-$G%d)*$J%d/$G%d)' % (g, r, r, r, r))
+    po(r, 30, '=IF(%s,0,($H%d-$G%d)*%s)' % (g, r, r, IX("Y", r)))
+    po(r, 18, '=IF(%s,"",$X%d+$Y%d+$Z%d-$AA%d-$AB%d)' % (g, r, r, r, r, r), nf=EURS, al=D_)
     po(r, 19, '=IF(%s,"",$Q%d-$R%d)' % (g, r, r), f=F(9, True), nf=EURS, al=D_)
-    for c in range(2, 20):
+    #  ---- LA REALLOCATION, exactement comme _CALC_ALLOC la fait -------------
+    #  Les vacataires suivent les HEURES et leur poche suit avec : le cout
+    #  vacataire d'une classe est donc proportionnel a son nombre de groupes.
+    #  Les permanents, eux, RESTENT : leur poche se repartit sur les heures qui
+    #  restent. La structure, la marque et le siege se repartissent sur les
+    #  groupes qui restent. D'ou deux cles, et pas une.
+    po(r, 31, '=IF(%s,0,%s*($E%d+$M%d)/MAX($E%d,1))' % (g, IX("L", r), r, r, r))  # heures apres
+    po(r, 32, '=IF(%s,0,$E%d+$M%d)' % (g, r, r))                                  # groupes apres
+    po(r, 33, '=IF(OR(%s,$AE$%d=0),0,$AK$8*$AE%d/$AE$%d)' % (g, R_TOT, r, R_TOT))  # permanents
+    po(r, 34, '=IF(OR(%s,$AF$%d=0),0,$AL$8*$AF%d/$AF$%d)' % (g, R_TOT, r, R_TOT))  # le reste
+    po(r, 20, '=IF(%s,"",$AG%d+$AH%d-(%s+%s+%s+%s))'
+       % (g, r, r, IX("O", r), IX("P", r), IX("Q", r), IX("R", r)), nf=EURS, al=D_)
+    #  la marge APRES est celle qu'on peut reellement livrer : le chiffre
+    #  d'affaires et les consommables suivent l'effectif RETENU, pas celui que
+    #  le cadrage avait construit. C'est ce qui fait boucler le controle.
+    po(r, 21, '=IF(%s,"",$J%d*$P%d/$G%d-$AE%d-%s*$P%d-%s-$Z%d-$AG%d-$AH%d)'
+       % (g, r, r, r, r, IX("Y", r), r, IX("N", r), r, r, r), f=F(9, True), nf=EUR, al=D_)
+    for c in range(2, 22):
         x = ws.cell(r, c)
         if c not in (13, 14):
             x.border = Border(bottom=sd(GRIS))
@@ -379,100 +434,110 @@ ws.row_dimensions[R_TOT].height = 17
 S_ = lambda col: "=SUM(%s%d:%s%d)" % (col, R_D0, col, R_TOT - 1)
 po(R_TOT, 2, "Total du campus", f=F(9, True), al=ind(1))
 for c, nf in ((5, ENT), (6, ENT), (7, NB1), (8, NB1), (10, EUR), (11, EUR), (12, EUR),
-              (15, ENT), (16, NB1), (17, EURS), (18, EURS)):
+              (15, ENT), (16, NB1), (17, EURS), (18, EURS), (20, EURS), (21, EUR)):
     po(R_TOT, c, S_(GL(c)), f=F(9, True), nf=nf, al=D_)
 po(R_TOT, 9, "=$G%d/$F%d" % (R_TOT, R_TOT), f=F(9, True), nf=PCT, al=D_)
 po(R_TOT, 19, "=$Q%d-$R%d" % (R_TOT, R_TOT), f=F(10, True), nf=EURS, al=D_)
-for c in range(2, 20):
+for c in (31, 32):
+    po(R_TOT, c, S_(GL(c)))
+for c in range(2, 22):
     ws.cell(R_TOT, c).border = Border(top=sd(INK), bottom=sd(INK, "double"))
 
 #  ---- bloc gauche : ce qui part, ce qui reste ------------------------------
 po(R_B, 2, "CE QUI PART AVEC LE GROUPE, CE QUI RESTE SUR LE CAMPUS",
    f=F(9, True, AZUR), al=ind(0))
-for c in range(2, 11):
+for c in range(2, 12):
     ws.cell(R_B, c).border = Border(bottom=sd(AZUR))
 po(R_BH, 2, "Poste", f=F(8, True, PANEL), al=ind(1), fl=DOUX)
-for c in (3, 4, 5, 6, 7, 8):
+for c in (3, 4, 5, 6, 7, 8, 9):
     po(R_BH, c, None, fl=DOUX)
-po(R_BH, 9, "Montant 2027", f=F(8, True, PANEL), al=D_, fl=DOUX)
-po(R_BH, 10, "Comportement", f=F(8, True, PANEL), al=ind(1), fl=DOUX)
+po(R_BH, 10, "Montant 2027", f=F(8, True, PANEL), al=D_, fl=DOUX)
+po(R_BH, 11, "Comportement", f=F(8, True, PANEL), al=ind(1), fl=DOUX)
 POSTES = [("Vacataires (621)", "L", "part avec le groupe", AZUR),
           ("Achats d'études et fournitures (604 · 6063)", "M", "suivent l'élève", AZUR),
           ("Recrutement (6231)", "N", "suit l'entrant", AZUR),
-          ("Enseignants permanents (6411)", "O", "restent, sauf décision RH", DOUX),
+          ("Enseignants permanents (6411)", "O", "restent, se réallouent aux heures", DOUX),
           ("Structure du campus (613 · 615 · 616 · 625 · 645 · 6413 · 63511)", "P",
-           "reste", DOUX),
-          ("Frais de marque (6236)", "Q", "reste, se réalloue", DOUX),
-          ("Siège (6414 · 6226 · 626 · 6281 · 6331 · 6333)", "R", "reste, se réalloue", DOUX)]
+           "reste, se réalloue aux groupes", DOUX),
+          ("Frais de marque (6236)", "Q", "reste, se réalloue aux groupes", DOUX),
+          ("Siège (6414 · 6226 · 626 · 6281 · 6331 · 6333)", "R",
+           "reste, se réalloue aux groupes", DOUX)]
 for i, (lib, col, comp, coul) in enumerate(POSTES):
     r = R_L0 + i
     po(r, 2, lib, al=ind(1))
-    po(r, 9, "=SUMIFS(%s,%s,%s)" % (RG(col), RG("A"), CODE), nf=EUR, al=D_)
-    po(r, 10, comp, f=F(8, False, coul, True), al=ind(1))
-    for c in range(2, 11):
+    po(r, 10, "=SUMIFS(%s,%s,%s)" % (RG(col), RG("A"), CODE), nf=EUR, al=D_)
+    po(r, 11, comp, f=F(8, False, coul, True), al=ind(1))
+    for c in range(2, 12):
         ws.cell(r, c).border = Border(bottom=sd(GRIS))
 po(R_LTOT, 2, "Coût complet du campus", f=F(9, True), al=ind(1))
-po(R_LTOT, 9, "=SUM(I%d:I%d)" % (R_L0, R_L0 + 6), f=F(9, True), nf=EUR, al=D_)
-for c in range(2, 11):
+po(R_LTOT, 10, "=SUM(J%d:J%d)" % (R_L0, R_L0 + 6), f=F(9, True), nf=EUR, al=D_)
+for c in range(2, 12):
     ws.cell(R_LTOT, c).border = Border(top=sd(INK), bottom=sd(INK))
 po(R_LFIG, 2, "dont ne bouge pas si un groupe ferme", f=F(8.5, True, DOUX), al=ind(1))
-po(R_LFIG, 9, "=SUM(I%d:I%d)" % (R_L0 + 3, R_L0 + 6), f=F(8.5, True, DOUX), nf=EUR, al=D_)
-po(R_LFIG, 10, '=TEXT(I%d/I%d,"0 %%")&" du coût complet"' % (R_LFIG, R_LTOT),
+po(R_LFIG, 10, "=SUM(J%d:J%d)" % (R_L0 + 3, R_L0 + 6), f=F(8.5, True, DOUX), nf=EUR, al=D_)
+po(R_LFIG, 11, '=TEXT(J%d/J%d,"0 %%")&" du coût complet"' % (R_LFIG, R_LTOT),
    f=F(8, False, DOUX, True), al=ind(1))
 
 #  ---- bloc droit : l'effet de la decision ---------------------------------
-po(R_B, 12, "L'EFFET DE VOTRE DÉCISION", f=F(9, True, AZUR), al=ind(0))
-for c in range(12, 20):
+po(R_B, 13, "L'EFFET DE VOTRE DÉCISION", f=F(9, True, AZUR), al=ind(0))
+for c in range(13, 22):
     ws.cell(R_B, c).border = Border(bottom=sd(AZUR))
-for c in range(12, 19):
+for c in range(13, 21):
     po(R_BH, c, None, fl=DOUX)
-po(R_BH, 12, "", f=F(8, True, PANEL), al=ind(1), fl=DOUX)
-po(R_BH, 19, "Montant", f=F(8, True, PANEL), al=D_, fl=DOUX)
+po(R_BH, 13, "", f=F(8, True, PANEL), al=ind(1), fl=DOUX)
+po(R_BH, AMT, "Montant", f=F(8, True, PANEL), al=D_, fl=DOUX)
 SU = lambda col: "SUM(%s%d:%s%d)" % (col, R_D0, col, R_TOT - 1)
 EFFETS = [("Chiffre d'affaires", "=$Q%d" % R_TOT),
-          ("Vacataires (621)", "=-%s" % SU("V")),
-          ("Achats d'études et fournitures (604 · 6063)", "=-%s" % SU("W")),
-          ("Acquisition des étudiants recrutés en plus", "=-%s" % SU("X")),
-          ("Permanents et structure effectivement supprimés", "=%s+%s" % (SU("Y"), SU("Z")))]
+          ("Vacataires (621)", "=-%s" % SU("X")),
+          ("Achats d'études et fournitures (604 · 6063)", "=-%s" % SU("Y")),
+          ("Acquisition des étudiants recrutés en plus", "=-%s" % SU("Z")),
+          ("Permanents et structure effectivement supprimés", "=%s+%s" % (SU("AA"), SU("AB")))]
 for i, (lib, fm) in enumerate(EFFETS):
     r = R_R0 + i
-    po(r, 12, lib, al=ind(1))
-    po(r, 19, fm, nf=EURS, al=D_)
-    for c in range(12, 20):
+    po(r, 13, lib, al=ind(1))
+    po(r, AMT, fm, nf=EURS, al=D_)
+    for c in range(13, 22):
         ws.cell(r, c).border = Border(bottom=sd(GRIS))
-po(R_REFF, 12, "EFFET SUR L'EBITDA DU CAMPUS", f=F(10, True), al=ind(1))
-po(R_REFF, 19, "=SUM(S%d:S%d)" % (R_R0, R_R0 + 4), f=F(11, True), nf=EURS, al=D_)
-for c in range(12, 20):
+po(R_REFF, 13, "EFFET SUR L'EBITDA DU CAMPUS", f=F(10, True), al=ind(1))
+po(R_REFF, AMT, "=SUM(U%d:U%d)" % (R_R0, R_R0 + 4), f=F(11, True), nf=EURS, al=D_)
+for c in range(13, 22):
     ws.cell(R_REFF, c).border = Border(top=sd(INK), bottom=sd(INK, "double"))
 
 #  ---- la cascade : du budget construit a l'EBITDA reellement livrable ------
-NL = "=%s-%s" % (SU("AA"), SU("AB"))
+NL = "=%s-%s" % (SU("AC"), SU("AD"))
 CASC = [("EBITDA du campus construit par le cadrage", "=%s" % SU("L"), EUR, False),
         ("ce que les places d'aujourd'hui ne permettent pas de livrer", NL, EURS, False),
-        ("EBITDA livrable sans rien changer", "=$S%d+$S%d" % (R_C0, R_C0 + 1), EUR, True),
-        ("effet de votre décision", "=$S%d" % R_REFF, EURS, False),
-        ("EBITDA du campus après décision", "=$S%d+$S%d" % (R_C0 + 2, R_C0 + 3), EUR, True)]
+        ("EBITDA livrable sans rien changer", "=$U%d+$U%d" % (R_C0, R_C0 + 1), EUR, True),
+        ("effet de votre décision", "=$U%d" % R_REFF, EURS, False),
+        ("EBITDA du campus après décision", "=$U%d+$U%d" % (R_C0 + 2, R_C0 + 3), EUR, True)]
 for i, (lib, fm, nf, gras) in enumerate(CASC):
     r = R_C0 + i
-    po(r, 12, lib, f=F(9.5, True) if gras else F(9), al=ind(1))
-    po(r, 19, fm, f=F(10, True) if gras else F(9), nf=nf, al=D_)
-    for c in range(12, 20):
+    po(r, 13, lib, f=F(9.5, True) if gras else F(9), al=ind(1))
+    po(r, AMT, fm, f=F(10, True) if gras else F(9), nf=nf, al=D_)
+    for c in range(13, 22):
         ws.cell(r, c).border = Border(
             top=sd(GRIS) if i == 0 else None,
             bottom=sd(INK, "double") if i == 4 else sd(INK if gras else GRIS))
+#  le controle : la somme des marges completes apres doit RENDRE cet EBITDA
+po(R_CTRL, 13, "contrôle — somme des marges complètes après réallocation",
+   f=F(8, False, DOUX, True), al=ind(1))
+po(R_CTRL, AMT, "=$U%d-$U%d" % (R_TOT, R_C0 + 4), f=F(8, False, DOUX), nf=EURS, al=D_)
 
 #  ---- les notes -----------------------------------------------------------
 NOTES = [
     "Effectif plaçable = MIN(effectif construit ; places ouvertes). Le cadrage, lui, ne plafonne pas : c'est de cet écart "
     "que vient la ligne « ce que les places d'aujourd'hui ne permettent pas de livrer ».",
-    "Effectif retenu = MIN(effectif construit + étudiants recrutés ; places après décision). Les colonnes Δ mesurent l'écart "
-    "à l'effectif plaçable, c'est-à-dire ce que votre décision change vraiment.",
+    "Marge complète après = ce que la classe livre vraiment, plafonné par ses places, une fois la charge fixe redistribuée. "
+    "Sa somme rend exactement l'EBITDA du campus après décision — c'est le contrôle en gris.",
+    "Coûts fixes réalloués : la même mécanique que l'onglet Allocation. Les permanents restent et se répartissent sur les HEURES "
+    "qui restent ; la structure, la marque et le siège sur les GROUPES qui restent. Un groupe de plus allège donc les autres, "
+    "un groupe de moins les charge — et la colonne totalise zéro, sauf ce que vous supprimez explicitement.",
     "Un groupe qui s'ouvre ou qui se ferme emporte UN paquet d'heures de vacataires — c'est le seul coût qui suit la structure. "
     "Les achats et fournitures suivent l'élève.",
     "Les étudiants recrutés en plus sont valorisés au CAC marginal du campus, CPL ÷ (rendement × conversion), de 890 € à 2 193 € "
     "selon le campus. Le compte 6231 en est exclu pour ne pas compter l'acquisition deux fois.",
     "Les permanents et la structure ne sortent de l'EBITDA que dans la proportion saisie en haut à droite. À 0 %, ils restent "
-    "et se réallouent sur les classes qui survivent.",
+    "entièrement et ne font que changer de porteur.",
 ]
 for i, t in enumerate(NOTES):
     po(R_N0 + i, 2, t, f=F(8, False, DOUX), al=ind(0))
@@ -547,8 +612,8 @@ IP = lambda col, r: "INDEX(%s,$L%d)" % (CL(col), r)
 for i in range(5):
     r = R1D + i
     g = "$L%d=0" % r
-    pp(r, 12, '=IF(ISERROR(MATCH(Simulation!$AC$4&"#"&%d,Donnees!$AB$1:$AB$400,0)),0,'
-              'MATCH(Simulation!$AC$4&"#"&%d,Donnees!$AB$1:$AB$400,0))' % (i + 1, i + 1))
+    pp(r, 12, '=IF(ISERROR(MATCH(Simulation!$AI$4&"#"&%d,Donnees!$AB$1:$AB$400,0)),0,'
+              'MATCH(Simulation!$AI$4&"#"&%d,Donnees!$AB$1:$AB$400,0))' % (i + 1, i + 1))
     pp(r, 2, '=IF(%s,"",INDEX(Libelles!$F$1:$F$40,MATCH(%s,Libelles!$E$1:$E$40,0)))' % (g, IP("C", r)),
        al=ind(1))
     pp(r, 3, '=IF(%s,"",INDEX(Libelles!$I$1:$I$40,MATCH(%s,Libelles!$H$1:$H$40,0)))' % (g, IP("D", r)),
@@ -590,8 +655,8 @@ for c in range(2, 11):
 pp(4, 12, '=IF($L%d=0,"",INDEX(%s,$L%d))' % (R1D, CL("C"), R1D))
 #  la seconde filiere est celle de la DERNIERE ligne du campus : les lignes sont
 #  groupees par programme, donc si elle differe de la premiere, il y en a deux.
-pp(6, 12, "=COUNTIFS(%s,Simulation!$AC$4)" % RG("A"))
-pp(7, 12, '=IF($L$6=0,0,MATCH(Simulation!$AC$4&"#"&$L$6,Donnees!$AB$1:$AB$400,0))')
+pp(6, 12, "=COUNTIFS(%s,Simulation!$AI$4)" % RG("A"))
+pp(7, 12, '=IF($L$6=0,0,MATCH(Simulation!$AI$4&"#"&$L$6,Donnees!$AB$1:$AB$400,0))')
 pp(5, 12, '=IF($L$7=0,"",IF(INDEX(%s,$L$7)=$L$4,"",INDEX(%s,$L$7)))' % (CL("C"), CL("C")))
 for k, (colM, colE, cle) in enumerate((("F", "G", "$L$4"), ("I", "J", "$L$5"))):
     pp(R2N, openpyxl.utils.column_index_from_string(colM),
@@ -617,9 +682,9 @@ for i, (lib, col, sgn) in enumerate(LIGNES2):
     r = R2D + i
     pp(r, 2, lib, f=F(8.5) if sgn else F(8.5, False, DOUX), al=ind(1))
     for colM, colE, cle in (("F", "G", "$L$4"), ("I", "J", "$L$5")):
-        base = ('SUMIFS(%s,%s,Simulation!$AC$4,%s,%s)' % (RG(col), RG("A"), RG("C"), cle)) \
+        base = ('SUMIFS(%s,%s,Simulation!$AI$4,%s,%s)' % (RG(col), RG("A"), RG("C"), cle)) \
             if col != "Q" else \
-            ('SUMIFS(%s,%s,Simulation!$AC$4,%s,%s)+SUMIFS(%s,%s,Simulation!$AC$4,%s,%s)'
+            ('SUMIFS(%s,%s,Simulation!$AI$4,%s,%s)+SUMIFS(%s,%s,Simulation!$AI$4,%s,%s)'
              % (RG("Q"), RG("A"), RG("C"), cle, RG("R"), RG("A"), RG("C"), cle))
         pp(r, openpyxl.utils.column_index_from_string(colM),
            '=IF(%s="","",%s)' % (cle, base), nf=EUR, al=D_)
