@@ -33,18 +33,24 @@ Le classeur porte 5 graphiques et 3 images : openpyxl les detruirait. Patch XML.
 """
 import zipfile, re, shutil
 
-SRC, DST = "_up.xlsx", "SIMULATION_CORRIGE.xlsx"
+SRC, DST = "_up2.xlsx", "SIMULATION_CORRIGE.xlsx"
 SHEET = "xl/worksheets/sheet3.xml"        # « Cockpit 2 »
 R0, R1 = 13, 72                           # les 60 classes
 
 def esc(f):
     return f.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
-CAMP = '$C$%d:$C$%d,$C{r},$D$%d:$D$%d,$D{r}' % (R0, R1, R0, R1)
-GARD = '$R$%d:$R$%d,"<>Fermer"' % (R0, R1)
-FERM = '$R$%d:$R$%d,"Fermer"' % (R0, R1)
-SECT = 'SUMIFS($I$%d:$I$%d,%s,%s)' % (R0, R1, CAMP, GARD)
-POOL = 'SUMIFS($M$%d:$M$%d,%s,%s)' % (R0, R1, CAMP, FERM)
+#  SUMIFS et IFERROR datent de 2007 : Tagetik les reprefixe en _xlfn a CHAQUE
+#  rafraichissement, et la formule tombe en #NOM?. SUMPRODUCT et COUNT sont
+#  anterieurs a 2003, Tagetik n'y touche pas. On n'utilise donc plus que ceux-la.
+#  La forme a deux arguments -- conditions d'un cote, valeurs de l'autre -- est
+#  volontaire : SUMPRODUCT y traite le non-numerique comme zero, donc une ligne
+#  vide dans la plage ne fait pas tomber le calcul en #VALEUR!.
+CAMP = ('($C$%d:$C$%d=$C{r})*($D$%d:$D$%d=$D{r})' % (R0, R1, R0, R1))
+GARD = '*($R$%d:$R$%d<>"Fermer")' % (R0, R1)
+FERM = '*($R$%d:$R$%d="Fermer")'  % (R0, R1)
+SECT = 'SUMPRODUCT(' + CAMP + GARD + ',$I$%d:$I$%d)' % (R0, R1)
+POOL = 'SUMPRODUCT(' + CAMP + FERM + ',$M$%d:$M$%d)' % (R0, R1)
 
 #  Une ligne vide ne doit rien afficher. Deux tests, parce qu'une restitution
 #  peut echouer des deux facons : plus d'identite (le POV ne ramene pas la
