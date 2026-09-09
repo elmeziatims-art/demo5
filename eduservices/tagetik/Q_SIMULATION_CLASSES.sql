@@ -21,6 +21,8 @@ SELECT
     s.SUREFFECTIF                                   AS "SUREFFECTIF",
     s.PLACES_VIDES                                  AS "PLACES VIDES",
     s.REMPLISSAGE                                   AS "REMPLISSAGE",
+    s.EFFECTIF_PAR_GROUPE                           AS "EFFECTIF PAR GROUPE",
+    s.POINT_MORT                                    AS "POINT MORT EN ELEVES",
     s.PRIX                                          AS "PRIX MOYEN",
     s.CA                                            AS "CA",
     s.COST_VAC                                      AS "VACATAIRES",

@@ -75,7 +75,7 @@ import warnings
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.worksheet.datavalidation import DataValidation
-from openpyxl.formatting.rule import CellIsRule
+from openpyxl.formatting.rule import CellIsRule, FormulaRule
 from openpyxl.utils import get_column_letter as GL
 
 warnings.filterwarnings("ignore")
@@ -162,7 +162,7 @@ COLS = ["CAMPUS", "MARQUE", "PROGRAMME", "ANNEE", "MODALITE", "ENTREE", "GROUPES
         "RECRUTEMENT", "PERMANENTS", "STRUCTURE", "FRAIS DE MARQUE", "SIEGE",
         "COUT DU PROCHAIN INSCRIT", "COUT COMPLET", "MARGE COMPLETE", "CONTRIBUTION",
         "VACATAIRES PAR GROUPE", "PERMANENTS PAR GROUPE", "CONSOMMABLES PAR ELEVE",
-        "REMPLISSAGE", "RANG", "CLE"]
+        "REMPLISSAGE", "RANG", "CLE", "EFFECTIF PAR GROUPE", "POINT MORT"]
 wd["A1"] = "Q_SIMULATION_CLASSES · scénario 2027BUD_V1 · version V01"
 wd["A1"].font = F(10, True, AZUR)
 HD = 3                                    # ligne des en-tetes
@@ -171,7 +171,7 @@ D1 = D0 + len(SNAPSHOT) - 1
 for j, t in enumerate(COLS, start=1):
     x = wd.cell(HD, j, t)
     x.font = F(7.5, True, PANEL)
-    x.fill = fill(AZUR if j <= 19 else DOUX)
+    x.fill = fill(AZUR if j <= 21 else DOUX)
     x.alignment = WR
     x.border = Border(bottom=sd(INK))
 wd.row_dimensions[HD].height = 30
@@ -191,7 +191,11 @@ for i, r in enumerate(SNAPSHOT):
     wd.cell(y, 26, "=J%d/I%d" % (y, y))                          # remplissage
     wd.cell(y, 27, "=COUNTIFS($A$%d:$A%d,$A%d)" % (D0, y, y))    # rang dans le campus
     wd.cell(y, 28, '=$A%d&"#"&$AA%d' % (y, y))                   # cle campus#rang
-    for j in range(1, 29):
+    wd.cell(y, 29, "=J%d/G%d" % (y, y))                          # effectif par groupe
+    #  point mort = cout complet d'UN groupe / marge de contribution par eleve
+    #  (la formule de V_CAMPUS_CLASSE, a l'identique)
+    wd.cell(y, 30, "=(T%d/G%d)/(V%d/J%d)" % (y, y, y, y))
+    for j in range(1, 31):
         x = wd.cell(y, j)
         x.font = F(7.5)
         x.border = Border(bottom=sd(GRIS))
@@ -207,9 +211,11 @@ for i, r in enumerate(SNAPSHOT):
             x.number_format = ENT; x.alignment = D_
         elif j == 28:
             x.alignment = ind(1)
+        elif j in (29, 30):
+            x.number_format = NB1; x.alignment = D_
         else:
             x.number_format = EUR; x.alignment = D_
-for j in range(1, 29):
+for j in range(1, 31):
     wd.column_dimensions[GL(j)].width = 11 if j > 6 else 13
 wd.column_dimensions["A"].width = 13
 DN = "Donnees!"
@@ -493,7 +499,7 @@ ws.freeze_panes = "B%d" % R_D0
 wp = wb.create_sheet("Le piège du coût complet", 1)
 wp.sheet_view.showGridLines = False
 for c, w in (("A", 1.8), ("B", 30), ("C", 12), ("D", 13), ("E", 14), ("F", 14),
-             ("G", 15), ("H", 14), ("I", 14), ("J", 15), ("K", 12)):
+             ("G", 15), ("H", 14), ("I", 14), ("J", 15), ("K", 13)):
     wp.column_dimensions[c].width = w
 wp.column_dimensions["L"].width = 10
 wp.column_dimensions["L"].hidden = True
@@ -527,12 +533,13 @@ for i, t in enumerate(TEXTES):
 R1T, R1H, R1D, R1TOT = 9, 10, 11, 16
 pp(R1T, 2, "CE QUE DIT LE COÛT COMPLET, ET CE QUE DIT LA CONTRIBUTION",
    f=F(9, True, AZUR), al=ind(0))
-for c in range(2, 10):
+for c in range(2, 12):
     wp.cell(R1T, c).border = Border(bottom=sd(AZUR))
 E1 = [(2, "Programme", ind(1)), (3, "Année", C_), (4, "Chiffre d'affaires", WR),
       (5, "Coûts qui partent\navec la classe", WR), (6, "Contribution", WR),
       (7, "Coûts qui restent\nsur le campus", WR), (8, "Marge complète", WR),
-      (9, "Contribution\n÷ marge complète", WR)]
+      (9, "Contribution\n÷ marge complète", WR),
+      (10, "Effectif\npar groupe", WR), (11, "Point mort\nen élèves", WR)]
 wp.row_dimensions[R1H].height = 30
 for c, t, al in E1:
     pp(R1H, c, t, f=F(8, True, PANEL), al=al, fl=AZUR, bd=Border(bottom=sd(INK)))
@@ -553,7 +560,11 @@ for i in range(5):
        nf=EUR, al=D_)
     pp(r, 8, '=IF(%s,"",$F%d-$G%d)' % (g, r, r), nf=EUR, al=D_)
     pp(r, 9, '=IF(%s,"",IF($H%d<=0,"—",$F%d/$H%d))' % (g, r, r, r), nf='#,##0.0" ×"', al=D_)
-    for c in range(2, 10):
+    #  la lecture du cockpit directeur, reprise telle quelle : un groupe est sous
+    #  l'eau quand son effectif ne couvre pas le cout complet d'un groupe.
+    pp(r, 10, '=IF(%s,"",%s)' % (g, IP("AC", r)), nf=NB1, al=D_)
+    pp(r, 11, '=IF(%s,"",%s)' % (g, IP("AD", r)), nf=NB1, al=D_)
+    for c in range(2, 12):
         wp.cell(r, c).border = Border(bottom=sd(GRIS))
 pp(R1TOT, 2, "Total du campus", f=F(9, True), al=ind(1))
 for c in (4, 5, 6, 7, 8):
@@ -561,8 +572,13 @@ for c in (4, 5, 6, 7, 8):
        f=F(9, True), nf=EUR, al=D_)
 pp(R1TOT, 9, "=IF($H%d<=0,\"—\",$F%d/$H%d)" % (R1TOT, R1TOT, R1TOT),
    f=F(9, True), nf='#,##0.0" ×"', al=D_)
-for c in range(2, 10):
+for c in range(2, 12):
     wp.cell(R1TOT, c).border = Border(top=sd(INK), bottom=sd(INK, "double"))
+#  le groupe sous son point mort passe en rouge -- meme signal que le cockpit
+wp.conditional_formatting.add(
+    "K%d:K%d" % (R1D, R1D + 4),
+    FormulaRule(formula=["AND($K%d<>\"\",$K%d>$J%d)" % (R1D, R1D, R1D)],
+                font=Font(name=UI, size=8.5, bold=True, color=ROUGE)))
 
 #  ---- bloc 2 : fermer une filiere entiere ---------------------------------
 R2T, R2N, R2H, R2D = 18, 19, 20, 21

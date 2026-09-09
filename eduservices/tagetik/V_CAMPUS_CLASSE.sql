@@ -11,6 +11,10 @@
    Elle est calculee UNE fois dans la sous-requete, puis reutilisee : en T-SQL
    on ne peut pas referencer un alias du meme SELECT.
 
+   POOL_ODIR     = la poche 604+6063 du CAMPUS, reprise telle quelle de
+                   V_ALLOCATION : divisee par l'effectif du campus elle donne le
+                   cout marginal d'un eleve de plus, hors 6231.
+
    CONTRIBUTION  = CA - COST_VARIABLE
                    (couts EVITABLES si on ferme : vacataires + achats directs ;
                     les permanents et la structure, eux, restent)
@@ -36,6 +40,11 @@ SELECT
     x.COST_COMPLET,
     x.MARGE_COMPLETE,
     x.COST_SIEGE,
+    -- Detail des postes, ajoute pour V_SIMULATION_CLASSES (ouverture / fermeture
+    -- de groupe) : il faut savoir CE QUI PART avec le groupe et CE QUI RESTE.
+    -- Ajout en fin de vue, donc sans effet sur les lecteurs existants.
+    x.COST_VAC, x.COST_PERM, x.COST_ODIR, x.COST_STRUCT,
+    x.COST_MARQUE, x.COST_HOLDING, x.POOL_ODIR,
     (1.0 * x.COST_COMPLET / NULLIF(x.VOL_CLASS, 0))
       / NULLIF(1.0 * (x.CA - x.COST_VARIABLE) / NULLIF(x.VOL_EFF, 0), 0)
                                                                     AS POINT_MORT
