@@ -118,6 +118,12 @@ SELECT
     c.PROGRAMME, c.AN_ETUDE AS NIVEAU, c.MODALITE,
     c.EFFECTIF, c.SECTIONS, c.CA, c.VARIABLE, c.CONTRIBUTION,
     c.STRUCTURE_ALLOUEE, c.COUT_COMPLET, c.MARGE_COMPLETE,
+    --  les DEUX moities de la structure, exposees separement : elles ne se
+    --  propagent pas pareil quand une classe ferme. Sans elles, un masque Excel
+    --  est oblige de tout garder dans le campus, et les autres campus ne
+    --  bougent pas d'un euro -- ce qui se voit tout de suite a l'ecran.
+    c.STRUCTURE_CAMPUS,          -- 6411 + murs : RESTE dans le campus
+    c.SIEGE,                     -- 6236 + holding : se REDISTRIBUE sur tout le groupe
     --  point mort : combien d'étudiants pour que la contribution couvre la
     --  structure allouée. NULL quand la contribution est nulle ou négative.
     CASE WHEN c.CONTRIBUTION > 0

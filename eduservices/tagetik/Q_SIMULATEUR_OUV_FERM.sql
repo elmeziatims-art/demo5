@@ -24,6 +24,8 @@ SELECT
     s.VARIABLE                    AS "VARIABLE",
     s.CONTRIBUTION                AS "CONTRIBUTION",
     s.STRUCTURE_ALLOUEE           AS "STRUCTURE ALLOUEE",
+    s.STRUCTURE_CAMPUS            AS "STRUCTURE CAMPUS",
+    s.SIEGE                       AS "SIEGE",
     s.COUT_COMPLET                AS "COUT COMPLET",
     s.MARGE_COMPLETE              AS "MARGE COMPLETE",
     s.POINT_MORT                  AS "POINT MORT",
