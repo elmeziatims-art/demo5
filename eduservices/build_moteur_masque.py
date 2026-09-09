@@ -1446,10 +1446,220 @@ def finition(w, couleur, gel="D1"):
 for w_, c_, g_ in ((ws, AZUR, "D1"), (w4, AZUR, "D1"), (w2, GRIS, "D1"), (w3, GRIS, "D1")):
     finition(w_, c_, g_)
 
+# ==========================================================================
+#  ONGLET « PLAYBACK »  —  LA METHODE REJOUEE SUR UNE ANNEE DEJA CONNUE
+#
+#  Une methode qui ne sait pas refaire le passe n'a aucune raison d'etre crue
+#  sur l'avenir. Cet onglet la calibre sur 2024 -> 2025, puis lui demande de
+#  reconstruire 2026 SANS jamais regarder 2026. L'ecart est le verdict.
+#
+#  TOUT EST EN FORMULES VIVES. Les quatre coefficients se recalculent depuis
+#  le tableau du haut, et la reconstruction se recalcule depuis eux : on peut
+#  forcer une elasticite a la main et voir l'erreur bouger en direct.
+# ==========================================================================
+w5 = wb.create_sheet("Playback")
+w5.sheet_view.showGridLines = False
+NC5 = 9
+for c, wid in ((1, 2.4), (2, 40.0), (3, 15.0), (4, 15.0), (5, 15.0), (6, 14.0),
+               (7, 13.0), (8, 2.4)):
+    w5.column_dimensions[GL(c)].width = wid
+
+#  fond blanc : le gris de page ecrase les blocs au lieu de les separer
+for r in range(1, 60):
+    for c in range(1, NC5 + 1):
+        w5.cell(r, c).fill = fill(PANEL)
+
+def p_titre(r, txt, note=""):
+    x = w5.cell(r, 2, txt); x.font = F(10.5, True, INK); x.alignment = ind(0)
+    if note:
+        y = w5.cell(r, 7, note); y.font = F(7.5, False, DOUX, True); y.alignment = R
+    for c in range(2, 8):
+        w5.cell(r, c).border = Border(bottom=sd(INK))
+    w5.row_dimensions[r].height = 24.0
+
+def p_entete(r, libelles, gras_azur=()):
+    for i, lib in enumerate(libelles):
+        x = w5.cell(r, 2 + i, lib)
+        x.font = F(8, True, "FFFFFF" if i in gras_azur else INK)
+        x.alignment = ind(0) if i == 0 else Cn
+        x.fill = fill(AZUR if i in gras_azur else GRIS)
+        x.border = Border(top=sd(INK), bottom=sd(INK))
+    w5.row_dimensions[r].height = 20.0
+
+def p_ligne(r, lib, valeurs, fmt="#,##0", gras=False, fond=None, indent=1):
+    x = w5.cell(r, 2, lib); x.font = F(8.5, gras, INK); x.alignment = ind(indent)
+    for i, v in enumerate(valeurs):
+        y = w5.cell(r, 3 + i, v); y.font = F(8.5, gras, INK); y.alignment = R
+        y.number_format = fmt if isinstance(fmt, str) else fmt[i]
+    for c in range(2, 8):
+        w5.cell(r, c).border = Border(bottom=sd("EDEEF0"))
+        if fond: w5.cell(r, c).fill = fill(fond)
+    w5.row_dimensions[r].height = 17.0
+
+#  --- bandeau -------------------------------------------------------------
+for c in range(1, NC5 + 1):
+    w5.cell(2, c).fill = fill(PANEL)
+    w5.cell(3, c).fill = fill(AZUR)
+x = w5.cell(2, 2, "Playback  ·  la méthode rejouée sur une année déjà connue")
+x.font = F(14, True, INK); x.alignment = ind(0)
+w5.row_dimensions[1].height = 8.0
+w5.row_dimensions[2].height = 26.0
+w5.row_dimensions[3].height = 3.0
+x = w5.cell(5, 2, "On calibre sur 2024 → 2025, on reconstruit 2026 sans jamais le regarder, "
+                  "et on compare. Les quatre coefficients ci-dessous sont les seuls "
+                  "paramètres du modèle.")
+x.font = F(8, False, DOUX, True); x.alignment = ind(0)
+w5.row_dimensions[5].height = 16.0
+
+#  --- ① la matiere premiere ----------------------------------------------
+PB = {
+    "2024": dict(PAY=8897, ORG=6703, LEAD=15305, NEW=1092, REINS=1681, EFF=2773,
+                 ACQ=358819, MARQUE=499926, SCOL=20468930.0, FRAIS=98280.0),
+    "2025": dict(PAY=9325, ORG=7053, LEAD=16226, NEW=1159, REINS=1774, EFF=2933,
+                 ACQ=394702, MARQUE=580167, SCOL=21654460.0, FRAIS=104310.0),
+    "2026": dict(PAY=9775, ORG=7421, LEAD=17197, NEW=1229, REINS=1885, EFF=3114,
+                 ACQ=434174, MARQUE=676344, SCOL=22988375.0, FRAIS=110610.0),
+}
+P0 = 7
+p_titre(P0, "①   CE QU'ON REJOUE", "socle CRM, trois exercices constatés")
+p_entete(P0 + 1, ["Grandeur", "2024", "2025", "2026", "", ""])
+LIGNES = [("Leads payants", "PAY", "#,##0"), ("Leads organiques", "ORG", "#,##0"),
+          ("Leads totaux", "LEAD", "#,##0"), ("Nouveaux inscrits", "NEW", "#,##0"),
+          ("Réinscrits", "REINS", "#,##0"), ("Effectif", "EFF", "#,##0"),
+          ("Budget d'acquisition", "ACQ", '#,##0" €"'),
+          ("Budget de marque", "MARQUE", '#,##0" €"'),
+          ("Droits de scolarité encaissés", "SCOL", '#,##0" €"'),
+          ("Frais de dossier encaissés", "FRAIS", '#,##0" €"')]
+for i, (lib, cle, fmt) in enumerate(LIGNES):
+    p_ligne(P0 + 2 + i, lib, [PB[a][cle] for a in ("2024", "2025", "2026")], fmt)
+LIG = {cle: P0 + 2 + i for i, (lib, cle, fmt) in enumerate(LIGNES)}
+CA_L = P0 + 2 + len(LIGNES)
+p_ligne(CA_L, "Chiffre d'affaires", ["=C%d+C%d" % (LIG["SCOL"], LIG["FRAIS"]),
+                                     "=D%d+D%d" % (LIG["SCOL"], LIG["FRAIS"]),
+                                     "=E%d+E%d" % (LIG["SCOL"], LIG["FRAIS"])],
+        '#,##0" €"', gras=True, fond=VUE)
+
+#  --- ② les quatre coefficients -------------------------------------------
+Q0 = CA_L + 2
+p_titre(Q0, "②   LES QUATRE COEFFICIENTS", "mesurés sur 2024 → 2025 seulement")
+p_entete(Q0 + 1, ["Coefficient", "Ce qu'il vaut", "Comment il se mesure", "", "", ""])
+COEF = [
+    ("Élasticité du payant",
+     "=LN(D{p}/C{p})/LN(D{a}/C{a})".format(p=LIG["PAY"], a=LIG["ACQ"]),
+     "LN(leads payants 25 / 24) ÷ LN(budget acq. 25 / 24)"),
+    ("Élasticité de l'organique",
+     "=LN(D{o}/C{o})/LN(D{m}/C{m})".format(o=LIG["ORG"], m=LIG["MARQUE"]),
+     "LN(leads organiques 25 / 24) ÷ LN(budget marque 25 / 24)"),
+    ("Rendement lead → inscrit",
+     "=D{n}/D{l}".format(n=LIG["NEW"], l=LIG["LEAD"]),
+     "nouveaux 2025 ÷ leads 2025"),
+    ("Taux de passage",
+     "=D{r}/C{e}".format(r=LIG["REINS"], e=LIG["EFF"]),
+     "réinscrits 2025 ÷ effectif 2024"),
+]
+for i, (lib, f, comment) in enumerate(COEF):
+    r = Q0 + 2 + i
+    x = w5.cell(r, 2, lib); x.font = F(8.5, False, INK); x.alignment = ind(1)
+    y = w5.cell(r, 3, f); y.font = F(9, True, INK); y.alignment = Cn
+    y.number_format = "0.0000"; y.fill = fill(VUE)
+    z = w5.cell(r, 4, comment); z.font = F(7.5, False, DOUX, True); z.alignment = ind(0)
+    for c in range(2, 8):
+        w5.cell(r, c).border = Border(bottom=sd("EDEEF0"))
+    w5.row_dimensions[r].height = 17.0
+E_PAY, E_ORG, T_INS, T_PAS = ("$C$%d" % (Q0 + 2 + i) for i in range(4))
+x = w5.cell(Q0 + 6, 2, "Les quatre cases bleues sont des formules : forcer une valeur à la main "
+                       "recalcule tout le bloc ③ et montre ce que le modèle y perd.")
+x.font = F(7.5, False, DOUX, True); x.alignment = ind(1)
+w5.row_dimensions[Q0 + 6].height = 15.0
+
+#  --- ③ 2026 reconstruit ---------------------------------------------------
+R0 = Q0 + 8
+p_titre(R0, "③   2026 RECONSTRUIT, SANS AVOIR REGARDÉ 2026",
+        "seuls 2024, 2025 et les deux budgets 2026 sont utilisés")
+p_entete(R0 + 1, ["Étape", "Reconstruit", "Réel 2026", "Écart", "Écart %", ""], gras_azur=(1,))
+D_ACQ = "(E{a}/D{a})".format(a=LIG["ACQ"])
+D_MRQ = "(E{m}/D{m})".format(m=LIG["MARQUE"])
+PRIX  = "(D{s}/D{e})".format(s=LIG["SCOL"], e=LIG["EFF"])
+FRAIS = "(D{f}/D{n})".format(f=LIG["FRAIS"], n=LIG["NEW"])
+ETAPES = [
+    ("Leads payants",     "=D{p}*{d}^{e}".format(p=LIG["PAY"], d=D_ACQ, e=E_PAY),
+     "=E%d" % LIG["PAY"], "#,##0"),
+    ("Leads organiques",  "=D{o}*{d}^{e}".format(o=LIG["ORG"], d=D_MRQ, e=E_ORG),
+     "=E%d" % LIG["ORG"], "#,##0"),
+    ("Leads totaux",      None, "=E%d" % LIG["LEAD"], "#,##0"),
+    ("Nouveaux inscrits", None, "=E%d" % LIG["NEW"], "#,##0"),
+    ("Réinscrits",        "=D{e}*{t}".format(e=LIG["EFF"], t=T_PAS),
+     "=E%d" % LIG["REINS"], "#,##0"),
+    ("Effectif",          None, "=E%d" % LIG["EFF"], "#,##0"),
+    ("Chiffre d'affaires", None, "=E%d" % CA_L, '#,##0" €"'),
+]
+for i, (lib, f, reel, fmt) in enumerate(ETAPES):
+    r = R0 + 2 + i
+    if lib == "Leads totaux":       f = "=C%d+C%d" % (r - 2, r - 1)
+    if lib == "Nouveaux inscrits":  f = "=C%d*%s" % (r - 1, T_INS)
+    if lib == "Effectif":           f = "=C%d+C%d" % (r - 2, r - 1)
+    if lib == "Chiffre d'affaires": f = "=C{e}*{p}+C{n}*{fr}".format(e=r - 1, p=PRIX,
+                                                                    n=r - 3, fr=FRAIS)
+    dernier = (i == len(ETAPES) - 1)
+    x = w5.cell(r, 2, lib); x.font = F(8.5, dernier, INK); x.alignment = ind(1)
+    for col, val, nf in ((3, f, fmt), (4, reel, fmt),
+                         (5, "=C%d-D%d" % (r, r), fmt),
+                         #  IFERROR revient prefixe _xlfn a chaque aller-retour
+                         #  Tagetik ; IF passe sans etre touche.
+                         (6, "=IF(D%d=0,0,C%d/D%d-1)" % (r, r, r), '+0.00%;-0.00%;"—"')):
+        y = w5.cell(r, col, val); y.font = F(8.5 if not dernier else 9, dernier, INK)
+        y.alignment = R; y.number_format = nf
+    w5.cell(r, 3).fill = fill(VUE)
+    for c in range(2, 8):
+        w5.cell(r, c).border = Border(bottom=sd("EDEEF0"))
+        if dernier:
+            w5.cell(r, c).border = Border(top=sd(INK), bottom=Side(style="double", color=INK))
+            w5.cell(r, c).fill = fill(GRIS if c != 3 else VUE)
+    w5.row_dimensions[r].height = 17.0 if not dernier else 20.0
+R_CA = R0 + 2 + len(ETAPES) - 1
+
+#  --- le verdict, en une phrase qui se calcule -----------------------------
+V0_ = R_CA + 2
+x = w5.cell(V0_, 2, '="Calibré sur 2024 → 2025 seulement, le modèle retrouve 2026 à '
+                    '"&TEXT(ABS(F%d),"0.00%%")&" près sur le chiffre d\'affaires, et à '
+                    '"&TEXT(ABS(F%d),"0.00%%")&" près sur les nouveaux inscrits."'
+     % (R_CA, R0 + 2 + 3))
+x.font = F(9.5, True, INK); x.alignment = ind(0)
+for c in range(2, 8):
+    w5.cell(V0_, c).fill = fill(VUE)
+    w5.cell(V0_, c).border = Border(top=sd(AZUR), bottom=sd(AZUR))
+w5.row_dimensions[V0_].height = 22.0
+
+x = w5.cell(V0_ + 2, 2,
+            "Rejouer 2025 depuis 2024 donne un écart plus large — environ 2,9 % — parce que "
+            "le taux de passage n'a alors aucune année antérieure où se mesurer. C'est une "
+            "limite de la profondeur d'historique, pas de la méthode.")
+x.font = F(7.5, False, DOUX, True); x.alignment = ind(0)
+w5.row_dimensions[V0_ + 2].height = 15.0
+x = w5.cell(V0_ + 3, 2, "Source : socle CRM AW_002_000002_000001, exercices 2024 à 2026.")
+x.font = F(7, False, DOUX, True); x.alignment = ind(0)
+
+w5.conditional_formatting.add("F%d:F%d" % (R0 + 2, R_CA), CellIsRule(
+    operator="lessThan", formula=["-0.01"], font=Font(name=UI, size=8.5, color=ROUGE_T)))
+w5.conditional_formatting.add("F%d:F%d" % (R0 + 2, R_CA), CellIsRule(
+    operator="greaterThan", formula=["0.01"], font=Font(name=UI, size=8.5, color=ROUGE_T)))
+w5.freeze_panes = "B%d" % (P0 + 2)
+w5.sheet_properties.tabColor = AZUR
+
+# ---- la mise en page des deux onglets montres : fond blanc ---------------
+#  Le gris de page F5F6F7 empile trois valeurs de gris a quatre pour cent
+#  d'ecart. Sur ces deux onglets on le retire : les blocs se detachent seuls.
+for feuille in (ws, w5):
+    for ligne in feuille.iter_rows():
+        for cel in ligne:
+            if cel.fill is not None and cel.fill.fill_type == "solid" \
+               and cel.fill.fgColor.rgb == "00" + FOND:
+                cel.fill = fill(PANEL)
+
 # ---- l'ordre des onglets : par AUDIENCE, pas par sujet --------------------
 #  Deux onglets se montrent en comite -- le geste, puis le budget. Les deux
 #  autres sont des reserves : on ne les ouvre que si la question tombe.
-wb._sheets = [ws, w4, w2, w3]
+wb._sheets = [ws, w5, w4, w2, w3]
 
 wb.save(OUT)
 print("écrit :", OUT)
