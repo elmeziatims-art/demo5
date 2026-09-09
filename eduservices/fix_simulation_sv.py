@@ -46,23 +46,37 @@ def esc(f):
 #  La forme a deux arguments -- conditions d'un cote, valeurs de l'autre -- est
 #  volontaire : SUMPRODUCT y traite le non-numerique comme zero, donc une ligne
 #  vide dans la plage ne fait pas tomber le calcul en #VALEUR!.
-CAMP = ('($C$%d:$C$%d=$C{r})*($D$%d:$D$%d=$D{r})' % (R0, R1, R0, R1))
-GARD = '*($R$%d:$R$%d<>"Fermer")' % (R0, R1)
-FERM = '*($R$%d:$R$%d="Fermer")'  % (R0, R1)
-SECT = 'SUMPRODUCT(' + CAMP + GARD + ',$I$%d:$I$%d)' % (R0, R1)
-POOL = 'SUMPRODUCT(' + CAMP + FERM + ',$M$%d:$M$%d)' % (R0, R1)
+#
+#  LE DRIVER EST LA STRUCTURE ALLOUEE ELLE-MEME, PAS LES SECTIONS.
+#  V_ALLOCATION n'utilise pas une cle mais DEUX : les permanents (6411, ~24 %
+#  de la structure) sont alloues aux HEURES, tout le reste -- murs, marque,
+#  siege -- par la cle ALLOC_CAMP_CLASS. Les heures dependent du programme
+#  (BAC initial 600, BAC alternance 480, MAS alternance 420, BTS 700 par
+#  classe), donc sur un campus a plusieurs programmes la structure allouee
+#  N'EST PAS proportionnelle aux sections : l'ecart monte a 6,1 %.
+#  Verifie sur les 60 lignes : la structure allouee se reconstruit a 0,001 %
+#  pres avec ces deux cles, contre 6,1 % avec les sections seules.
+#  Repartir la poche liberee au prorata de STRUCTURE_ALLOUEE respecte donc les
+#  deux cles a la fois, puisque M les porte deja. Mesure sur la fermeture du
+#  Mastere M1 de MBway Paris, contre la reallocation exacte a deux cles :
+#      au prorata des SECTIONS    ecart max 4 967 EUR (0,84 %)
+#      au prorata de LA STRUCTURE ecart max   670 EUR (0,11 %)   <- retenu
 
 #  Une ligne vide ne doit rien afficher. Deux tests, parce qu'une restitution
 #  peut echouer des deux facons : plus d'identite (le POV ne ramene pas la
 #  ligne) ou plus de chiffres (la ligne existe mais la mesure est absente).
+CAMP = '($C$%d:$C$%d=$C{r})*($D$%d:$D$%d=$D{r})' % (R0, R1, R0, R1)
+TOUT = 'SUMPRODUCT(' + CAMP + ',$M$%d:$M$%d)' % (R0, R1)
+SURV = ('SUMPRODUCT(' + CAMP + '*($R$%d:$R$%d<>"Fermer")' % (R0, R1)
+        + ',$M$%d:$M$%d)' % (R0, R1))
+
 VIDE = 'OR($C{r}="",COUNT($H{r}:$Q{r})=0)'
 
 FORM = {
     #  structure APRES : la sienne, plus sa part de celle des classes fermees
     #  du meme campus. Le garde-fou sert au cas ou tout un campus ferme.
     "S": ('IF(' + VIDE + ',"",IF($R{r}="Fermer","",'
-          'IF(' + SECT + '=0,$M{r},'
-          '$M{r}+' + POOL + '*$I{r}/' + SECT + ')))'),
+          'IF(' + SURV + '=0,$M{r},$M{r}*' + TOUT + '/' + SURV + ')))'),
     "T": 'IF(' + VIDE + ',"",IF($R{r}="Fermer","",$J{r}-$K{r}-$S{r}))',
     "U": 'IF(' + VIDE + ',"",IF($R{r}="Fermer",-$L{r},0))',
     "V": ('IF(' + VIDE + ',"",IF($R{r}="Fermer",'
