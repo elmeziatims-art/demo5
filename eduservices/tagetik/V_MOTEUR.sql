@@ -11,7 +11,7 @@
 CREATE OR ALTER VIEW V_MOTEUR AS
 WITH
 lev AS (
-    SELECT VERSION,
+    SELECT SCENARIO, VERSION,
         COALESCE(LEV_ACQ_BUD,0)       AS ACQ,   COALESCE(LEV_BRAND_BUD,0)     AS BRAND,
         COALESCE(LEV_PRICE,0)         AS PRICE, COALESCE(LEV_CNV_LEAD_CAND,0) AS GLC,
         COALESCE(LEV_CNV_ADM_INS,0)   AS GCV,   COALESCE(LEV_PASS_RATE,0)     AS PASS,
@@ -19,7 +19,7 @@ lev AS (
     FROM V_CADRAGE_LEVIERS WHERE VERSION IN ('V01','V02','V03')
 ),
 pcoef AS (
-    SELECT ENTITY, MEASURE AS PRICE_COEF FROM AW_002_000001_000001 WHERE PARAMETRE = 'HYP_PRICE_COEF'
+    SELECT SCENARIO, ENTITY, MEASURE AS PRICE_COEF FROM AW_002_000001_000001 WHERE PARAMETRE = 'HYP_PRICE_COEF'
 ),
 cell AS (
     SELECT s.SCENARIO, s.PERIODE, s.ENTITY, SUBSTR_BEFORE(s.ENTITY,'_') AS MARQUE,
@@ -51,9 +51,12 @@ FROM (
               * (1.0 * c.VOL_LEAD / NULLIF(cm.LEAD_REF, 0)) )
               * (c.RLC + l.GLC) * c.RCA * (c.YLD + l.GCV)                          AS NOUV_CALC
         FROM cell c
-        CROSS JOIN lev l
-        LEFT JOIN V_CAMPAGNES cm ON cm.ENTITY = c.ENTITY
-        LEFT JOIN V_CAP       cap ON cap.ENTITY = c.ENTITY
-        LEFT JOIN pcoef       pc  ON pc.ENTITY = c.MARQUE + '_REF'
+        --  MULTI-SCENARIO : chaque jointure porte le SCENARIO. Sans lui, un
+        --  second scenario dans le socle multiplierait les lignes par le nombre
+        --  de scenarios -- silencieusement, sans aucune erreur.
+        JOIN      lev         l   ON l.SCENARIO   = c.SCENARIO
+        LEFT JOIN V_CAMPAGNES cm  ON cm.SCENARIO  = c.SCENARIO AND cm.ENTITY = c.ENTITY
+        LEFT JOIN V_CAP       cap ON cap.SCENARIO = c.SCENARIO AND cap.ENTITY = c.ENTITY
+        LEFT JOIN pcoef       pc  ON pc.SCENARIO  = c.SCENARIO AND pc.ENTITY = c.MARQUE + '_REF'
     ) e
 ) f

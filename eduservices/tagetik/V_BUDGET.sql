@@ -20,7 +20,7 @@
 CREATE OR ALTER VIEW V_BUDGET AS
 WITH
 lev AS (
-    SELECT VERSION,
+    SELECT SCENARIO, VERSION,
         COALESCE(LEV_ACQ_BUD,0)     AS ACQ,   COALESCE(LEV_BRAND_BUD,0)    AS BRAND,
         COALESCE(LEV_INFL_EXT,0)    AS INFL,  COALESCE(LEV_SALARY,0)       AS SAL,
         COALESCE(LEV_FTE_PERM,0)    AS FTE,   COALESCE(LEV_PRODUCTIVITY,0) AS PROD,
@@ -28,19 +28,22 @@ lev AS (
     FROM V_CADRAGE_LEVIERS
     WHERE VERSION IN ('V01','V02','V03')
 ),
-cpt AS (   -- compta 2026 au grain compte
-    SELECT ENTITY, ACCOUNT, SUM(AMOUNT) AS AMOUNT
+cpt AS (   -- compta 2026 au grain compte, PAR SCENARIO : sans lui, deux datasets
+           -- s'additionneraient dans la meme poche, sans aucune erreur.
+    SELECT SCENARIO, ENTITY, ACCOUNT, SUM(AMOUNT) AS AMOUNT
     FROM AW_002_000004_000001
     WHERE EXERCICE = '2026'
-    GROUP BY ENTITY, ACCOUNT
+    GROUP BY SCENARIO, ENTITY, ACCOUNT
 ),
 caf_grp AS (   -- garde-fou : le facteur groupe, pour les entites sans produits (GRP)
-    SELECT mv.VERSION, 1.0 * mv.CA_2027 / NULLIF(gp.TOT_PROD,0) AS CAF
-    FROM (SELECT VERSION, SUM(CA) AS CA_2027 FROM V_MOTEUR GROUP BY VERSION) mv
-    CROSS JOIN (
-        SELECT SUM(AMOUNT) AS TOT_PROD FROM AW_002_000004_000001
+    SELECT mv.SCENARIO, mv.VERSION, 1.0 * mv.CA_2027 / NULLIF(gp.TOT_PROD,0) AS CAF
+    FROM (SELECT SCENARIO, VERSION, SUM(CA) AS CA_2027 FROM V_MOTEUR
+          GROUP BY SCENARIO, VERSION) mv
+    JOIN (
+        SELECT SCENARIO, SUM(AMOUNT) AS TOT_PROD FROM AW_002_000004_000001
         WHERE EXERCICE='2026' AND ACCOUNT IN ('7062','706','708')
-    ) gp
+        GROUP BY SCENARIO
+    ) gp ON gp.SCENARIO = mv.SCENARIO
 ),
 caf_ent AS (   -- LE FACTEUR DE CHAQUE CAMPUS : son moteur sur sa propre compta 2026.
                -- Avant, un facteur unique etait applique aux quatorze : la ventilation
@@ -48,19 +51,19 @@ caf_ent AS (   -- LE FACTEUR DE CHAQUE CAMPUS : son moteur sur sa propre compta 
                -- tout le reseau. Le total groupe ne bouge pas -- la somme des
                -- compta26 x (moteur/compta26) vaut la somme des moteurs, soit ce que
                -- rendait deja le facteur groupe -- seule la repartition se corrige.
-    SELECT mv.ENTITY, mv.VERSION, 1.0 * mv.CA_2027 / NULLIF(gp.PROD_2026,0) AS CAF
-    FROM (SELECT ENTITY, VERSION, SUM(CA) AS CA_2027 FROM V_MOTEUR
-          GROUP BY ENTITY, VERSION) mv
-    JOIN (SELECT ENTITY, SUM(AMOUNT) AS PROD_2026 FROM AW_002_000004_000001
+    SELECT mv.SCENARIO, mv.ENTITY, mv.VERSION, 1.0 * mv.CA_2027 / NULLIF(gp.PROD_2026,0) AS CAF
+    FROM (SELECT SCENARIO, ENTITY, VERSION, SUM(CA) AS CA_2027 FROM V_MOTEUR
+          GROUP BY SCENARIO, ENTITY, VERSION) mv
+    JOIN (SELECT SCENARIO, ENTITY, SUM(AMOUNT) AS PROD_2026 FROM AW_002_000004_000001
           WHERE EXERCICE='2026' AND ACCOUNT IN ('7062','706','708')
-          GROUP BY ENTITY) gp ON gp.ENTITY = mv.ENTITY
+          GROUP BY SCENARIO, ENTITY) gp ON gp.ENTITY = mv.ENTITY AND gp.SCENARIO = mv.SCENARIO
 )
 SELECT
     c.ENTITY,
     c.ACCOUNT,
     '2027'                     AS EXERCICE,
     l.VERSION,
-    '2027BUD_V1'               AS SCENARIO,
+    l.SCENARIO                 AS SCENARIO,     -- plus de scenario en dur : il suit les leviers
     CAST('12' AS NVARCHAR(10)) AS PERIOD,
     CASE
         WHEN c.ACCOUNT IN ('7062','706','708')                          THEN c.AMOUNT * COALESCE(fe.CAF, fg.CAF)
@@ -74,6 +77,6 @@ SELECT
         ELSE c.AMOUNT
     END AS AMOUNT
 FROM cpt c
-CROSS JOIN lev l
-LEFT JOIN caf_ent fe ON fe.VERSION = l.VERSION AND fe.ENTITY = c.ENTITY
-JOIN      caf_grp fg ON fg.VERSION = l.VERSION;
+JOIN      lev     l  ON l.SCENARIO  = c.SCENARIO
+LEFT JOIN caf_ent fe ON fe.SCENARIO = c.SCENARIO AND fe.VERSION = l.VERSION AND fe.ENTITY = c.ENTITY
+JOIN      caf_grp fg ON fg.SCENARIO = c.SCENARIO AND fg.VERSION = l.VERSION;

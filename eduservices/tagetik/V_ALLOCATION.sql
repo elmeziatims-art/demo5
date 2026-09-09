@@ -16,6 +16,9 @@
 -- Le SIÈGE est scindé en 2 pools qui télescopent -> total groupe constant :
 --   HOLDING = 6414,6226,626,6281,6331,6333 (cascade K1) ; MARQUE = 6236 (cascade K4).
 -- Enseignement (621 vac / 6411 perm) = HEURES ; autres directs = effectif/entrants.
+-- MULTI-SCÉNARIO : toutes les fenêtres et tous les pools portent le SCENARIO.
+-- Sans lui, deux datasets partageraient les mêmes dénominateurs d'allocation —
+-- silencieusement, et le contrôle d'enveloppe continuerait de tomber juste.
 -- Contrôle 2026 réel : marge complète 3 291 530 (inchangée par le split).
 -- Le millésime restitué se filtre sur EXERCICE / VERSION (côté masque ou rapport).
 -- =============================================================================
@@ -63,17 +66,17 @@ FROM (
                 k.K1, k.K2, k.K3, k.K4
             FROM (
                 SELECT s0.*,
-                    SUM(s0.HRS)       OVER (PARTITION BY s0.EXERCICE, s0.VERSION, s0.ENTITY) AS E_HRS,
-                    SUM(s0.VOL_EFF)   OVER (PARTITION BY s0.EXERCICE, s0.VERSION, s0.ENTITY) AS E_EFF,
-                    SUM(s0.VOL_NEW)   OVER (PARTITION BY s0.EXERCICE, s0.VERSION, s0.ENTITY) AS E_NEW,
-                    SUM(s0.VOL_CLASS) OVER (PARTITION BY s0.EXERCICE, s0.VERSION, s0.ENTITY) AS E_CLS,
-                    SUM(s0.CA)        OVER (PARTITION BY s0.EXERCICE, s0.VERSION, s0.ENTITY) AS E_CA,
-                    SUM(s0.VOL_EFF)   OVER (PARTITION BY s0.EXERCICE, s0.VERSION, s0.MARQUE) AS M_EFF,
-                    SUM(s0.VOL_CLASS) OVER (PARTITION BY s0.EXERCICE, s0.VERSION, s0.MARQUE) AS M_CLS,
-                    SUM(s0.CA)        OVER (PARTITION BY s0.EXERCICE, s0.VERSION, s0.MARQUE) AS M_CA,
-                    SUM(s0.VOL_EFF)   OVER (PARTITION BY s0.EXERCICE, s0.VERSION) AS G_EFF,
-                    SUM(s0.VOL_CLASS) OVER (PARTITION BY s0.EXERCICE, s0.VERSION) AS G_CLS,
-                    SUM(s0.CA)        OVER (PARTITION BY s0.EXERCICE, s0.VERSION) AS G_CA
+                    SUM(s0.HRS)       OVER (PARTITION BY s0.SCENARIO, s0.EXERCICE, s0.VERSION, s0.ENTITY) AS E_HRS,
+                    SUM(s0.VOL_EFF)   OVER (PARTITION BY s0.SCENARIO, s0.EXERCICE, s0.VERSION, s0.ENTITY) AS E_EFF,
+                    SUM(s0.VOL_NEW)   OVER (PARTITION BY s0.SCENARIO, s0.EXERCICE, s0.VERSION, s0.ENTITY) AS E_NEW,
+                    SUM(s0.VOL_CLASS) OVER (PARTITION BY s0.SCENARIO, s0.EXERCICE, s0.VERSION, s0.ENTITY) AS E_CLS,
+                    SUM(s0.CA)        OVER (PARTITION BY s0.SCENARIO, s0.EXERCICE, s0.VERSION, s0.ENTITY) AS E_CA,
+                    SUM(s0.VOL_EFF)   OVER (PARTITION BY s0.SCENARIO, s0.EXERCICE, s0.VERSION, s0.MARQUE) AS M_EFF,
+                    SUM(s0.VOL_CLASS) OVER (PARTITION BY s0.SCENARIO, s0.EXERCICE, s0.VERSION, s0.MARQUE) AS M_CLS,
+                    SUM(s0.CA)        OVER (PARTITION BY s0.SCENARIO, s0.EXERCICE, s0.VERSION, s0.MARQUE) AS M_CA,
+                    SUM(s0.VOL_EFF)   OVER (PARTITION BY s0.SCENARIO, s0.EXERCICE, s0.VERSION) AS G_EFF,
+                    SUM(s0.VOL_CLASS) OVER (PARTITION BY s0.SCENARIO, s0.EXERCICE, s0.VERSION) AS G_CLS,
+                    SUM(s0.CA)        OVER (PARTITION BY s0.SCENARIO, s0.EXERCICE, s0.VERSION) AS G_CA
                 FROM (
                     -- ===== DIMENSION VOLUMES : 2026 réel (Socle) ⊔ 2027 budget (V_MOTEUR) =====
                     SELECT v.SCENARIO, v.VERSION, v.PERIODE, v.EXERCICE, v.ENTITY, v.MARQUE,
@@ -100,7 +103,8 @@ FROM (
                             m.EFFECTIF AS VOL_EFF, s26.VOL_CLASS, m.NOUVEAUX AS VOL_NEW, m.CA
                         FROM V_MOTEUR m
                         LEFT JOIN AW_002_000002_000001 s26
-                               ON s26.EXERCICE='2026' AND s26.ENTITY=m.ENTITY
+                               ON s26.SCENARIO=m.SCENARIO
+                              AND s26.EXERCICE='2026' AND s26.ENTITY=m.ENTITY
                               AND s26.PROGRAMME=m.PROGRAMME AND s26.AN_ETUDE=m.AN_ETUDE
                               AND s26.MODALITE=m.MODALITE
                     ) v
@@ -108,32 +112,34 @@ FROM (
             ) w
             JOIN (
                 -- ===== POOLS DE CHARGES CAMPUS : Compta 2026 réel ⊔ V_BUDGET 2027 =====
-                SELECT p.ENTITY, p.EXERCICE, p.VERSION,
+                SELECT p.SCENARIO, p.ENTITY, p.EXERCICE, p.VERSION,
                     SUM(CASE WHEN p.ACCOUNT='621'  THEN p.AMOUNT ELSE 0 END) AS VAC,
                     SUM(CASE WHEN p.ACCOUNT='6411' THEN p.AMOUNT ELSE 0 END) AS PERM,
                     SUM(CASE WHEN p.ACCOUNT IN ('604','6063') THEN p.AMOUNT ELSE 0 END) AS ODIR_EFF,
                     SUM(CASE WHEN p.ACCOUNT='6231' THEN p.AMOUNT ELSE 0 END) AS MKT,
                     SUM(CASE WHEN p.ACCOUNT IN ('6413','645','613','615','616','625','63511') THEN p.AMOUNT ELSE 0 END) AS STRUCT_CAMP
                 FROM (
-                    SELECT ENTITY, EXERCICE, 'ACT' AS VERSION, ACCOUNT, AMOUNT FROM AW_002_000004_000001
+                    SELECT SCENARIO, ENTITY, EXERCICE, 'ACT' AS VERSION, ACCOUNT, AMOUNT FROM AW_002_000004_000001
                     UNION ALL
-                    SELECT ENTITY, EXERCICE, VERSION, ACCOUNT, AMOUNT FROM V_BUDGET
+                    SELECT SCENARIO, ENTITY, EXERCICE, VERSION, ACCOUNT, AMOUNT FROM V_BUDGET
                 ) p
-                GROUP BY p.ENTITY, p.EXERCICE, p.VERSION
-            ) cmp ON cmp.ENTITY = w.ENTITY AND cmp.EXERCICE = w.EXERCICE AND cmp.VERSION = w.VERSION
+                GROUP BY p.SCENARIO, p.ENTITY, p.EXERCICE, p.VERSION
+            ) cmp ON cmp.SCENARIO = w.SCENARIO AND cmp.ENTITY = w.ENTITY
+                 AND cmp.EXERCICE = w.EXERCICE AND cmp.VERSION = w.VERSION
             JOIN (
                 -- ===== POOLS SIÈGE (GRP) : Compta 2026 réel ⊔ V_BUDGET 2027 =====
-                SELECT p.EXERCICE, p.VERSION,
+                SELECT p.SCENARIO, p.EXERCICE, p.VERSION,
                     SUM(CASE WHEN p.ACCOUNT IN ('6414','6226','626','6281','6331','6333') THEN p.AMOUNT ELSE 0 END) AS HOLDING_TOT,
                     SUM(CASE WHEN p.ACCOUNT = '6236' THEN p.AMOUNT ELSE 0 END) AS MARQUE_TOT
                 FROM (
-                    SELECT ENTITY, EXERCICE, 'ACT' AS VERSION, ACCOUNT, AMOUNT FROM AW_002_000004_000001
+                    SELECT SCENARIO, ENTITY, EXERCICE, 'ACT' AS VERSION, ACCOUNT, AMOUNT FROM AW_002_000004_000001
                     UNION ALL
-                    SELECT ENTITY, EXERCICE, VERSION, ACCOUNT, AMOUNT FROM V_BUDGET
+                    SELECT SCENARIO, ENTITY, EXERCICE, VERSION, ACCOUNT, AMOUNT FROM V_BUDGET
                 ) p
                 WHERE p.ENTITY='GRP'
-                GROUP BY p.EXERCICE, p.VERSION
-            ) sieg ON sieg.EXERCICE = w.EXERCICE AND sieg.VERSION = w.VERSION
+                GROUP BY p.SCENARIO, p.EXERCICE, p.VERSION
+            ) sieg ON sieg.SCENARIO = w.SCENARIO AND sieg.EXERCICE = w.EXERCICE
+                  AND sieg.VERSION = w.VERSION
             CROSS JOIN (
                 -- Clés d'allocation = TEXTE (REV_CA/VOL_EFF/VOL_CLASS). La base étant
                 -- incrémentale, un changement de clé AJOUTE une ligne : on ne peut ni
