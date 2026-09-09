@@ -1,9 +1,22 @@
 -- =============================================================================
--- COPIE_SCENARIO_SIMULATION — le nouveau dataset du simulateur ouverture / fermeture
+-- COPIE_SCENARIO_SIMULATION — le bac à sable du simulateur ouverture / fermeture
 --
--- Duplique le cadrage 2027BUD_V1 vers un scénario de simulation où les campus
--- ouvrent et ferment leurs groupes, sans jamais toucher au budget d'origine.
--- Les deux scénarios coexistent ensuite et se comparent dans le simulateur.
+-- CE QUE CE SCRIPT FAIT, EXACTEMENT. Il n'ouvre PAS un nouveau dataset : il
+-- écrit dans LES MÊMES trois cubes (AW_002_000001, 000002 et 000004), avec une
+-- autre valeur dans la colonne SCENARIO. C'est un MEMBRE DE SCÉNARIO de plus,
+-- pas un conteneur de plus.
+--
+-- Et c'est voulu : les deux jeux cohabitent alors ligne à ligne dans les mêmes
+-- tables, donc UNE SEULE requête lit le cadrage et la simulation ensemble. Le
+-- rapport « cadrage vs campus » côte à côte est gratuit. Un vrai dataset séparé
+-- (nouvelles tables AW) imposerait des UNION entre tables et un jeu de vues
+-- dupliqué ; il ne se justifie que pour isoler les droits ou le calendrier de
+-- saisie des campus.
+--
+-- PRÉREQUIS RÉFÉRENTIEL, à faire AVANT de lancer ce script : créer le membre
+-- '2027SIM_CAMPUS' dans la dimension Scénario, et l'ouvrir en écriture aux
+-- campus dans le workflow. Sans le membre, le contrôle référentiel rejette les
+-- lignes ; sans les droits, les campus voient le scénario sans pouvoir saisir.
 --
 -- CE QUI SE SAISIT ENSUITE, ET RIEN D'AUTRE : VOL_CLASS, dans le socle
 -- AW_002_000002_000001, sur les lignes EXERCICE = '2026' du scénario de
@@ -12,7 +25,7 @@
 --
 -- PRÉREQUIS, déjà posé : V_MOTEUR, V_BUDGET et V_ALLOCATION portent désormais le
 -- SCENARIO sur toutes leurs jointures, fenêtres et poches. Sans cela un second
--- dataset multipliait les lignes du moteur et fusionnait les dénominateurs
+-- scénario multipliait les lignes du moteur et fusionnait les dénominateurs
 -- d'allocation — silencieusement, sans aucune erreur, et le contrôle
 -- d'enveloppe serait resté juste.
 --
