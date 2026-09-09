@@ -46,15 +46,20 @@ FERM = '$R$%d:$R$%d,"Fermer"' % (R0, R1)
 SECT = 'SUMIFS($I$%d:$I$%d,%s,%s)' % (R0, R1, CAMP, GARD)
 POOL = 'SUMIFS($M$%d:$M$%d,%s,%s)' % (R0, R1, CAMP, FERM)
 
+#  Une ligne vide ne doit rien afficher. Deux tests, parce qu'une restitution
+#  peut echouer des deux facons : plus d'identite (le POV ne ramene pas la
+#  ligne) ou plus de chiffres (la ligne existe mais la mesure est absente).
+VIDE = 'OR($C{r}="",COUNT($H{r}:$Q{r})=0)'
+
 FORM = {
     #  structure APRES : la sienne, plus sa part de celle des classes fermees
     #  du meme campus. Le garde-fou sert au cas ou tout un campus ferme.
-    "S": ('IF($R{r}="Fermer","",'
+    "S": ('IF(' + VIDE + ',"",IF($R{r}="Fermer","",'
           'IF(' + SECT + '=0,$M{r},'
-          '$M{r}+' + POOL + '*$I{r}/' + SECT + '))'),
-    "T": 'IF($R{r}="Fermer","",$J{r}-$K{r}-$S{r})',
-    "U": 'IF($R{r}="Fermer",-$L{r},0)',
-    "V": ('IF($R{r}="Fermer",'
+          '$M{r}+' + POOL + '*$I{r}/' + SECT + ')))'),
+    "T": 'IF(' + VIDE + ',"",IF($R{r}="Fermer","",$J{r}-$K{r}-$S{r}))',
+    "U": 'IF(' + VIDE + ',"",IF($R{r}="Fermer",-$L{r},0))',
+    "V": ('IF(' + VIDE + ',"",IF($R{r}="Fermer",'
           '"Fermer = perdre "&TEXT($L{r},"#,##0")&" € de contribution. Le fixe, lui, reste.",'
           'IF(AND($O{r}>=0,$T{r}<0),'
           '"BASCULE : saine avant, en déficit à cause d\'une fermeture voisine.",'
@@ -63,7 +68,7 @@ FORM = {
           'c\'est un artefact d\'allocation.",'
           'IF($O{r}<0,"Contribution négative : vrai point dur.",'
           '"Rentable. Point mort "&TEXT($P{r},"#,##0")&" étudiants, marge de sécurité "'
-          '&TEXT($Q{r},"0%")&"."))))'),
+          '&TEXT($Q{r},"0%")&".")))))'),
 }
 
 z = zipfile.ZipFile(SRC)
