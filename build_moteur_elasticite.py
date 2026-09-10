@@ -243,6 +243,12 @@ po(w2, 6, 2, "Δ tarif 2027", f=F(9, True), al=ind(1))
 G_PRX = po(w2, 6, 4, 0.0029, f=F(12, True, INK), nf=PCT, al=C_, fl=JAUNE,
            bd=Border(*[sd(AZUR)] * 4))
 po(w2, 6, 5, "← le levier prix du cadrage V01", f=F(8, False, DOUX, True), al=ind(1))
+#  la relation, ecrite la ou le geste se pose : sur une ligne CAMPUS, la colonne
+#  « Inscrits 2027 » est litteralement G x POWER(1 + geste, elasticite du campus).
+po(w2, 7, 2, "Sur chaque ligne campus :  inscrits 2027  =  inscrits 2026  ×  "
+             "( 1 + Δ budget marketing ) ^ élasticité du campus.  Les lignes marque et "
+             "la ligne groupe sont les sommes de leurs campus.",
+   f=F(8, False, DOUX, True), al=ind(1))
 for dv, cel in ((DataValidation(type="decimal", operator="between", formula1=-0.5, formula2=1.0),
                  "$D$5"),
                 (DataValidation(type="decimal", operator="between", formula1=-0.2, formula2=0.3),
@@ -605,7 +611,8 @@ w1.row_dimensions[r].height = 22
 po(w1, r, 3, "inscrits 2027", f=F(11, True, INK), al=R_)
 #  espace initial volontaire : une chaine qui commence par « = » serait lue
 #  comme une formule par Excel, et rendrait #NOM?.
-po(w1, r, 4, "  =  inscrits 2026  ×  ( budget marketing 2027 ÷ budget marketing 2026 ) ^ élasticité",
+po(w1, r, 4, '="  =  inscrits 2026  \u00d7  ( budget marketing 2027 \u00f7 budget '
+             'marketing 2026 ) ^ "&TEXT(Historique!$M$%d,"0.00")' % RT3,
    f=F(11, True, AZUR), al=ind(1))
 r += 1
 TXT_REL = ('="et rien d\'autre : le taux de transformation est deja dans l\'exposant. '
