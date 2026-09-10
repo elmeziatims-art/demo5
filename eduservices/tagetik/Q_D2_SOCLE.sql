@@ -76,7 +76,7 @@
 SELECT
     r.COMPTE                                    AS "Compte",
     r.FAMILLE                                   AS "Famille",
-    COALESCE(c.DESC_CONTO0, r.POSTE)            AS "Poste",
+    r.POSTE                                     AS "Poste",
     r.COURT                                     AS "Poste court",
     r.SENS * SUM(CASE WHEN CAST(d.EXERCICE AS INT) = 2025 THEN d.AMOUNT ELSE 0 END)  AS "Montant 2025",
     r.SENS * SUM(CASE WHEN CAST(d.EXERCICE AS INT) = 2026 THEN d.AMOUNT ELSE 0 END)  AS "Montant 2026"
@@ -101,9 +101,7 @@ LEFT JOIN AW_002_000004_000001 AS d
        ON  d.ACCOUNT = r.COMPTE
       AND  d.ENTITY IN (${$Entity(HIERARCHY("EDU")).lowest})
       AND  CAST(d.EXERCICE AS INT) IN (2025, 2026)
-LEFT JOIN conto AS c
-       ON  c.COD_CONTO = r.COMPTE
-GROUP BY r.COMPTE, r.FAMILLE, COALESCE(c.DESC_CONTO0, r.POSTE), r.COURT, r.SENS
+GROUP BY r.COMPTE, r.FAMILLE, r.POSTE, r.COURT, r.SENS
 
 UNION ALL
 

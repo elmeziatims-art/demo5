@@ -274,7 +274,7 @@ for s,coul,nom in zip(bc.series,(BLUE3,BLUE),("2025","2026")):
     s.tx=SeriesLabel(v=nom)
 for s in bc.series:
     s.cat=AxDataSource(strRef=StrRef(f="'Drill par compte'!$J${0}:$J${1}".format(CH0,LN)))
-bc.legend.position="b"; bc.x_axis.numFmt='#,##0," k€"'
+bc.legend.position="b"; bc.y_axis.numFmt='#,##0," k€"'
 bc.height=12.5; bc.width=21; bc.visible_cells_only=False
 bc.x_axis.delete=False; bc.y_axis.delete=False
 bc.x_axis.majorTickMark="none"; bc.y_axis.majorTickMark="none"

@@ -533,7 +533,7 @@ for s, coul, nom in zip(bc.series, (PALE, AZUR), ("2025", "2026")):
     s.tx = SeriesLabel(v=nom)
 for s in bc.series:
     s.cat = AxDataSource(strRef=StrRef(f="'Drill EBITDA 2'!$J$37:$J$49"))
-bc.legend.position = "b"; bc.x_axis.numFmt = '#,##0," k€"'
+bc.legend.position = "b"; bc.y_axis.numFmt = '#,##0," k€"'
 fini(bc, 11.5, 20.0); d2.add_chart(bc, "B9")
 for r in range(9, 31): d2.row_dimensions[r].height = 14
 
