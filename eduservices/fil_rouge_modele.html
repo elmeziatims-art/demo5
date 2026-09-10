@@ -1,0 +1,381 @@
+<title>Fil rouge du modèle</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+:root{
+  --paper:#F5F2EA; --card:#FBF9F3; --ink:#182A2E; --muted:#5B6A6C;
+  --hair:#DED7C6; --hair-soft:#E9E3D5;
+  --accent:#0E7C7B;
+  --p1:#22608E; --p1b:#EAF1F7;   /* décision */
+  --p2:#A96E22; --p2b:#F6EEDD;   /* réel / mesure */
+  --p3:#0E7C7B; --p3b:#DFEEEC;   /* moteur */
+  --p4:#6B4A7C; --p4b:#EFE8F1;   /* coûts */
+  --p5:#2E7D53; --p5b:#E2EFE5;   /* équipes */
+  --p6:#3C5560; --p6b:#E5EBEC;   /* analyse & contrôle */
+  --good:#2E7D53; --warn:#B4482E;
+  --shadow:0 1px 2px rgba(24,42,46,.05),0 6px 22px rgba(24,42,46,.06);
+}
+:root:not([data-theme="light"]){
+ @media (prefers-color-scheme:dark){
+  :root{ --paper:#0E1719; --card:#152225; --ink:#E7ECEA; --muted:#93A3A3;
+   --hair:#26383B; --hair-soft:#1E2E31; --accent:#3FB2AC;
+   --p1:#6BA6D6; --p1b:#16262F; --p2:#D9A24E; --p2b:#241C10;
+   --p3:#3FB2AC; --p3b:#0F2422; --p4:#B392C6; --p4b:#1E1626;
+   --p5:#5BB483; --p5b:#12241A; --p6:#7C9AA6; --p6b:#16232A;
+   --good:#5BB483; --warn:#E0805F;
+   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 26px rgba(0,0,0,.35);
+  }
+ }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1719; --card:#152225; --ink:#E7ECEA; --muted:#93A3A3;
+  --hair:#26383B; --hair-soft:#1E2E31; --accent:#3FB2AC;
+  --p1:#6BA6D6; --p1b:#16262F; --p2:#D9A24E; --p2b:#241C10;
+  --p3:#3FB2AC; --p3b:#0F2422; --p4:#B392C6; --p4b:#1E1626;
+  --p5:#5BB483; --p5b:#12241A; --p6:#7C9AA6; --p6b:#16232A;
+  --good:#5BB483; --warn:#E0805F;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 26px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+  font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.55;
+  -webkit-font-smoothing:antialiased;}
+.wrap{max-width:940px;margin:0 auto;padding:0 22px 90px;}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;}
+
+/* ---------- header ---------- */
+header{padding:64px 0 30px;border-bottom:1px solid var(--hair);}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--accent);margin:0 0 16px;}
+h1{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:clamp(2.1rem,5.4vw,3.5rem);
+  line-height:1.02;letter-spacing:-.015em;margin:0 0 18px;text-wrap:balance;}
+.lede{font-size:1.08rem;color:var(--muted);max-width:60ch;margin:0;}
+.lede b{color:var(--ink);font-weight:600;}
+
+/* ---------- fil rouge chips ---------- */
+.rouge{display:flex;flex-wrap:wrap;gap:10px;margin:26px 0 4px;}
+.chip{display:flex;flex-direction:column;gap:1px;background:var(--card);
+  border:1px solid var(--hair);border-radius:11px;padding:9px 14px;box-shadow:var(--shadow);}
+.chip .n{font-family:"IBM Plex Mono",monospace;font-size:1.02rem;font-weight:500;
+  color:var(--ink);font-variant-numeric:tabular-nums;}
+.chip .k{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+
+/* ---------- pipeline strip ---------- */
+.strip-wrap{overflow-x:auto;margin:36px 0 8px;padding-bottom:6px;}
+.strip{display:flex;gap:6px;min-width:640px;}
+.seg{flex:1;min-width:96px;border-radius:9px;padding:11px 12px 12px;
+  border:1px solid var(--hair);position:relative;}
+.seg .num{font-family:"IBM Plex Mono",monospace;font-size:.7rem;opacity:.65;}
+.seg .ttl{font-weight:600;font-size:.9rem;margin-top:2px;line-height:1.15;}
+.seg .tabs{font-family:"IBM Plex Mono",monospace;font-size:.66rem;color:var(--muted);margin-top:5px;}
+.seg[data-p="1"]{background:var(--p1b);border-color:color-mix(in srgb,var(--p1) 34%,transparent);}
+.seg[data-p="2"]{background:var(--p2b);border-color:color-mix(in srgb,var(--p2) 34%,transparent);}
+.seg[data-p="3"]{background:var(--p3b);border-color:color-mix(in srgb,var(--p3) 40%,transparent);}
+.seg[data-p="4"]{background:var(--p4b);border-color:color-mix(in srgb,var(--p4) 34%,transparent);}
+.seg[data-p="5"]{background:var(--p5b);border-color:color-mix(in srgb,var(--p5) 34%,transparent);}
+.seg[data-p="6"]{background:var(--p6b);border-color:color-mix(in srgb,var(--p6) 34%,transparent);}
+.seg[data-p="1"] .num{color:var(--p1)} .seg[data-p="2"] .num{color:var(--p2)}
+.seg[data-p="3"] .num{color:var(--p3)} .seg[data-p="4"] .num{color:var(--p4)}
+.seg[data-p="5"] .num{color:var(--p5)} .seg[data-p="6"] .num{color:var(--p6)}
+
+/* ---------- acts ---------- */
+.act{padding:44px 0 8px;}
+.act-head{display:flex;align-items:baseline;gap:14px;margin-bottom:6px;}
+.act-num{font-family:"IBM Plex Mono",monospace;font-size:.8rem;font-weight:500;
+  color:var(--pc);border:1px solid var(--pc);border-radius:6px;padding:2px 8px;flex:none;}
+.act h2{font-family:"Fraunces",serif;font-weight:500;font-size:1.62rem;letter-spacing:-.01em;margin:0;}
+.act-sub{color:var(--muted);font-size:.98rem;margin:2px 0 24px;max-width:64ch;}
+.act-sub b{color:var(--ink);font-weight:600;}
+
+/* card */
+.card{background:var(--card);border:1px solid var(--hair);border-radius:14px;
+  padding:20px 22px;margin-bottom:14px;box-shadow:var(--shadow);
+  border-left:4px solid var(--pc);}
+.card-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.tab-name{font-family:"IBM Plex Mono",monospace;font-size:.82rem;font-weight:500;
+  background:var(--pcb);color:var(--pc);padding:3px 9px;border-radius:6px;}
+.card-title{font-weight:600;font-size:1.05rem;}
+.dir{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--muted);border:1px solid var(--hair);border-radius:20px;padding:3px 10px;}
+
+.lines{display:grid;gap:9px;}
+.line{display:grid;grid-template-columns:82px 1fr;gap:12px;align-items:baseline;}
+.line .lbl{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--pc);padding-top:2px;}
+.line .txt{font-size:.96rem;}
+.line .txt b{font-weight:600;}
+.line .txt code{font-family:"IBM Plex Mono",monospace;font-size:.85em;
+  background:var(--pcb);padding:1px 5px;border-radius:4px;}
+
+.flow{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:14px;padding-top:13px;border-top:1px dashed var(--hair);
+  font-family:"IBM Plex Mono",monospace;font-size:.74rem;}
+.flow span{color:var(--muted);}
+.flow .io{color:var(--ink);background:var(--paper);border:1px solid var(--hair);border-radius:5px;padding:2px 8px;}
+.flow .arw{color:var(--pc);font-weight:600;}
+
+/* governance panel */
+.gov{background:var(--card);border:1px solid var(--hair);border-radius:16px;
+  padding:26px;box-shadow:var(--shadow);margin-top:8px;}
+.gov h3{font-family:"Fraunces",serif;font-weight:500;font-size:1.25rem;margin:0 0 4px;}
+.gov .sub{color:var(--muted);font-size:.94rem;margin:0 0 22px;}
+.axes{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.axis{border-radius:12px;padding:18px;border:1px solid var(--hair);}
+.axis.td{background:var(--p1b);border-color:color-mix(in srgb,var(--p1) 30%,transparent);}
+.axis.bu{background:var(--p5b);border-color:color-mix(in srgb,var(--p5) 30%,transparent);}
+.axis .who{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;}
+.axis.td .who{color:var(--p1)} .axis.bu .who{color:var(--p5)}
+.axis h4{margin:6px 0 10px;font-size:1.05rem;font-weight:600;}
+.axis ul{margin:0;padding-left:18px;font-size:.9rem;color:var(--ink);}
+.axis li{margin:5px 0;}
+.axis li span{color:var(--muted);}
+.reconcile{text-align:center;margin-top:18px;font-family:"IBM Plex Mono",monospace;
+  font-size:.82rem;color:var(--accent);}
+
+/* callout */
+.callout{background:var(--pcb);border:1px solid color-mix(in srgb,var(--pc) 35%,transparent);
+  border-radius:12px;padding:16px 20px;margin:6px 0 14px;font-size:.94rem;}
+.callout b{color:var(--pc);}
+
+/* next */
+.next{margin-top:48px;border-top:1px solid var(--hair);padding-top:30px;}
+.next h3{font-family:"Fraunces",serif;font-weight:500;font-size:1.3rem;margin:0 0 12px;}
+.next p{color:var(--muted);max-width:64ch;}
+.next .tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:.72rem;
+  color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:3px 11px;margin:4px 6px 0 0;}
+
+footer{margin-top:40px;color:var(--muted);font-size:.8rem;font-family:"IBM Plex Mono",monospace;}
+
+@media(max-width:640px){
+  .axes{grid-template-columns:1fr}
+  .line{grid-template-columns:1fr;gap:2px}
+  .line .lbl{padding-top:0}
+}
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">EDUSERVICES · Modèle CA / Budget 2027</p>
+  <h1>Le fil rouge du modèle</h1>
+  <p class="lede">Treize onglets, une seule histoire. <b>Le CFO décide en haut, l'histoire mesure en bas, un moteur les fait se rencontrer</b>, puis tout se réconcilie au centime. Voici, onglet par onglet, ce qu'on fait, sur quoi on se base, et pour quoi.</p>
+
+  <div class="rouge">
+    <div class="chip"><span class="n">21 936 350 €</span><span class="k">CA de référence</span></div>
+    <div class="chip"><span class="n">2 952</span><span class="k">effectif</span></div>
+    <div class="chip"><span class="n">14,6 %</span><span class="k">marge EBITDA</span></div>
+    <div class="chip"><span class="n">17 197</span><span class="k">leads</span></div>
+    <div class="chip"><span class="n">434 174 €</span><span class="k">dépense marketing</span></div>
+    <div class="chip"><span class="n">5 · 14 · 58</span><span class="k">marques · campus · cellules</span></div>
+  </div>
+</header>
+
+<!-- pipeline strip -->
+<div class="strip-wrap" aria-label="Vue d'ensemble de la chaîne">
+  <div class="strip">
+    <div class="seg" data-p="1"><div class="num">I</div><div class="ttl">Décision</div><div class="tabs">01_Cadrage</div></div>
+    <div class="seg" data-p="2"><div class="num">II</div><div class="ttl">Le réel mesuré</div><div class="tabs">02_Base · CRM · Campagnes</div></div>
+    <div class="seg" data-p="3"><div class="num">III</div><div class="ttl">Le moteur</div><div class="tabs">04_Moteur</div></div>
+    <div class="seg" data-p="4"><div class="num">IV</div><div class="ttl">Les coûts</div><div class="tabs">05 · 06 · 07</div></div>
+    <div class="seg" data-p="5"><div class="num">V</div><div class="ttl">Les équipes</div><div class="tabs">08_Saisie · 09_Reporting</div></div>
+    <div class="seg" data-p="6"><div class="num">VI</div><div class="ttl">Analyse & contrôle</div><div class="tabs">10_Alloc · 11_Récon</div></div>
+  </div>
+</div>
+
+<!-- ================= ACTE I ================= -->
+<section class="act" style="--pc:var(--p1);--pcb:var(--p1b)">
+  <div class="act-head"><span class="act-num">Acte I</span><h2>La décision — ce que le CFO impose</h2></div>
+  <p class="act-sub">Le pilotage part du <b>haut</b> : la direction fixe des cibles et des règles, pas des chiffres de terrain. Tout le reste n'est qu'un moyen d'éclater ces cibles jusqu'à la classe.</p>
+
+  <div class="card">
+    <div class="card-top"><span class="tab-name">01_Cadrage</span><span class="card-title">Le tableau de bord du CFO</span><span class="dir">Top-down</span></div>
+    <div class="lines">
+      <div class="line"><span class="lbl">On fait</span><span class="txt">On saisit la <b>cible de croissance du CA</b> et la <b>cible de marge EBITDA</b>, on choisit un scénario (<code>Référence / Cadrage / Optimiste / Prudent</code>), et on pose les règles de répartition : <b>coefficient de prix par marque</b>, <b>cap par marque</b>, et les 9 leviers de groupe.</span></div>
+      <div class="line"><span class="lbl">En base</span><span class="txt">On part de l'<b>atterrissage 2026</b> (le réel) comme point d'ancrage : leviers à zéro ⇒ on reproduit exactement le réalisé.</span></div>
+      <div class="line"><span class="lbl">Pour</span><span class="txt">Donner au CFO <b>un seul écran</b> où il arbitre, et voir en direct la réconciliation <code>Référence → Cible → Construit → Écart</code> pour le CA, l'EBITDA et l'effectif.</span></div>
+    </div>
+    <div class="callout"><b>À noter :</b> l'<b>indice de prix par ville est déduit</b> de l'histoire, pas saisi — on ne rend modifiable que ce qui est une vraie décision. Et l'<b>effectif cible n'est jamais saisi</b> : c'est une conséquence (CA cible ÷ prix).</div>
+    <div class="flow"><span>alimente</span> <span class="arw">→</span> <span class="io">04_Moteur</span> <span class="io">07_PnL</span> <span class="io">09_Reporting</span></div>
+  </div>
+</section>
+
+<!-- ================= ACTE II ================= -->
+<section class="act" style="--pc:var(--p2);--pcb:var(--p2b)">
+  <div class="act-head"><span class="act-num">Acte II</span><h2>Le réel mesuré — ce que l'histoire nous apprend</h2></div>
+  <p class="act-sub">Face à la décision, les <b>faits</b>. Le référentiel dit ce qui existe ; le CRM dit comment le marketing transforme l'euro en étudiant. <b>Rien n'est inventé : tout est mesuré.</b></p>
+
+  <div class="card">
+    <div class="card-top"><span class="tab-name">02_Base</span><span class="card-title">Le référentiel unique (atterrissage)</span><span class="dir">Donnée</span></div>
+    <div class="lines">
+      <div class="line"><span class="lbl">On fait</span><span class="txt">On décrit les <b>58 cellules</b> marque × ville × programme × niveau : effectif réel, modalité, et le <b>prix — qui varie par ville puis par marque</b>.</span></div>
+      <div class="line"><span class="lbl">On calcule</span><span class="txt">Le <b>CA de référence</b> par cellule = effectif × prix + nouveaux × frais, qui somme à <code>21 936 350 €</code>.</span></div>
+      <div class="line"><span class="lbl">Pour</span><span class="txt">Servir de <b>vérité partagée</b> — la maille fine sur laquelle tout s'éclate et se recompose.</span></div>
+    </div>
+    <div class="flow"><span>alimente</span> <span class="arw">→</span> <span class="io">04_Moteur</span> <span class="io">10_Allocation</span> <span class="io">11_Réconciliation</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-top"><span class="tab-name">02_CRM</span><span class="card-title">L'historique marketing, en clair</span><span class="dir">Donnée</span></div>
+    <div class="lines">
+      <div class="line"><span class="lbl">On fait</span><span class="txt">On pose l'historique <b>physiquement visible</b>, en format <b>long</b> (années en lignes : <code>2024 · 2025 · 2026</code>) : leads organiques, leads payants, leads totaux, dépense marketing — par campus.</span></div>
+      <div class="line"><span class="lbl">Pour</span><span class="txt">Que « historique » veuille dire <b>la donnée est là</b>, lisible, et non un paramètre posé à la main.</span></div>
+    </div>
+    <div class="flow"><span>alimente</span> <span class="arw">→</span> <span class="io">03_Campagnes</span> <span class="io">06_Compta (6231)</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-top"><span class="tab-name">03_Campagnes</span><span class="card-title">La physique du marketing, mesurée</span><span class="dir">Mesure</span></div>
+    <div class="lines">
+      <div class="line"><span class="lbl">On calcule</span><span class="txt">Depuis le CRM (via <code>SUMIFS</code> par année) : la <b>part organique</b>, le <b>CPL</b> (coût par lead) et le <b>rendement d'acquisition</b> (l'élasticité) — <b>différenciés par campus</b>.</span></div>
+      <div class="line"><span class="lbl">En base</span><span class="txt">Deux ans d'écart réel : <code>rendement = ln(payant₂₆/payant₂₄) ⁄ ln(dépense₂₆/dépense₂₄)</code>.</span></div>
+      <div class="line"><span class="lbl">Pour</span><span class="txt">Montrer <b>où le marketing est vital et où la marque porte seule</b>, et donner au moteur sa courbe de leads : <code>leads = organique + payant × (budget⁄réf)^rendement</code>. Bonus : le <b>CAC marginal</b> comme indicateur d'attractivité.</span></div>
+    </div>
+    <div class="flow"><span>alimente</span> <span class="arw">→</span> <span class="io">04_Moteur</span></div>
+  </div>
+</section>
+
+<!-- ================= ACTE III ================= -->
+<section class="act" style="--pc:var(--p3);--pcb:var(--p3b)">
+  <div class="act-head"><span class="act-num">Acte III</span><h2>Le moteur — là où décision et réel se rencontrent</h2></div>
+  <p class="act-sub">Le cœur du modèle. Il <b>éclate la cible du groupe</b> jusqu'à la cellule, puis rejoue le chemin inverse — budget marketing → leads → tunnel → effectif → CA — pour <b>vérifier que le terrain sait tenir la promesse</b>.</p>
+
+  <div class="card">
+    <div class="card-top"><span class="tab-name">04_Moteur</span><span class="card-title">Éclatement top-down + reconstruction bottom-up</span><span class="dir">39 colonnes</span></div>
+    <div class="lines">
+      <div class="line"><span class="lbl">On fait ①</span><span class="txt"><b>Éclatement :</b> le CA cible du groupe se répartit sur chaque cellule au <b>poids</b> (CA réf × cap marque, normalisé) ⇒ <code>Σ cibles = cible exacte</code>.</span></div>
+      <div class="line"><span class="lbl">On fait ②</span><span class="txt"><b>Tunnel :</b> le budget marketing génère les leads, puis <code>lead → candidature → admis → inscrit → effectif → CA</code>. L'<b>effectif est une conséquence</b>, jamais une saisie.</span></div>
+      <div class="line"><span class="lbl">On fait ③</span><span class="txt"><b>Cadré vs Ajusté :</b> le « cadré » est la graine du groupe ; l'« ajusté » = graine <b>+ délta</b> du contrôleur. <b>On n'écrase jamais</b> — on ajoute une catégorie d'ajustement (logique Tagetik).</span></div>
+      <div class="line"><span class="lbl">Pour</span><span class="txt">Réconcilier le <b>haut et le bas</b> : la cible imposée et ce que les campus savent réellement produire.</span></div>
+    </div>
+    <div class="flow"><span>reçoit</span> <span class="io">01_Cadrage</span> <span class="io">02_Base</span> <span class="io">03_Campagnes</span> <span class="io">08_Saisie</span> <span class="arw">→</span> <span>alimente</span> <span class="io">07_PnL</span> <span class="io">09_Reporting</span> <span class="io">10_Allocation</span></div>
+  </div>
+</section>
+
+<!-- ================= ACTE IV ================= -->
+<section class="act" style="--pc:var(--p4);--pcb:var(--p4b)">
+  <div class="act-head"><span class="act-num">Acte IV</span><h2>Les coûts — du CA à l'EBITDA</h2></div>
+  <p class="act-sub">Un CA ne suffit pas : il faut le <b>compte de résultat réel</b>. On passe par de vrais comptes PCG, une compta en table de faits, et une cascade jusqu'à l'EBITDA.</p>
+
+  <div class="card">
+    <div class="card-top"><span class="tab-name">05_Plan_Comptable</span><span class="card-title">Les vrais comptes (PCG)</span><span class="dir">Référentiel</span></div>
+    <div class="lines">
+      <div class="line"><span class="lbl">On fait</span><span class="txt">On pose les comptes de <b>classe 6 et 7</b> et leurs hiérarchies (produits, achats, personnel, D&A…).</span></div>
+      <div class="line"><span class="lbl">Pour</span><span class="txt">Dimensionner le P&L sur une <b>vraie structure comptable</b>, pas des libellés ad hoc.</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-top"><span class="tab-name">06_Compta</span><span class="card-title">La table de faits comptable</span><span class="dir">Donnée</span></div>
+    <div class="lines">
+      <div class="line"><span class="lbl">On fait</span><span class="txt">Écritures en <b>format long</b> avec codes version (<code>2024ACT_VDEF</code>…) et clés marque/ville.</span></div>
+      <div class="line"><span class="lbl">La clé</span><span class="txt">Le compte <b>6231 (publicité) = dépense marketing du CRM</b>, campus par campus — pas une répartition forfaitaire. Les autres charges se recalibrent sur <code>(1 − cible EBITDA) × CA − dépense CRM</code>.</span></div>
+      <div class="line"><span class="lbl">Pour</span><span class="txt">Que <b>compta et CRM racontent le même euro de marketing</b> (voir Acte VI).</span></div>
+    </div>
+    <div class="flow"><span>reçoit</span> <span class="io">02_CRM</span> <span class="arw">→</span> <span>alimente</span> <span class="io">07_PnL</span> <span class="io">11_Réconciliation</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-top"><span class="tab-name">07_PnL</span><span class="card-title">La cascade SIG jusqu'à l'EBITDA</span><span class="dir">Restitution</span></div>
+    <div class="lines">
+      <div class="line"><span class="lbl">On calcule</span><span class="txt">Les <b>soldes intermédiaires de gestion</b> par version (<code>SUMIFS</code> sur les codes), jusqu'à <b>EBITDA et EBIT</b>, avec une colonne <b>Budget 2027</b>.</span></div>
+      <div class="line"><span class="lbl">Pour</span><span class="txt">Prouver que la cible de <b>marge 14,6 %</b> tient une fois tous les coûts posés.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ACTE V ================= -->
+<section class="act" style="--pc:var(--p5);--pcb:var(--p5b)">
+  <div class="act-head"><span class="act-num">Acte V</span><h2>Les équipes — saisir et restituer</h2></div>
+  <p class="act-sub">C'est ici que le <b>bottom-up</b> devient concret : le contrôleur de campus ajuste, le CFO lit l'impact. Chacun son écran, chacun son périmètre.</p>
+
+  <div class="card">
+    <div class="card-top"><span class="tab-name">08_Saisie_Campus</span><span class="card-title">Le masque de saisie (maquette Tagetik)</span><span class="dir">Bottom-up</span></div>
+    <div class="lines">
+      <div class="line"><span class="lbl">On fait</span><span class="txt">Un écran <b>user-friendly par campus</b> (ex. MBway Lyon) où le contrôleur ne touche qu'à <b>ses taux opérationnels</b> — conversion, passage — via des <b>ajustements (délta)</b>.</span></div>
+      <div class="line"><span class="lbl">Câblage</span><span class="txt">Le masque lit le cadré du moteur et lui renvoie le délta : boucle <b>saisie ⇄ moteur</b> sans écrasement.</span></div>
+      <div class="line"><span class="lbl">Pour</span><span class="txt">Préfigurer le <b>développement Tagetik</b> : chaque utilisateur aura son périmètre, l'override à la <b>maille la plus fine</b>.</span></div>
+    </div>
+    <div class="flow"><span>reçoit</span> <span class="io">04_Moteur</span> <span class="arw">↔</span> <span>renvoie</span> <span class="io">04_Moteur</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-top"><span class="tab-name">09_Reporting</span><span class="card-title">Tuiles KPI + ponts de variance</span><span class="dir">Restitution</span></div>
+    <div class="lines">
+      <div class="line"><span class="lbl">On montre</span><span class="txt">Les <b>KPI</b> en grand, puis les <b>ponts</b> : CA (Réf → volume → prix & mix) et EBITDA (Réf → effet CA → coûts & leviers), plus un comparatif par marque.</span></div>
+      <div class="line"><span class="lbl">Pour</span><span class="txt">Donner au CFO l'<b>impact instantané</b> de chaque arbitrage — l'intelligence marketing rendue lisible en comité.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ACTE VI ================= -->
+<section class="act" style="--pc:var(--p6);--pcb:var(--p6b)">
+  <div class="act-head"><span class="act-num">Acte VI</span><h2>Analyse & contrôle — le vrai coût, et la preuve</h2></div>
+  <p class="act-sub">Descendre jusqu'au <b>coût réel d'un étudiant</b>, puis démontrer que <b>toutes les sources se recoupent</b>. C'est ce qui prépare le simulateur de classe.</p>
+
+  <div class="card">
+    <div class="card-top"><span class="tab-name">10_Allocation</span><span class="card-title">Cascade de coûts sur 3 niveaux</span><span class="dir">Analyse</span></div>
+    <div class="lines">
+      <div class="line"><span class="lbl">On fait</span><span class="txt">On déverse les coûts <code>Groupe → Marque → Campus → Classe</code>, avec un <b>choix de driver à chaque niveau</b> (<code>Effectif · Nombre de classes · CA</code>).</span></div>
+      <div class="line"><span class="lbl">On calcule</span><span class="txt">Le <b>coût par étudiant</b>, le <b>coût par classe</b> et la <b>marge par étudiant</b> — jusqu'à la maille classe.</span></div>
+      <div class="line"><span class="lbl">Pour</span><span class="txt">Répondre à « cette classe est-elle rentable ? » — et montrer que <b>la réponse dépend de la clé choisie</b> (le cœur du prochain chantier).</span></div>
+    </div>
+    <div class="callout"><b>Point de vigilance à démontrer :</b> selon le driver, une classe peut apparaître <b>rentable au CA</b> et <b>déficitaire à l'effectif</b>. Le choix de la clé est une <b>décision de gouvernance</b>, pas un détail technique.</div>
+    <div class="flow"><span>reçoit</span> <span class="io">04_Moteur</span> <span class="io">07_PnL</span> <span class="arw">·</span> <span>bouclage</span> <span class="io">Σ = EBITDA groupe</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-top"><span class="tab-name">11_Reconciliation</span><span class="card-title">Le contrôle multisource</span><span class="dir">Contrôle</span></div>
+    <div class="lines">
+      <div class="line"><span class="lbl">On fait</span><span class="txt">Chaque grandeur est <b>recalculée depuis deux systèmes</b> ; l'écart doit être nul.</span></div>
+      <div class="line"><span class="lbl">On vérifie</span><span class="txt">CA <code>Base = Compta</code> · Leads <code>CRM = Base</code> · Dépense <code>CRM = 6231 = Campagnes</code> · EBITDA <code>P&L = Compta</code>. Statut ligne par ligne : <b style="color:var(--good)">✓ aligné</b>.</span></div>
+      <div class="line"><span class="lbl">Pour</span><span class="txt">Prouver au CFO que <b>CRM, compta et référentiel racontent le même chiffre</b> — la crédibilité du modèle.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- governance -->
+<section class="act">
+  <div class="gov">
+    <h3>La règle du jeu : qui tient quoi</h3>
+    <p class="sub">Tout le modèle tourne autour d'un partage clair — sinon le reporting consolidé ne veut plus rien dire.</p>
+    <div class="axes">
+      <div class="axis td">
+        <div class="who">↓ Top-down · le groupe</div>
+        <h4>Le CFO décide la méthode</h4>
+        <ul>
+          <li>Cibles <b>CA & EBITDA</b></li>
+          <li><b>Prix</b> (niveau marque)</li>
+          <li><b>Budget marketing</b> & cap par marque</li>
+          <li><b>Politique de coûts</b> et clés d'allocation (drivers)</li>
+        </ul>
+      </div>
+      <div class="axis bu">
+        <div class="who">↑ Bottom-up · les campus</div>
+        <h4>Le contrôleur fournit la matière</h4>
+        <ul>
+          <li>Ajuste ses <b>taux opérationnels</b> (délta)</li>
+          <li>Corrige l'<b>assiette réelle</b> (effectifs, classes)</li>
+          <li><b>Conteste</b> une allocation — via ajustement, jamais d'écrasement</li>
+          <li>Remonte pour <b>arbitrage</b></li>
+        </ul>
+      </div>
+    </div>
+    <div class="reconcile">le groupe éclate ↓ &nbsp;·&nbsp; les campus rejouent ↑ &nbsp;·&nbsp; le moteur réconcilie ⇄</div>
+  </div>
+</section>
+
+<!-- next -->
+<section class="next">
+  <h3>Le wagon suivant</h3>
+  <p>Le socle est prêt pour <b>simuler l'ouverture, la fermeture ou la fusion d'une classe</b> : l'onglet 10 donne déjà le vrai coût par classe et par étudiant. On y branchera le <b>cas sensible du driver</b> — une classe qui bascule de rentable à déficitaire selon la clé — pour montrer au CFO que choisir la clé, c'est déjà décider.</p>
+  <span class="tag">Simulateur de classe</span>
+  <span class="tag">Cas sensible driver</span>
+  <span class="tag">Coûts en cadré / ajusté</span>
+</section>
+
+<footer>EDUSERVICES · Modèle CA-Budget v3 · 13 onglets · lecture de la chaîne</footer>
+
+</div>

@@ -1,0 +1,254 @@
+<title>Salle de pilotage</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#f0f2f5; --card:#ffffff; --card2:#f7f9fb;
+  --ink:#14202c; --soft:#51606d; --faint:#8695a1; --line:#e2e7ec; --line2:#cfd7de;
+  --teal:#0d7a62; --teald:#0a5a48; --tealbg:#e4f0ec;
+  --ochre:#b3641c; --ochrebg:#f7ead9;
+  /* heatmap marge (divergente autour de ~15%) */
+  --mcrit:#ecccc4; --mcritk:#8c2c20; --mwarn:#f2e0c4; --mwarnk:#875316;
+  --mmid:#e9edf0; --mmidk:#3a4a56; --mok:#d5e8dc; --mokk:#1e5e40; --mgood:#bbdcc4; --mgoodk:#124a2b;
+  /* CAC sequentiel (ambre) */
+  --c1:#f4ecdb; --c2:#ecd8b3; --c3:#e0bb84; --c4:#d29a52; --ck:#6d4210;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1040px;margin:0 auto;padding:clamp(26px,4vw,56px) clamp(16px,3vw,36px) 90px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--teald)}
+h1{font-family:"Newsreader",Georgia,serif;font-weight:500;font-size:clamp(2.4rem,6vw,3.9rem);line-height:1.02;letter-spacing:-.01em;margin:.3em 0 .3em;text-wrap:balance}
+h1 em{font-style:italic;color:var(--teal)}
+.lead{font-family:"Newsreader",serif;font-size:clamp(1.1rem,2.2vw,1.35rem);color:var(--soft);max-width:52ch;line-height:1.45}
+.masthead{border-bottom:2px solid var(--ink);padding-bottom:26px;margin-bottom:14px}
+.mnote{font-size:13px;color:var(--faint);margin-top:16px;font-family:"IBM Plex Mono",monospace;letter-spacing:.02em}
+
+.report{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:clamp(18px,3vw,30px);margin-top:26px;box-shadow:0 1px 2px rgba(20,32,44,.04),0 14px 34px -24px rgba(20,32,44,.24)}
+.rhead{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;margin-bottom:3px}
+.rnum{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;color:var(--teal);letter-spacing:.08em}
+.report h2{font-family:"Newsreader",serif;font-weight:600;font-size:clamp(1.5rem,3.2vw,2.05rem);margin:0;letter-spacing:-.01em;line-height:1.08}
+.rsub{color:var(--soft);margin:4px 0 16px;font-size:14.5px;max-width:66ch}
+.pov{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px}
+.pov .p{display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);background:var(--card2);border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+.pov .p b{color:var(--ink);font-weight:600}
+.pov .p.act{background:var(--tealbg);border-color:transparent;color:var(--teald)}
+.pov .p.act b{color:var(--teald)}
+.insight{margin-top:15px;font-size:13.5px;color:var(--soft);border-left:3px solid var(--teal);padding:8px 0 8px 14px;background:linear-gradient(90deg,var(--tealbg),transparent 80%)}
+.insight.warn{border-left-color:var(--ochre);background:linear-gradient(90deg,var(--ochrebg),transparent 80%)}
+.insight b{color:var(--ink)}
+
+.scroll{overflow-x:auto}
+table.mx{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13.5px}
+.mx th{font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--line2);white-space:nowrap;vertical-align:bottom}
+.mx th.l{text-align:left}
+.mx th.grp{color:var(--teald);border-bottom:1.5px solid var(--teal);text-align:center}
+.mx td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+.mx td.l{text-align:left}
+.mx tr:last-child td{border-bottom:none}
+.mono{font-family:"IBM Plex Mono",monospace}
+.dim{color:var(--faint)}
+.l0 td{font-weight:700}
+.l1 td.l{padding-left:26px;font-weight:600;color:var(--soft)}
+.l2 td.l{padding-left:46px;color:var(--soft);font-weight:400}
+.l2 td{border-bottom:1px dashed var(--line)}
+.sub td{background:var(--card2)}
+.tot td{background:var(--tealbg);font-weight:700;color:var(--teald);border-top:2px solid var(--teal)}
+.ret{background:var(--tealbg);color:var(--teald);font-weight:700}
+.disc{font-size:11px;color:var(--faint);text-align:center;font-family:"IBM Plex Mono",monospace;letter-spacing:.06em}
+/* heatmap */
+.hm{font-weight:600;border-radius:0}
+.mcrit{background:var(--mcrit);color:var(--mcritk)} .mwarn{background:var(--mwarn);color:var(--mwarnk)}
+.mmid{background:var(--mmid);color:var(--mmidk)} .mok{background:var(--mok);color:var(--mokk)} .mgood{background:var(--mgood);color:var(--mgoodk)}
+.c1{background:var(--c1);color:var(--ck)} .c2{background:var(--c2);color:var(--ck)} .c3{background:var(--c3);color:var(--ck)} .c4{background:var(--c4);color:#fff}
+.up{color:var(--ochre);font-weight:600}
+/* waterfall */
+.wf{display:flex;flex-direction:column;gap:9px;margin:6px 0 2px}
+.wf .row{display:grid;grid-template-columns:150px 1fr 130px;gap:12px;align-items:center}
+.wf .rl{font-size:13.5px;color:var(--soft)}
+.wf .track{position:relative;height:26px;background:var(--card2);border-radius:5px;overflow:hidden}
+.wf .seg{position:absolute;top:0;height:100%;border-radius:4px}
+.wf .rv{font-family:"IBM Plex Mono",monospace;font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+.wf .base{background:linear-gradient(90deg,#c9d3db,#b7c3cc)} .wf .inc{background:linear-gradient(90deg,#3fa389,#0d7a62)}
+.wf .total{background:linear-gradient(90deg,#0d7a62,#0a5a48)}
+/* funnel */
+.fn{display:flex;flex-direction:column;gap:11px}
+.fn .frow{display:grid;grid-template-columns:74px 1fr;gap:14px;align-items:center}
+.fn .fm{font-weight:600;font-size:13.5px}
+.fn .stages{display:flex;gap:3px;align-items:stretch;height:30px}
+.fn .st{display:flex;flex-direction:column;justify-content:center;align-items:center;background:var(--tealbg);color:var(--teald);border-radius:4px;font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;min-width:34px}
+.fn .st .lab{font-size:8.5px;color:var(--teal);opacity:.8}
+.fn .st.s1{background:#0d7a62;color:#fff}.fn .st.s2{background:#3fa389;color:#fff}.fn .st.s3{background:#8fc7b6;color:#0a3f31}.fn .st.s4{background:#c9e5dc;color:#0a3f31}
+.chart{width:100%;height:auto;display:block;margin:2px 0}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .gl{fill:var(--faint);font-family:"IBM Plex Mono",monospace;font-size:11px}
+.chart .xl{fill:var(--soft);font-family:"IBM Plex Sans",sans-serif;font-size:12.5px;font-weight:600}
+.chart .lbl{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:700}
+.leg2{display:flex;gap:20px;margin:2px 0 12px;font-size:13px;flex-wrap:wrap}
+.leg2 span{display:inline-flex;align-items:center;gap:8px;color:var(--soft)}
+.leg2 i{width:16px;height:3px;border-radius:2px;display:inline-block}
+@media(max-width:640px){.wf .row{grid-template-columns:96px 1fr 96px}.fn .frow{grid-template-columns:58px 1fr}}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="eyebrow">EDUSERVICES Group · rapports de pilotage 2027</div>
+    <h1>Salle de <em>pilotage</em></h1>
+    <p class="lead">Six rapports pensés en multidimensionnel — hiérarchies, scénarios en colonnes, heatmaps, arbitrages. Le SQL sort du plat ; le rapport, lui, raconte une décision.</p>
+    <p class="mnote">Chiffres réels · issus des datasets EDUSERVICES · à reproduire en matrices Tagetik</p>
+  </header>
+
+  <!-- ===== Tendance ===== -->
+  <section class="report">
+    <div class="rhead"><span class="rnum">Rapport 01</span><h2>La tension, en un graphe</h2></div>
+    <p class="rsub">Indice base 100 en 2024. Les dépenses d'acquisition décrochent au-dessus de l'activité : c'est la dégradation du CAC, avant même de l'avoir nommée.</p>
+    <div class="pov"><span class="p act">Axe <b>Exercice</b></span><span class="p act">Séries <b>Activité · Dépenses</b></span><span class="p">Base <b>100 = 2024</b></span></div>
+    <div class="leg2"><span><i style="background:#16915f"></i>Activité (leads &amp; CA)</span><span><i style="background:#b3641c"></i>Dépenses d'acquisition</span></div>
+    <svg class="chart" viewBox="0 0 720 300" role="img" aria-label="Indice base 100 : dépenses d'acquisition +21% vs activité +12% entre 2024 et 2026">
+      <line class="grid" x1="100" y1="210" x2="672" y2="210"/><text class="gl" x="86" y="214" text-anchor="end">100</text>
+      <line class="grid" x1="100" y1="135" x2="672" y2="135"/><text class="gl" x="86" y="139" text-anchor="end">110</text>
+      <line class="grid" x1="100" y1="60" x2="672" y2="60"/><text class="gl" x="86" y="64" text-anchor="end">120</text>
+      <text class="xl" x="100" y="236" text-anchor="middle">2024</text>
+      <text class="xl" x="386" y="236" text-anchor="middle">2025</text>
+      <text class="xl" x="672" y="236" text-anchor="middle">2026</text>
+      <polyline points="100,210 386,165 672,117" fill="none" stroke="#16915f" stroke-width="2.5"/>
+      <polyline points="100,210 386,135 672,52" fill="none" stroke="#b3641c" stroke-width="3.2"/>
+      <circle cx="672" cy="117" r="5" fill="#16915f"/><circle cx="672" cy="52" r="5.5" fill="#b3641c"/>
+      <circle cx="100" cy="210" r="4" fill="#8695a1"/>
+      <text class="lbl" x="686" y="121" fill="#0f6e48">112</text>
+      <text class="lbl" x="686" y="56" fill="#8a4c14">121</text>
+      <line x1="702" y1="52" x2="702" y2="117" stroke="#b3641c" stroke-width="1.4"/>
+      <line x1="699" y1="52" x2="705" y2="52" stroke="#b3641c" stroke-width="1.4"/><line x1="699" y1="117" x2="705" y2="117" stroke="#b3641c" stroke-width="1.4"/>
+      <text x="710" y="88" fill="#b3641c" font-family="IBM Plex Mono,monospace" font-size="10.5" font-weight="600" transform="rotate(90 710 88)" text-anchor="middle">+9 pts · CAC ↑</text>
+    </svg>
+    <p class="insight warn">En trois ans, l'acquisition a coûté <b>+21 %</b> pour <b>+12 %</b> d'activité. L'écart de 9 points, c'est votre CAC qui se dégrade — la question ouverte que le Rapport 04 chiffre, et que la démo referme.</p>
+  </section>
+
+  <!-- ===== 1. P&L comparatif ===== -->
+  <section class="report">
+    <div class="rhead"><span class="rnum">Rapport 02</span><h2>P&amp;L comparatif — réel vs les 3 budgets</h2></div>
+    <p class="rsub">Le même compte de résultat, par nature, décliné sur le réel 2026 et les trois scénarios 2027 en colonnes. L'EBITDA se lit d'un coup d'œil.</p>
+    <div class="pov"><span class="p act">Lignes <b>Nature</b></span><span class="p act">Colonnes <b>Scénario</b></span><span class="p">Exercice <b>2026–2027</b></span><span class="p">Groupe <b>consolidé</b></span></div>
+    <div class="scroll"><table class="mx">
+      <thead><tr><th class="l">Poste (par nature)</th><th>Réel 2026</th><th>Cadrage</th><th>Optimiste</th><th>Prudent</th></tr></thead>
+      <tbody>
+        <tr class="l0"><td class="l">Produits</td><td class="mono">22 544 725</td><td class="mono">24 120 981</td><td class="mono">26 233 655</td><td class="mono">22 092 924</td></tr>
+        <tr class="l1"><td class="l">Enseignants permanents</td><td class="mono dim">3 840 917</td><td class="mono dim">4 094 418</td><td class="mono dim">4 035 267</td><td class="mono dim">4 153 952</td></tr>
+        <tr class="l1"><td class="l">Structure &amp; siège</td><td class="mono dim">11 590 524</td><td class="mono dim">12 065 993</td><td class="mono dim">11 704 626</td><td class="mono dim">12 454 167</td></tr>
+        <tr class="l1"><td class="l">Enseignants vacataires</td><td class="mono dim">1 581 554</td><td class="mono dim">1 675 210</td><td class="mono dim">1 785 129</td><td class="mono dim">1 549 859</td></tr>
+        <tr class="l1"><td class="l">Achats directs</td><td class="mono dim">1 129 682</td><td class="mono dim">1 196 579</td><td class="mono dim">1 275 093</td><td class="mono dim">1 107 043</td></tr>
+        <tr class="l1"><td class="l">Frais de marque</td><td class="mono dim">676 344</td><td class="mono dim">743 978</td><td class="mono dim">777 796</td><td class="mono dim">642 527</td></tr>
+        <tr class="l1"><td class="l">Marketing campus</td><td class="mono dim">434 174</td><td class="mono dim">468 908</td><td class="mono dim">499 300</td><td class="mono dim">412 465</td></tr>
+        <tr class="tot"><td class="l">EBITDA</td><td class="mono">3 291 530</td><td class="mono">3 875 895</td><td class="mono">6 156 444</td><td class="mono">1 772 911</td></tr>
+        <tr class="sub"><td class="l dim">Marge EBITDA %</td><td class="mono">14,6 %</td><td class="mono">16,1 %</td><td class="mono">23,5 %</td><td class="mono">8,0 %</td></tr>
+      </tbody>
+    </table></div>
+    <p class="insight"><b>Optimiste double presque l'EBITDA</b> (6,16 M€, 23,5 %) ; Prudent le divise par deux (1,77 M€, 8 %). Le board voit la fourchette, pas un chiffre unique.</p>
+  </section>
+
+  <!-- ===== 2. Bridge PVM ===== -->
+  <section class="report">
+    <div class="rhead"><span class="rnum">Rapport 03</span><h2>Pont prix / volume / mix</h2></div>
+    <p class="rsub">D'où viennent les +1,58 M€ de CA entre 2026 et le budget Cadrage ? Un waterfall répond, chiffré et réconcilié au centime.</p>
+    <div class="pov"><span class="p act">Décomposition <b>P·V·M</b></span><span class="p">De <b>Réel 2026</b></span><span class="p">Vers <b>Cadrage 2027</b></span></div>
+    <div class="wf">
+      <div class="row"><span class="rl">CA 2026</span><div class="track"><span class="seg base" style="left:0;width:93.5%"></span></div><span class="rv">22 544 725</span></div>
+      <div class="row"><span class="rl">+ Effet volume</span><div class="track"><span class="seg inc" style="left:93.5%;width:4.3%"></span></div><span class="rv" style="color:var(--teald)">+1 030 085</span></div>
+      <div class="row"><span class="rl">+ Effet prix</span><div class="track"><span class="seg inc" style="left:97.8%;width:2.2%"></span></div><span class="rv" style="color:var(--teald)">+522 432</span></div>
+      <div class="row"><span class="rl">+ Effet mix</span><div class="track"><span class="seg inc" style="left:99.9%;width:0.1%"></span></div><span class="rv" style="color:var(--teald)">+23 739</span></div>
+      <div class="row"><span class="rl" style="font-weight:600;color:var(--ink)">CA 2027 · Cadrage</span><div class="track"><span class="seg total" style="left:0;width:100%"></span></div><span class="rv" style="font-weight:600">24 120 981</span></div>
+    </div>
+    <p class="insight">La croissance est <b>surtout volumique</b> (+1,03 M€, plus d'effectifs) ; le prix ne pèse que +0,52 M€ (hausse +2 %) et le mix est marginal. Utile pour arbitrer : pousser le volume ou le tarif ?</p>
+  </section>
+
+  <!-- ===== 3. Scorecard CAC ===== -->
+  <section class="report">
+    <div class="rhead"><span class="rnum">Rapport 04</span><h2>Efficience d'acquisition — le CAC dérive</h2></div>
+    <p class="rsub">Coût d'acquisition par inscrit, par marque, sur trois ans. La heatmap fait ressortir qui coûte trop cher — et qui se dégrade.</p>
+    <div class="pov"><span class="p act">Lignes <b>Marque</b></span><span class="p act">Colonnes <b>Exercice</b></span><span class="p">Mesure <b>CAC €/inscrit</b></span></div>
+    <div class="scroll"><table class="mx">
+      <thead><tr><th class="l">Marque</th><th>CAC 2024</th><th>CAC 2025</th><th>CAC 2026</th><th>Dérive 24→26</th><th class="l">Lecture</th></tr></thead>
+      <tbody>
+        <tr class="l0"><td class="l">Tunon</td><td class="mono hm c3">520 €</td><td class="mono hm c4">544 €</td><td class="mono hm c4">564 €</td><td class="up">+8,5 %</td><td class="l dim">⚠ le plus cher du groupe</td></tr>
+        <tr class="l0"><td class="l">Ipac</td><td class="mono hm c2">370 €</td><td class="mono hm c3">383 €</td><td class="mono hm c3">399 €</td><td class="up">+8,0 %</td><td class="l dim">⚠ à surveiller</td></tr>
+        <tr class="l0"><td class="l">Pigier</td><td class="mono hm c1">332 €</td><td class="mono hm c2">346 €</td><td class="mono hm c2">357 €</td><td class="up">+7,7 %</td><td class="l dim">sous contrôle</td></tr>
+        <tr class="l0"><td class="l">MBway</td><td class="mono hm c1">304 €</td><td class="mono hm c1">314 €</td><td class="mono hm c2">327 €</td><td class="up">+7,2 %</td><td class="l dim">sain</td></tr>
+        <tr class="l0"><td class="l">ISCOM</td><td class="mono hm c1">298 €</td><td class="mono hm c1">309 €</td><td class="mono hm c1">320 €</td><td class="up">+7,4 %</td><td class="l dim">sain</td></tr>
+      </tbody>
+    </table></div>
+    <p class="insight warn"><b>Le fil rouge, chiffré.</b> Le CAC monte partout (+7 à +8 %), mais Tunon (564 €) coûte <b>75 % de plus</b> que MBway (327 €). C'est là qu'il faut agir.</p>
+  </section>
+
+  <!-- ===== 4. Funnel ===== -->
+  <section class="report">
+    <div class="rhead"><span class="rnum">Rapport 05</span><h2>Funnel de conversion 2026</h2></div>
+    <p class="rsub">Lead → candidat → admis → inscrit, par marque. La croissance qu'on récupère sans dépenser un euro d'acquisition de plus.</p>
+    <div class="pov"><span class="p act">Lignes <b>Marque</b></span><span class="p act">Étapes <b>funnel</b></span><span class="p">Exercice <b>2026</b></span></div>
+    <div class="fn">
+      <div class="frow"><span class="fm">MBway</span><div class="stages"><span class="st s1" style="flex:6444"><span>6 444</span><span class="lab">leads</span></span><span class="st s2" style="flex:1458"><span>1 458</span></span><span class="st s3" style="flex:1032"><span>1 032</span></span><span class="st s4" style="flex:510"><span>510</span><span class="lab">inscrits</span></span></div></div>
+      <div class="frow"><span class="fm">ISCOM</span><div class="stages"><span class="st s1" style="flex:4263"><span>4 263</span></span><span class="st s2" style="flex:964"><span>964</span></span><span class="st s3" style="flex:683"><span>683</span></span><span class="st s4" style="flex:338"><span>338</span></span></div></div>
+      <div class="frow"><span class="fm">Pigier</span><div class="stages"><span class="st s1" style="flex:2800"><span>2 800</span></span><span class="st s2" style="flex:560"><span>560</span></span><span class="st s3" style="flex:392"><span>392</span></span><span class="st s4" style="flex:164"><span>164</span></span></div></div>
+      <div class="frow"><span class="fm">Ipac</span><div class="stages"><span class="st s1" style="flex:2210"><span>2 210</span></span><span class="st s2" style="flex:442"><span>442</span></span><span class="st s3" style="flex:309"><span>309</span></span><span class="st s4" style="flex:130"><span>130</span></span></div></div>
+      <div class="frow"><span class="fm">Tunon</span><div class="stages"><span class="st s1" style="flex:1480"><span>1 480</span></span><span class="st s2" style="flex:296"><span>296</span></span><span class="st s3" style="flex:207"><span>207</span></span><span class="st s4" style="flex:87"><span>87</span></span></div></div>
+    </div>
+    <div class="scroll" style="margin-top:14px"><table class="mx">
+      <thead><tr><th class="l">Marque</th><th>Lead→Cand</th><th>Cand→Admis</th><th>Admis→Inscrit</th></tr></thead>
+      <tbody>
+        <tr class="l0"><td class="l">MBway / ISCOM</td><td class="mono hm mgood">23 %</td><td class="mono hm mgood">71 %</td><td class="mono hm mok">49 %</td></tr>
+        <tr class="l0"><td class="l">Ipac / Pigier / Tunon</td><td class="mono hm mwarn">20 %</td><td class="mono hm mok">70 %</td><td class="mono hm mwarn">42 %</td></tr>
+      </tbody>
+    </table></div>
+    <p class="insight"><b>Le rendement final fuit chez les petites marques</b> : 42 % admis→inscrit contre 49 %. Récupérer 7 points, c'est des dizaines d'inscrits sans un euro d'acquisition de plus.</p>
+  </section>
+
+  <!-- ===== 5. Cap arbitrage ===== -->
+  <section class="report">
+    <div class="rhead"><span class="rnum">Rapport 06</span><h2>Arbitrage du budget d'acquisition</h2></div>
+    <p class="rsub">Pour chaque campus, l'outil propose trois budgets selon trois logiques. Le DAF arbitre le <b>cap retenu</b> (colonne verte).</p>
+    <div class="pov"><span class="p act">Lignes <b>Marque ▸ Campus</b></span><span class="p act">Colonnes <b>Logique de cap</b></span><span class="p">Mesure <b>Budget acq. €</b></span></div>
+    <div class="scroll"><table class="mx">
+      <thead><tr><th class="l">Campus</th><th>CAC marg.</th><th>Référence</th><th class="grp">Efficient</th><th class="grp">Momentum</th><th class="grp">Potentiel</th><th>RETENU</th></tr></thead>
+      <tbody>
+        <tr class="sub"><td class="l" colspan="7" style="font-weight:700;text-align:left">MBway</td></tr>
+        <tr class="l1"><td class="l">Paris</td><td class="mono dim">1 475 €</td><td class="mono">68 291</td><td class="mono dim">55 657</td><td class="mono dim">72 368</td><td class="mono dim">59 057</td><td class="mono ret">68 291</td></tr>
+        <tr class="l1"><td class="l">Lyon</td><td class="mono dim">1 102 €</td><td class="mono">41 783</td><td class="mono dim">45 596</td><td class="mono dim">47 533</td><td class="mono dim">46 975</td><td class="mono ret">41 783</td></tr>
+        <tr class="l1"><td class="l">Nantes</td><td class="mono dim">964 €</td><td class="mono">31 533</td><td class="mono dim">39 340</td><td class="mono dim">37 357</td><td class="mono dim">40 607</td><td class="mono ret">31 533</td></tr>
+        <tr class="l1"><td class="l">Bordeaux</td><td class="mono dim">890 €</td><td class="mono">24 923</td><td class="mono dim">33 679</td><td class="mono dim">30 078</td><td class="mono dim">33 369</td><td class="mono ret">24 923</td></tr>
+        <tr class="sub"><td class="l" colspan="7" style="font-weight:700;text-align:left">ISCOM · Ipac · Pigier · Tunon</td></tr>
+        <tr class="l1"><td class="l">ISCOM Paris</td><td class="mono dim">1 540 €</td><td class="mono">60 800</td><td class="mono dim">47 450</td><td class="mono dim">45 234</td><td class="mono dim">54 724</td><td class="mono ret">60 800</td></tr>
+        <tr class="l1"><td class="l">Tunon Paris</td><td class="mono dim c4" style="border-radius:4px">2 193 €</td><td class="mono">30 240</td><td class="mono dim">16 577</td><td class="mono dim">20 118</td><td class="mono dim">20 435</td><td class="mono ret">30 240</td></tr>
+        <tr class="l1"><td class="l">Pigier Lyon</td><td class="mono dim">1 705 €</td><td class="mono">36 612</td><td class="mono dim">25 815</td><td class="mono dim">29 782</td><td class="mono dim">23 524</td><td class="mono ret">36 612</td></tr>
+      </tbody>
+    </table></div>
+    <p class="insight">Là où le <b>CAC marginal explose</b> (Tunon Paris : 2 193 €), la logique <b>Efficient propose de couper</b> (−45 %). L'outil suggère ; le DAF tranche le cap retenu. <span class="dim">(extrait — 14 campus)</span></p>
+  </section>
+
+  <!-- ===== 6. Marge par classe ===== -->
+  <section class="report">
+    <div class="rhead"><span class="rnum">Rapport 07</span><h2>Coût complet &amp; marge — jusqu'à la classe</h2></div>
+    <p class="rsub">Le rapport phare. Les charges indirectes du groupe descendent en cascade jusqu'à la classe. La heatmap de marge révèle ce que le reporting ne montrait pas.</p>
+    <div class="pov"><span class="p act">Lignes <b>Marque ▸ Campus ▸ Classe</b></span><span class="p">Colonnes <b>Coûts &amp; marge</b></span><span class="p act">Scénario <b>Cadrage</b></span><span class="p">Drill <b>4 niveaux</b></span></div>
+    <div class="scroll"><table class="mx">
+      <thead><tr><th class="l">Marque ▸ Campus ▸ Classe</th><th>Effectif</th><th>CA</th><th>Coût complet</th><th>Marge</th><th>Marge %</th></tr></thead>
+      <tbody>
+        <tr class="l0"><td class="l">MBway</td><td class="mono">1 305</td><td class="mono">10 248 091</td><td class="mono">8 263 189</td><td class="mono">1 984 902</td><td class="mono hm mok">19,4 %</td></tr>
+        <tr class="l1"><td class="l">Paris</td><td class="mono">399</td><td class="mono">3 359 156</td><td class="mono">3 081 533</td><td class="mono">277 623</td><td class="mono hm mcrit">8,3 %</td></tr>
+        <tr class="l2"><td class="l">BAC MGT · B1 · Initial</td><td class="mono">85</td><td class="mono">738 096</td><td class="mono">708 010</td><td class="mono">30 086</td><td class="mono hm mcrit">4,1 %</td></tr>
+        <tr class="l2"><td class="l">BAC MGT · B2 · Alt.</td><td class="mono">76</td><td class="mono">613 271</td><td class="mono">583 230</td><td class="mono">30 041</td><td class="mono hm mcrit">4,9 %</td></tr>
+        <tr class="l2"><td class="l">BAC MGT · B3 · Alt.</td><td class="mono">74</td><td class="mono">597 135</td><td class="mono">572 288</td><td class="mono">24 846</td><td class="mono hm mcrit">4,2 %</td></tr>
+        <tr class="l2"><td class="l">MAS MGT · M1 · Alt.</td><td class="mono">87</td><td class="mono">753 578</td><td class="mono">655 699</td><td class="mono">97 879</td><td class="mono hm mwarn">13,0 %</td></tr>
+        <tr class="l2"><td class="l">MAS MGT · M2 · Alt.</td><td class="mono">76</td><td class="mono">657 076</td><td class="mono">562 306</td><td class="mono">94 770</td><td class="mono hm mmid">14,4 %</td></tr>
+        <tr class="l1"><td class="l">Lyon</td><td class="mono">338</td><td class="mono">2 674 122</td><td class="mono">2 021 738</td><td class="mono">652 384</td><td class="mono hm mgood">24,4 %</td></tr>
+        <tr class="l2"><td class="l">BAC MGT · B1 · Initial</td><td class="mono">72</td><td class="mono">587 136</td><td class="mono">484 666</td><td class="mono">102 470</td><td class="mono hm mok">17,5 %</td></tr>
+        <tr class="l2"><td class="l">BAC MGT · B2 · Alt.</td><td class="mono">64</td><td class="mono">484 173</td><td class="mono">355 635</td><td class="mono">128 538</td><td class="mono hm mgood">26,5 %</td></tr>
+        <tr class="l2"><td class="l">MAS MGT · M2 · Alt.</td><td class="mono">65</td><td class="mono">526 821</td><td class="mono">386 418</td><td class="mono">140 403</td><td class="mono hm mgood">26,7 %</td></tr>
+        <tr class="l1"><td class="l">Nantes</td><td class="mono">307</td><td class="mono">2 313 133</td><td class="mono">1 697 940</td><td class="mono">615 193</td><td class="mono hm mgood">26,6 %</td></tr>
+        <tr class="l1"><td class="l">Bordeaux</td><td class="mono">260</td><td class="mono">1 901 680</td><td class="mono">1 461 979</td><td class="mono">439 701</td><td class="mono hm mok">23,1 %</td></tr>
+        <tr class="l0"><td class="l">ISCOM</td><td class="mono">866</td><td class="mono">6 731 283</td><td class="mono">5 561 532</td><td class="mono">1 169 751</td><td class="mono hm mok">17,4 %</td></tr>
+      </tbody>
+    </table></div>
+    <p class="insight warn"><b>La révélation.</b> Le campus de Paris tombe à <b>8,3 %</b> quand Lyon tient <b>24,4 %</b> — et trois classes BAC parisiennes sont à <b>~4 %</b>, à peine à l'équilibre après charges de siège. Invisible sans allocation à la classe.</p>
+  </section>
+
+  <p class="disc" style="margin-top:34px">Salle de pilotage · EDUSERVICES Group · maquettes de rapports multidimensionnels à reproduire sur Tagetik</p>
+</div>

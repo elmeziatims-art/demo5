@@ -1,0 +1,475 @@
+<title>Cockpit CFO Live</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F4F5F8; --surface:#FFFFFF; --surface-2:#FAFAFC;
+  --ink:#151A22; --ink-2:#454E5E; --muted:#79818F; --border:#E5E8EE; --border-2:#EEF0F5;
+  --navy:#1F3A5F; --gold:#9A7016;
+  --pos:#12805C; --pos-bg:#E7F4EE; --neg:#BC3B2E; --neg-bg:#FBECEA; --warn:#B5701E;
+  --c1:#2D6CDF; --c2:#B5701E; --c3:#1F9E8F; --c4:#7A5AA6; --c5:#C64B6E;
+  --track:#E8EBF1; --accentf:#2D6CDF;
+  --shadow:0 1px 2px rgba(20,24,34,.04),0 4px 16px rgba(20,24,34,.05);
+  --radius:13px;
+}
+:root:not([data-theme="light"]){@media (prefers-color-scheme: dark){
+  --bg:#101114; --surface:#191A1E; --surface-2:#1F2126;
+  --ink:#ECEEF2; --ink-2:#AEB5C1; --muted:#7C8494; --border:#2B2E35; --border-2:#24262C;
+  --navy:#9DB8E8; --gold:#D2A24A;
+  --pos:#3FBE8E; --pos-bg:#16281F; --neg:#E7776A; --neg-bg:#2A1A18; --warn:#D2913C;
+  --c1:#5B8DEF; --c2:#BB7A26; --c3:#2FA294; --c4:#8E79D6; --c5:#E05C68;
+  --track:#2B2E35; --accentf:#5B8DEF;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.32);
+}}
+:root[data-theme="dark"]{
+  --bg:#101114; --surface:#191A1E; --surface-2:#1F2126;
+  --ink:#ECEEF2; --ink-2:#AEB5C1; --muted:#7C8494; --border:#2B2E35; --border-2:#24262C;
+  --navy:#9DB8E8; --gold:#D2A24A;
+  --pos:#3FBE8E; --pos-bg:#16281F; --neg:#E7776A; --neg-bg:#2A1A18; --warn:#D2913C;
+  --c1:#5B8DEF; --c2:#BB7A26; --c3:#2FA294; --c4:#8E79D6; --c5:#E05C68;
+  --track:#2B2E35; --accentf:#5B8DEF;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.32);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1200px;margin:0 auto;padding:0 20px 70px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+/* header */
+header{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.hd{max-width:1200px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column;gap:2px}
+.brand .grp{font-family:"Spectral",Georgia,serif;font-weight:600;font-size:18px;line-height:1}
+.brand .sub{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.spacer{flex:1}
+.badge{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border:1px solid var(--border);border-radius:99px;background:var(--surface);font-size:11.5px;font-weight:500;color:var(--ink-2)}
+.badge b{color:var(--ink)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--pos);animation:pulse 2.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--pos) 55%,transparent)}70%{box-shadow:0 0 0 6px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@media(prefers-reduced-motion:reduce){.dot,*{animation:none!important}}
+.btn{appearance:none;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-family:inherit;font-size:13px;font-weight:600;padding:8px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--navy);color:#fff;border-color:transparent}
+.btn.primary:hover{filter:brightness(1.08)}
+.tgl{width:34px;height:34px;padding:0;justify-content:center;font-size:15px;color:var(--ink-2)}
+
+/* KPI strip (persistent) */
+.kstrip{position:sticky;top:59px;z-index:20;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin:16px 0 14px;box-shadow:var(--shadow)}
+@media(max-width:720px){.kstrip{grid-template-columns:repeat(2,1fr)}}
+.kc{background:var(--surface);padding:13px 16px}
+.kc .l{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:7px}
+.kc .v{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:23px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;transition:color .25s}
+.kc .v small{font-size:13px;color:var(--muted)}
+.kc .d{font-size:12px;margin-top:4px;font-weight:500}
+.kc .d.pos{color:var(--pos)} .kc .d.neg{color:var(--neg)} .kc .d.mut{color:var(--muted)}
+.flash{animation:fl .5s}
+@keyframes fl{0%{background:color-mix(in srgb,var(--gold) 16%,var(--surface))}100%{background:var(--surface)}}
+
+/* tabs */
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin:8px 0 16px;border-bottom:1px solid var(--border)}
+.tab{appearance:none;border:none;background:none;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:inline-flex;gap:7px;align-items:center}
+.tab:hover{color:var(--ink-2)}
+.tab.on{color:var(--ink);border-bottom-color:var(--navy)}
+.tab .n{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--gold)}
+.pane{display:none} .pane.on{display:block;animation:fade .25s}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* panels & controls */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);margin-bottom:16px}
+.panel h2{font-family:"Spectral",Georgia,serif;font-weight:600;font-size:18px;margin:0 0 3px}
+.panel .desc{font-size:12.5px;color:var(--muted);margin:0 0 4px}
+.src{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:2px 7px;background:var(--surface-2)}
+.src b{color:var(--navy)}
+.phead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+
+.levers{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px}
+@media(max-width:680px){.levers{grid-template-columns:1fr}}
+.lever{}
+.lever .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.lever .name{font-size:13px;font-weight:600}
+.lever .name span{color:var(--muted);font-weight:400;font-size:11.5px}
+.lever .val{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:14px;color:var(--navy);min-width:56px;text-align:right}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:4px;background:var(--track);outline:none;margin:6px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:var(--accentf);cursor:pointer;border:2px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;background:var(--accentf);cursor:pointer;border:2px solid var(--surface)}
+input[type=range]:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--accentf) 35%,transparent)}
+.scale{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-family:"IBM Plex Mono",monospace}
+
+.targets{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end}
+.tinput{display:flex;flex-direction:column;gap:5px}
+.tinput label{font-size:11.5px;font-weight:600;color:var(--ink-2)}
+.tinput .row{display:flex;align-items:center;gap:6px}
+.tinput input{width:78px;font-family:"IBM Plex Mono",monospace;font-size:15px;font-weight:600;padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);color:var(--ink);text-align:right}
+.tinput input:focus{outline:none;border-color:var(--accentf);background:var(--surface)}
+.tinput .u{color:var(--muted);font-family:"IBM Plex Mono",monospace}
+
+.gauge{margin-top:8px}
+.gauge .lbl{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.gbar{height:9px;border-radius:5px;background:var(--track);overflow:hidden;position:relative}
+.gfill{height:100%;border-radius:5px;transition:width .35s,background .25s}
+.tick{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.55}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border-2);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:680px}
+th,td{padding:9px 12px;text-align:right;white-space:nowrap}
+th{font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);background:var(--surface-2);position:sticky;top:0}
+th:first-child,td:first-child{text-align:left}
+td{border-bottom:1px solid var(--border-2)}
+td.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+tbody tr:hover td{background:var(--surface-2)}
+tr.total td{font-weight:700;border-top:2px solid var(--border);background:var(--surface-2)}
+.sw{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:7px;vertical-align:middle}
+.pill{display:inline-flex;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:600;font-family:"IBM Plex Mono",monospace}
+.pill.pos{background:var(--pos-bg);color:var(--pos)} .pill.neg{background:var(--neg-bg);color:var(--neg)}
+.up{color:var(--pos)} .dn{color:var(--neg)}
+
+/* cap rows */
+.caprow{display:grid;grid-template-columns:150px 1fr 120px;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border-2)}
+@media(max-width:640px){.caprow{grid-template-columns:110px 1fr 92px}}
+.caprow .cn{font-size:12.5px;font-weight:500;display:flex;align-items:center}
+.caprow .budg{font-family:"IBM Plex Mono",monospace;font-size:12px;text-align:right;color:var(--ink-2)}
+.caprow .budg .dl{font-size:10.5px}
+.capval{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;color:var(--navy);min-width:34px;text-align:center}
+
+/* note & modal */
+.note{display:flex;gap:10px;background:var(--surface-2);border:1px solid var(--border-2);border-left:3px solid var(--gold);border-radius:9px;padding:12px 14px;font-size:12.5px;color:var(--ink-2);margin-top:12px}
+.note b{color:var(--ink)}
+.modal{position:fixed;inset:0;background:rgba(8,10,14,.55);z-index:60;display:none;align-items:center;justify-content:center;padding:20px}
+.modal.on{display:flex}
+.mbox{background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:560px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden}
+.mbox .mh{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.mbox .mh h3{margin:0;font-size:15px;font-family:"Spectral",serif}
+.mbox .mb{padding:16px 20px}
+.code{background:var(--surface-2);border:1px solid var(--border-2);border-radius:9px;padding:13px;font-family:"IBM Plex Mono",monospace;font-size:11.5px;line-height:1.55;white-space:pre;overflow-x:auto;color:var(--ink-2);max-height:300px}
+.code .k{color:var(--c1)} .code .s{color:var(--c3)} .code .n{color:var(--gold)}
+.mf{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:12px 18px;border-radius:11px;font-size:13.5px;font-weight:500;box-shadow:0 10px 34px rgba(0,0,0,.32);opacity:0;transition:.3s;z-index:70;display:flex;gap:9px;align-items:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+svg{display:block;width:100%;height:auto}
+.mini{font-size:11px;color:var(--muted);margin-top:2px}
+</style>
+
+<header>
+  <div class="hd">
+    <div class="brand"><span class="grp">EDUSERVICES <span style="color:var(--gold)">GROUP</span></span><span class="sub">Cockpit CFO · pilotage budgétaire</span></div>
+    <div class="spacer"></div>
+    <span class="badge"><span class="dot"></span>Tagetik&nbsp;·&nbsp;<b>API REST</b>&nbsp;·&nbsp;2027BUD_V1</span>
+    <button class="btn" id="reset">↺ Réinitialiser</button>
+    <button class="btn primary" id="save">💾 Enregistrer dans Tagetik</button>
+    <button class="btn tgl" id="tgl" aria-label="Thème">◐</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- persistent KPI strip -->
+  <div class="kstrip">
+    <div class="kc"><div class="l">CA construit 2027</div><div class="v" id="k-ca">—</div><div class="d" id="k-ca-d"></div></div>
+    <div class="kc"><div class="l">EBITDA construit</div><div class="v" id="k-eb">—</div><div class="d" id="k-eb-d"></div></div>
+    <div class="kc"><div class="l">Écart CA vs cible</div><div class="v" id="k-ec">—</div><div class="d" id="k-ec-d"></div></div>
+    <div class="kc"><div class="l">Budget acquisition</div><div class="v" id="k-bud">—</div><div class="d mut" id="k-bud-d"></div></div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-p="leviers"><span class="n">①</span> Cadrage &amp; leviers</button>
+    <button class="tab" data-p="cap"><span class="n">②</span> Cap stratégique</button>
+    <button class="tab" data-p="resti"><span class="n">③</span> Restitution par campus</button>
+  </div>
+
+  <!-- ===== TAB 1 : LEVIERS ===== -->
+  <div class="pane on" id="p-leviers">
+    <div class="panel">
+      <div class="phead"><div><h2>Objectifs du CFO</h2><p class="desc">Saisissez la cible — le cockpit mesure l'écart en direct.</p></div><span class="src">write → <b>Cadrage</b></span></div>
+      <div class="targets">
+        <div class="tinput"><label>🎯 Croissance CA cible</label><div class="row"><input id="t-ca" type="number" step="0.5" value="5.0"><span class="u">%</span></div></div>
+        <div class="tinput"><label>🎯 Marge EBITDA cible</label><div class="row"><input id="t-eb" type="number" step="0.5" value="15.0"><span class="u">%</span></div></div>
+        <div style="flex:1;min-width:220px">
+          <div class="gauge"><div class="lbl"><span>Atteinte CA</span><span id="g-ca-t" class="mono"></span></div><div class="gbar"><div class="gfill" id="g-ca"></div><div class="tick" id="g-ca-tick"></div></div></div>
+          <div class="gauge"><div class="lbl"><span>Atteinte marge EBITDA</span><span id="g-eb-t" class="mono"></span></div><div class="gbar"><div class="gfill" id="g-eb"></div><div class="tick" id="g-eb-tick"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><div><h2>Leviers du scénario</h2><p class="desc">Bougez un curseur — le moteur rejoue budget → leads → inscrits → CA → EBITDA.</p></div><span class="src">write → <b>Cadrage</b> · read ← <b>V_MOTEUR</b></span></div>
+      <div class="levers" id="levers"></div>
+      <div class="note"><span>⚙️</span><div><b>Moteur (concept)</b> — rendements d'acquisition (~0,5) et de marque (~0,33) mesurés par campus, funnel réel. En production ces calculs vivent dans les vues HANA ; ici ils sont rejoués à l'identique côté page.</div></div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 2 : CAP ===== -->
+  <div class="pane" id="p-cap">
+    <div class="panel">
+      <div class="phead"><div><h2>Cap stratégique par campus</h2><p class="desc">Le cap concentre l'enveloppe marketing à <b>budget groupe constant</b>. Montez un campus → il capte plus de budget, les autres moins.</p></div><span class="src">write → <b>Cap</b> · read ← <b>V_CAP</b></span></div>
+      <div style="display:grid;grid-template-columns:60px 1fr;gap:2px 12px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600;padding:0 0 6px;border-bottom:1px solid var(--border)">
+        <div></div><div style="display:grid;grid-template-columns:150px 1fr 120px;gap:12px"><span>Campus</span><span style="text-align:center">Cap retenu (0,5 → 1,8)</span><span style="text-align:right">Budget rejoué</span></div>
+      </div>
+      <div id="caps" style="margin-top:6px"></div>
+      <div class="note"><span>💡</span><div>Somme des budgets <b>constante</b> (<span id="cap-tot" class="mono"></span>). Seuls les caps <b>relatifs</b> comptent : cap = 1 partout ⇒ aucune redistribution.</div></div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 3 : RESTITUTION ===== -->
+  <div class="pane" id="p-resti">
+    <div class="panel">
+      <div class="phead"><div><h2>CA construit par marque</h2><p class="desc">Réagit en direct à vos leviers et caps.</p></div><span class="src">← <b>V_MOTEUR</b></span></div>
+      <svg id="marque-bars" viewBox="0 0 480 210" role="img" aria-label="CA par marque"></svg>
+    </div>
+    <div class="panel">
+      <div class="phead"><div><h2>Référence → Construit → Écart</h2><p class="desc">Le budget par campus, recalculé à la volée.</p></div><span class="src">← <b>V_MOTEUR</b> · V_ALLOCATION</span></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Campus</th><th>CA réf.</th><th>CA construit</th><th>Δ vs réf.</th><th>Effectif</th><th>EBITDA</th><th>Marge</th></tr></thead>
+          <tbody id="resti-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer style="margin-top:26px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px;display:flex;gap:8px 20px;flex-wrap:wrap">
+    <span><b style="color:var(--ink-2)">Concept interactif</b> — boucle read/write de l'API Tagetik rejouée côté page.</span>
+    <span>Chiffres réels du modèle EDUSERVICES · scénario <b style="color:var(--ink-2)">2027BUD_V1</b>.</span>
+  </footer>
+</div>
+
+<!-- write-back modal -->
+<div class="modal" id="modal">
+  <div class="mbox">
+    <div class="mh"><span>⬆️</span><h3>Écriture write-back vers Tagetik</h3></div>
+    <div class="mb">
+      <p style="margin:0 0 10px;font-size:13px;color:var(--ink-2)">La page enverrait ce <b>POST</b> à l'API — les datasets Cadrage &amp; Cap sont mis à jour, puis les vues HANA recalculent.</p>
+      <div class="code" id="payload"></div>
+    </div>
+    <div class="mf"><button class="btn" id="cancel">Annuler</button><button class="btn primary" id="confirm">Confirmer l'écriture</button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- real per-campus reference data (extracted from the model) ---------- */
+const CM=0.859;                       // marge de contribution groupe (CA - variable)/CA
+const PCOEF=[1.00,1.05,0.95,0.90,0.85]; // pouvoir de prix par marque (concept)
+const MARQUES=['MBway','ISCOM','Ipac Bachelor Factory','Pigier','Tunon'];
+const C=[ // ci, campus, ca_ref, eff_ref, nouv_ref, org, paid, bpaid, rc, bbrand, rb, ebit_ref
+ [0,'MBway Paris',3138840,382,156,711,1265,68291,0.464,64800,0.308,226197],
+ [0,'MBway Lyon',2496705,324,132,716,950,41783,0.504,65255,0.327,564161],
+ [0,'MBway Nantes',2158300,294,120,728,788,31533,0.525,66349,0.343,518318],
+ [0,'MBway Bordeaux',1773610,249,102,630,656,24923,0.538,57418,0.348,353683],
+ [1,'ISCOM Paris',2908720,354,144,690,1126,60800,0.442,62886,0.317,124394],
+ [1,'ISCOM Lille',1755850,244,100,630,630,25220,0.516,57418,0.348,462514],
+ [1,'ISCOM Toulouse',1627980,231,94,605,581,22083,0.522,55139,0.356,393549],
+ [2,'Ipac Nantes',1019500,145,50,306,544,21760,0.559,27889,0.305,219283],
+ [2,'Ipac Rennes',781650,117,40,265,415,14933,0.588,24152,0.317,127778],
+ [2,'Ipac Montpellier',781650,117,40,258,422,15178,0.591,23514,0.315,127533],
+ [3,'Pigier Lyon',1250430,182,92,738,832,36612,0.440,67261,0.343,138274],
+ [3,'Pigier Bordeaux',901790,142,72,652,578,21968,0.475,59423,0.358,-26600],
+ [4,'Tunon Paris',1086150,138,47,240,560,30240,0.419,21873,0.280,-19716],
+ [4,'Tunon Lyon',863550,117,40,252,428,18850,0.461,22967,0.318,82162]
+].map(a=>({ci:a[0],name:a[1],ca:a[2],eff:a[3],nouv:a[4],org:a[5],paid:a[6],bpaid:a[7],rc:a[8],bbrand:a[9],rb:a[10],ebit:a[11]}));
+C.forEach(c=>{c.leadsRef=c.org+c.paid;c.cont=c.eff-c.nouv;c.varRef=c.ca*(1-CM);c.structRef=c.ca*CM-c.ebit;});
+const CA_REF=C.reduce((s,c)=>s+c.ca,0), EFF_REF=C.reduce((s,c)=>s+c.eff,0);
+const EB_REF=C.reduce((s,c)=>s+c.ebit,0), BUD_REF=C.reduce((s,c)=>s+c.bpaid,0);
+
+/* ---------- levers & state ---------- */
+const LEVERS=[
+ {k:'acq',  name:'Budget acquisition', unit:'%', min:-30,max:50,step:1,def:0,note:'payant → leads'},
+ {k:'brand',name:'Budget marque',      unit:'%', min:-30,max:50,step:1,def:0,note:'organique → leads'},
+ {k:'price',name:'Prix',               unit:'%', min:-3, max:8, step:0.5,def:0,note:'revenu/étudiant'},
+ {k:'conv', name:'Conversion lead→inscrit',unit:'%',min:-10,max:20,step:1,def:0,note:'efficacité funnel'},
+ {k:'ret',  name:'Rétention (passage)',unit:'%', min:-5, max:5, step:0.5,def:0,note:'continuation cohorte'},
+ {k:'struct',name:'Coûts de structure',unit:'%',min:-5, max:8, step:0.5,def:0,note:'loyer, permanents, siège'}
+];
+const state={acq:0,brand:0,price:0,conv:0,ret:0,struct:0,cibleCA:5.0,cibleEB:15.0,caps:{}};
+C.forEach(c=>state.caps[c.name]=1.0);
+
+/* ---------- engine (rejoue V_MOTEUR) ---------- */
+function compute(){
+  const acq=state.acq/100, brand=state.brand/100, price=state.price/100;
+  const conv=state.conv/100, ret=state.ret/100, struct=state.struct/100;
+  // cap redistribution (zero-sum on budget acquisition)
+  let sumCap=0; C.forEach(c=>sumCap+=c.bpaid*state.caps[c.name]);
+  const norm=BUD_REF/sumCap;
+  const rows=C.map(c=>{
+    const capF=state.caps[c.name]*norm;
+    const budNew=c.bpaid*capF*(1+acq);
+    const paidNew=c.paid*Math.pow(budNew/c.bpaid,c.rc);
+    const orgNew=c.org*Math.pow(1+brand,c.rb);
+    const leadsNew=orgNew+paidNew;
+    const leadRatio=leadsNew/c.leadsRef;
+    const nouvNew=c.nouv*leadRatio*(1+conv);
+    const contNew=c.cont*(1+ret);
+    const effNew=nouvNew+contNew;
+    const effRatio=effNew/c.eff;
+    const caNew=c.ca*effRatio*(1+price*PCOEF[c.ci]);
+    const varNew=c.varRef*effRatio;                 // variable ∝ volume
+    const contrib=caNew-varNew;
+    const ebitNew=contrib-c.structRef*(1+struct);
+    return {c,budNew,leadsNew,nouvNew,effNew,caNew,ebitNew};
+  });
+  const T={ca:0,eff:0,ebit:0,bud:0,leads:0,nouv:0};
+  rows.forEach(r=>{T.ca+=r.caNew;T.eff+=r.effNew;T.ebit+=r.ebitNew;T.bud+=r.budNew;T.leads+=r.leadsNew;T.nouv+=r.nouvNew;});
+  return {rows,T};
+}
+
+/* ---------- formatters ---------- */
+const nf=new Intl.NumberFormat('fr-FR');
+const eurM=v=>(v/1e6).toFixed(2).replace('.',',')+' M€';
+const eurK=v=>nf.format(Math.round(v/1000))+' k€';
+const sign=v=>(v>=0?'+':'−')+Math.abs(v).toFixed(1).replace('.',',');
+const pctS=(v,d=1)=>(v>=0?'+':'−')+Math.abs(v*100).toFixed(d).replace('.',',')+' %';
+const NS='http://www.w3.org/2000/svg';const svel=(t,a={})=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+
+/* ---------- render ---------- */
+let prevCA=null;
+function flash(id){const e=document.getElementById(id);e.classList.remove('flash');void e.offsetWidth;e.classList.add('flash');}
+function render(){
+  const {rows,T}=compute();
+  const gCA=(T.ca/CA_REF-1), gEB=T.ebit/T.ca;
+  // KPI strip
+  document.getElementById('k-ca').innerHTML=eurM(T.ca).replace(' M€','')+'<small> M€</small>';
+  document.getElementById('k-ca-d').className='d '+(gCA>=0?'pos':'neg');
+  document.getElementById('k-ca-d').textContent=pctS(gCA)+' vs réf.';
+  document.getElementById('k-eb').innerHTML=eurM(T.ebit).replace(' M€','')+'<small> M€</small>';
+  const dEB=T.ebit-EB_REF;
+  document.getElementById('k-eb-d').className='d '+(dEB>=0?'pos':'neg');
+  document.getElementById('k-eb-d').textContent=(gEB*100).toFixed(1).replace('.',',')+' % · '+(dEB>=0?'+':'−')+eurK(Math.abs(dEB));
+  const cibleCA=CA_REF*(1+state.cibleCA/100), ecart=T.ca-cibleCA;
+  document.getElementById('k-ec').innerHTML=(ecart>=0?'+':'−')+eurK(Math.abs(ecart)).replace(' k€','')+'<small> k€</small>';
+  document.getElementById('k-ec-d').className='d '+(ecart>=0?'pos':'neg');
+  document.getElementById('k-ec-d').textContent=ecart>=0?'✓ cible atteinte':'sous la cible';
+  document.getElementById('k-bud').innerHTML=eurK(T.bud).replace(' k€','')+'<small> k€</small>';
+  document.getElementById('k-bud-d').textContent=T.bud>BUD_REF+1?'+'+eurK(T.bud-BUD_REF)+' vs réf.':(T.bud<BUD_REF-1?'−'+eurK(BUD_REF-T.bud):'enveloppe de référence');
+  if(prevCA!==null && Math.abs(prevCA-T.ca)>1){flash('k-ca');flash('k-eb');}
+  prevCA=T.ca;
+  // gauges
+  const gca=Math.max(0,Math.min(1.3,(gCA/(state.cibleCA/100||1))));
+  const geb=Math.max(0,Math.min(1.3,(gEB/(state.cibleEB/100||1))));
+  setGauge('g-ca',gca,gCA>=state.cibleCA/100);
+  setGauge('g-eb',geb,gEB>=state.cibleEB/100);
+  document.getElementById('g-ca-t').textContent=pctS(gCA)+' / cible '+sign(state.cibleCA)+' %';
+  document.getElementById('g-eb-t').textContent=(gEB*100).toFixed(1).replace('.',',')+' % / cible '+state.cibleEB.toFixed(1).replace('.',',')+' %';
+  // marque bars
+  marqueBars(rows);
+  // cap budgets
+  rows.forEach(r=>{
+    const el=document.getElementById('bud-'+cssid(r.c.name));
+    if(el){const d=r.budNew-r.c.bpaid;el.innerHTML=eurK(r.budNew)+' <span class="dl '+(d>=0?'up':'dn')+'">('+(d>=0?'+':'−')+eurK(Math.abs(d))+')</span>';}
+  });
+  document.getElementById('cap-tot').textContent=eurK(T.bud);
+  // resti table
+  const tb=document.getElementById('resti-body');tb.innerHTML='';
+  rows.forEach(r=>{
+    const d=r.caNew-r.c.ca, mg=r.ebitNew/r.caNew, neg=r.ebitNew<0;
+    tb.insertAdjacentHTML('beforeend',
+     `<tr><td><span class="sw" style="background:var(--c${r.c.ci+1})"></span>${r.c.name}</td>
+      <td class="num">${eurK(r.c.ca)}</td>
+      <td class="num" style="font-weight:600">${eurK(r.caNew)}</td>
+      <td class="num ${d>=0?'up':'dn'}">${d>=0?'+':'−'}${eurK(Math.abs(d))}</td>
+      <td class="num">${nf.format(Math.round(r.effNew))}</td>
+      <td class="num ${neg?'dn':''}">${neg?'−':''}${eurK(Math.abs(r.ebitNew))}</td>
+      <td><span class="pill ${neg?'neg':'pos'}">${(mg*100).toFixed(0)} %</span></td></tr>`);
+  });
+  tb.insertAdjacentHTML('beforeend',
+    `<tr class="total"><td>TOTAL GROUPE</td><td class="num">${eurM(CA_REF)}</td><td class="num">${eurM(T.ca)}</td>
+     <td class="num ${T.ca>=CA_REF?'up':'dn'}">${T.ca>=CA_REF?'+':'−'}${eurK(Math.abs(T.ca-CA_REF))}</td>
+     <td class="num">${nf.format(Math.round(T.eff))}</td><td class="num">${eurM(T.ebit)}</td>
+     <td><span class="pill pos">${(gEB*100).toFixed(1).replace('.',',')} %</span></td></tr>`);
+}
+function setGauge(id,frac,ok){const g=document.getElementById(id);g.style.width=Math.min(100,frac*100/1.3)+'%';g.style.background=ok?'var(--pos)':(frac>0.75?'var(--warn)':'var(--neg)');
+  document.getElementById(id+'-tick').style.left=(100/1.3)+'%';}
+function marqueBars(rows){
+  const s=document.getElementById('marque-bars');s.innerHTML='';
+  const agg={};rows.forEach(r=>{agg[r.c.ci]=(agg[r.c.ci]||0)+r.caNew;});
+  const refAgg={};C.forEach(c=>{refAgg[c.ci]=(refAgg[c.ci]||0)+c.ca;});
+  const W=480,rowH=36,ml=132,mr=70,mt=8;const max=10e6,bw=W-ml-mr,x=v=>v/max*bw;
+  MARQUES.forEach((m,i)=>{
+    const cy=mt+i*rowH+rowH/2, v=agg[i]||0, rv=refAgg[i]||0;
+    const nm=svel('text',{x:ml-10,y:cy+4,'text-anchor':'end','font-size':12,'font-weight':600,fill:'var(--ink-2)','font-family':'IBM Plex Sans'});nm.textContent=m.length>15?m.slice(0,14)+'…':m;s.appendChild(nm);
+    s.appendChild(svel('rect',{x:ml,y:cy-9,width:bw,height:18,rx:4,fill:'var(--track)'}));
+    // ref marker
+    s.appendChild(svel('line',{x1:ml+x(rv),x2:ml+x(rv),y1:cy-12,y2:cy+12,stroke:'var(--muted)','stroke-width':1.5,'stroke-dasharray':'2 2'}));
+    s.appendChild(svel('rect',{x:ml,y:cy-9,width:Math.max(x(v),2),height:18,rx:4,fill:`var(--c${i+1})`}));
+    const t=svel('text',{x:ml+Math.max(x(v),2)+7,y:cy+4,'font-size':12,'font-weight':600,fill:'var(--ink)','font-family':'IBM Plex Mono'});t.textContent=(v/1e6).toFixed(2).replace('.',',');s.appendChild(t);
+  });
+  s.setAttribute('viewBox',`0 0 ${W} ${mt+MARQUES.length*rowH+4}`);
+}
+
+/* ---------- build controls ---------- */
+const cssid=s=>s.replace(/[^a-z0-9]/gi,'');
+function buildLevers(){
+  const box=document.getElementById('levers');
+  LEVERS.forEach(L=>{
+    const d=document.createElement('div');d.className='lever';
+    d.innerHTML=`<div class="top"><span class="name">${L.name} <span>· ${L.note}</span></span><span class="val" id="lv-${L.k}"></span></div>
+      <input type="range" id="rg-${L.k}" min="${L.min}" max="${L.max}" step="${L.step}" value="${L.def}">
+      <div class="scale"><span>${sign(L.min)}${L.unit}</span><span>0</span><span>${sign(L.max)}${L.unit}</span></div>`;
+    box.appendChild(d);
+    const rg=d.querySelector('input');
+    rg.addEventListener('input',()=>{state[L.k]=parseFloat(rg.value);document.getElementById('lv-'+L.k).textContent=sign(state[L.k])+' '+L.unit;render();});
+  });
+  refreshLeverLabels();
+}
+function refreshLeverLabels(){LEVERS.forEach(L=>{document.getElementById('lv-'+L.k).textContent=sign(state[L.k])+' '+L.unit;document.getElementById('rg-'+L.k).value=state[L.k];});}
+function buildCaps(){
+  const box=document.getElementById('caps');box.innerHTML='';
+  C.forEach(c=>{
+    const id=cssid(c.name);
+    const row=document.createElement('div');row.className='caprow';
+    row.innerHTML=`<div class="cn"><span class="sw" style="background:var(--c${c.ci+1})"></span>${c.name}</div>
+      <input type="range" min="0.5" max="1.8" step="0.05" value="${state.caps[c.name]}" id="cap-${id}">
+      <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end"><span class="capval" id="capv-${id}">${state.caps[c.name].toFixed(2).replace('.',',')}</span><span class="budg" id="bud-${id}"></span></div>`;
+    box.appendChild(row);
+    const rg=row.querySelector('input');
+    rg.addEventListener('input',()=>{state.caps[c.name]=parseFloat(rg.value);document.getElementById('capv-'+id).textContent=parseFloat(rg.value).toFixed(2).replace('.',',');render();});
+  });
+}
+
+/* targets */
+document.getElementById('t-ca').addEventListener('input',e=>{state.cibleCA=parseFloat(e.target.value)||0;render();});
+document.getElementById('t-eb').addEventListener('input',e=>{state.cibleEB=parseFloat(e.target.value)||0;render();});
+
+/* tabs */
+document.getElementById('tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));b.classList.add('on');
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));document.getElementById('p-'+b.dataset.p).classList.add('on');});
+
+/* reset */
+document.getElementById('reset').addEventListener('click',()=>{
+  LEVERS.forEach(L=>state[L.k]=L.def);C.forEach(c=>{state.caps[c.name]=1.0;const id=cssid(c.name);
+    document.getElementById('cap-'+id).value=1;document.getElementById('capv-'+id).textContent='1,00';});
+  refreshLeverLabels();render();
+});
+
+/* write-back modal */
+function payload(){
+  const {T}=compute();
+  const lv={};LEVERS.forEach(L=>lv[L.k]=state[L.k]);
+  const caps=C.filter(c=>Math.abs(state.caps[c.name]-1)>1e-6).map(c=>({campus:c.name,cap:state.caps[c.name]}));
+  const o={scenario:"2027BUD_V1",exercice:2027,periode:12,
+    cadrage:{croissance_ca_cible:state.cibleCA/100,marge_ebitda_cible:state.cibleEB/100,leviers:lv},
+    cap_retenu:caps.length?caps:"= 1 (aucune redistribution)",
+    _apercu:{ca_construit:Math.round(T.ca),ebitda_construit:Math.round(T.ebit),effectif:Math.round(T.eff)}};
+  return JSON.stringify(o,null,2)
+    .replace(/"([^"]+)":/g,'<span class="k">"$1"</span>:')
+    .replace(/: (\d+\.?\d*)/g,': <span class="n">$1</span>')
+    .replace(/"(2027BUD_V1|= 1[^"]*)"/g,'<span class="s">"$1"</span>');
+}
+const modal=document.getElementById('modal');
+document.getElementById('save').addEventListener('click',()=>{document.getElementById('payload').innerHTML=payload();modal.classList.add('on');});
+document.getElementById('cancel').addEventListener('click',()=>modal.classList.remove('on'));
+modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('on');});
+document.getElementById('confirm').addEventListener('click',()=>{modal.classList.remove('on');toast('✓ Scénario écrit dans Tagetik — vues recalculées (simulé)');});
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2600);}
+
+/* theme */
+const root=document.documentElement;
+document.getElementById('tgl').addEventListener('click',()=>{const cur=root.getAttribute('data-theme');
+  const isDark=cur?cur==='dark':matchMedia('(prefers-color-scheme: dark)').matches;root.setAttribute('data-theme',isDark?'light':'dark');});
+
+/* init */
+buildLevers();buildCaps();render();
+</script>

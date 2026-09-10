@@ -1,0 +1,512 @@
+<!-- Storyboard démo CFO — EDUSERVICES -->
+<title>Du lead à la marge</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --bg:#eef1f5; --surface:#ffffff; --surface-2:#f5f7f9;
+  --ink:#152230; --ink-soft:#51606d; --ink-faint:#7d8b98;
+  --line:#dbe2e9; --line-strong:#c4cdd6;
+  --accent:#0d7a62; --accent-ink:#0a5a48; --accent-tint:#e2efeb;
+  --thread:#b3641c; --thread-tint:#f6e8d8;
+  --campus:#3d4f8f; --campus-tint:#e6e9f4;
+  --shadow:0 1px 2px rgba(21,34,48,.04),0 8px 24px -16px rgba(21,34,48,.22);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d141c; --surface:#151f29; --surface-2:#1a2530;
+    --ink:#e9eef3; --ink-soft:#9dabb8; --ink-faint:#6f7e8b;
+    --line:#25313d; --line-strong:#324150;
+    --accent:#43b295; --accent-ink:#6cc9af; --accent-tint:#13312a;
+    --thread:#d99553; --thread-tint:#33261a;
+    --campus:#8fa0e0; --campus-tint:#1d2542;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 30px -18px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d141c; --surface:#151f29; --surface-2:#1a2530;
+  --ink:#e9eef3; --ink-soft:#9dabb8; --ink-faint:#6f7e8b;
+  --line:#25313d; --line-strong:#324150;
+  --accent:#43b295; --accent-ink:#6cc9af; --accent-tint:#13312a;
+  --thread:#d99553; --thread-tint:#33261a;
+  --campus:#8fa0e0; --campus-tint:#1d2542;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 30px -18px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,sans-serif;
+  font-size:16px; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:940px; margin:0 auto; padding:clamp(28px,5vw,72px) clamp(18px,4vw,40px) 96px}
+
+/* ---------- header ---------- */
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:500;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--accent-ink);
+}
+.masthead{border-bottom:1px solid var(--line); padding-bottom:34px; margin-bottom:44px}
+h1{
+  font-family:"Newsreader",Georgia,serif; font-weight:500;
+  font-size:clamp(2.6rem,6.5vw,4.4rem); line-height:1.02; letter-spacing:-.01em;
+  margin:.35em 0 .28em; text-wrap:balance;
+}
+h1 em{font-style:italic; color:var(--accent)}
+.dek{
+  font-family:"Newsreader",Georgia,serif; font-size:clamp(1.15rem,2.4vw,1.5rem);
+  line-height:1.4; color:var(--ink-soft); max-width:34ch; font-weight:400;
+}
+.dek b{color:var(--ink); font-weight:600}
+.meta{display:flex; flex-wrap:wrap; gap:10px 28px; margin-top:26px}
+.meta div{display:flex; flex-direction:column; gap:2px}
+.meta dt{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint)}
+.meta dd{margin:0; font-size:14px; font-weight:600; color:var(--ink)}
+
+/* ---------- arc ---------- */
+.arc{
+  background:var(--surface); border:1px solid var(--line); border-radius:14px;
+  padding:22px clamp(16px,3vw,26px); margin-bottom:20px; box-shadow:var(--shadow);
+}
+.arc h2{font-size:12px; font-family:"IBM Plex Mono",monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); margin:0 0 16px; font-weight:500}
+.arcrow{display:flex; gap:8px; align-items:stretch; overflow-x:auto; padding-bottom:4px}
+.phase{
+  flex:1 1 0; min-width:120px; border:1px solid var(--line); border-radius:10px;
+  padding:12px 13px; display:flex; flex-direction:column; gap:6px; background:var(--surface-2);
+  position:relative;
+}
+.phase .pn{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-faint); letter-spacing:.06em}
+.phase .pt{font-weight:700; font-size:14px; letter-spacing:-.01em}
+.phase .pg{font-size:12px; color:var(--ink-soft); line-height:1.35}
+.phase.climax{border-color:var(--thread); background:var(--thread-tint)}
+.phase.climax .pt{color:var(--thread)}
+.thread-note{
+  display:flex; gap:10px; align-items:baseline; margin-top:16px; padding-top:14px;
+  border-top:1px dashed var(--line-strong); font-size:13.5px; color:var(--ink-soft);
+}
+.thread-note b{color:var(--thread)}
+
+/* ---------- legend ---------- */
+.legend{display:flex; flex-wrap:wrap; gap:8px 10px; margin-bottom:52px; align-items:center}
+.legend .lbl{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint); margin-right:2px}
+
+/* chips */
+.chip{
+  display:inline-flex; align-items:center; gap:6px; font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+  padding:4px 9px; border-radius:999px; white-space:nowrap; line-height:1;
+}
+.chip.daf{background:var(--accent);color:#fff}
+.chip.campus{background:var(--campus);color:#fff}
+.chip.drill{background:transparent;color:var(--ink-soft);border:1px solid var(--line-strong)}
+.chip.rouge{background:var(--thread-tint);color:var(--thread);border:1px solid var(--thread)}
+.chip.sim{background:var(--accent-tint);color:var(--accent-ink);border:1px solid transparent}
+:root[data-theme="dark"] .chip.daf,:root[data-theme="dark"] .chip.campus{color:#0d141c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .chip.daf,:root:not([data-theme="light"]) .chip.campus{color:#0d141c}}
+
+/* ---------- phase section ---------- */
+.act{margin-top:56px}
+.act-head{display:flex; align-items:baseline; gap:14px; margin-bottom:6px; flex-wrap:wrap}
+.act-num{font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:13px; color:var(--accent); letter-spacing:.1em}
+.act-head h3{
+  font-family:"Newsreader",Georgia,serif; font-weight:600; font-size:clamp(1.7rem,3.6vw,2.3rem);
+  margin:0; letter-spacing:-.01em; line-height:1.05;
+}
+.act.is-climax .act-num,.act.is-climax .act-head h3 em{color:var(--thread)}
+.act-intent{color:var(--ink-soft); max-width:60ch; margin:0 0 4px; font-size:15px}
+.act-gain{
+  display:inline-flex; align-items:center; gap:8px; margin:10px 0 24px;
+  font-size:13px; color:var(--ink);
+}
+.act-gain .g-lbl{font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint)}
+.act-gain b{color:var(--accent-ink); font-weight:600}
+.act.is-climax .act-gain b{color:var(--thread)}
+
+/* ---------- step card ---------- */
+.steps{display:flex; flex-direction:column; gap:14px}
+.step{
+  display:grid; grid-template-columns:56px 1fr; gap:0;
+  background:var(--surface); border:1px solid var(--line); border-radius:14px;
+  overflow:hidden; box-shadow:var(--shadow);
+}
+.step.rouge{border-color:var(--thread)}
+.rail{
+  background:var(--surface-2); border-right:1px solid var(--line);
+  display:flex; flex-direction:column; align-items:center; padding:16px 0; gap:8px;
+}
+.step.rouge .rail{background:var(--thread-tint); border-right-color:var(--thread)}
+.rail .n{font-family:"Newsreader",serif; font-size:1.55rem; font-weight:500; color:var(--ink); line-height:1}
+.step.rouge .rail .n{color:var(--thread)}
+.rail .tick{width:8px;height:8px;border-radius:999px;background:var(--line-strong)}
+.step.rouge .rail .tick{background:var(--thread)}
+.body{padding:16px 18px 18px}
+.step-top{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px}
+.step h4{font-size:1.12rem; font-weight:700; margin:0; letter-spacing:-.01em; flex:1 1 auto; min-width:180px}
+.rows{display:flex; flex-direction:column; gap:7px; margin:12px 0 14px}
+.row{display:grid; grid-template-columns:78px 1fr; gap:12px; align-items:baseline; font-size:14.5px}
+.row .k{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); padding-top:2px}
+.row .v{color:var(--ink-soft)}
+.objtag{
+  font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:12.5px; color:var(--ink);
+  background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:1px 7px;
+}
+.say{
+  display:flex; gap:12px; padding:13px 15px; border-radius:10px;
+  background:var(--accent-tint); border-left:3px solid var(--accent);
+}
+.step.rouge .say{background:var(--thread-tint); border-left-color:var(--thread)}
+.say .q{font-family:"Newsreader",Georgia,serif; font-style:italic; font-size:1.12rem; line-height:1.35; color:var(--ink)}
+.say .marker{font-family:"IBM Plex Mono",monospace; font-size:22px; line-height:1; color:var(--accent); font-style:normal}
+.step.rouge .say .marker{color:var(--thread)}
+
+/* ---------- closing table ---------- */
+.close{margin-top:64px; border-top:1px solid var(--line); padding-top:40px}
+.close h3{font-family:"Newsreader",serif; font-weight:600; font-size:1.7rem; margin:0 0 20px; letter-spacing:-.01em}
+.vtable{width:100%; border-collapse:collapse; font-size:14.5px}
+.vtable th,.vtable td{text-align:left; padding:12px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+.vtable th{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); font-weight:500}
+.vtable td:first-child{font-weight:700; white-space:nowrap}
+.vtable .kw{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-ink); font-weight:600}
+.vtable tr.hl td{background:var(--thread-tint)}
+.vtable tr.hl .kw{color:var(--thread)}
+.punch{
+  margin-top:34px; font-family:"Newsreader",Georgia,serif; font-style:italic;
+  font-size:clamp(1.3rem,3vw,1.75rem); line-height:1.35; color:var(--ink); text-wrap:balance;
+}
+.punch b{font-style:normal; font-weight:600; color:var(--accent)}
+footer{margin-top:56px; font-size:12.5px; color:var(--ink-faint); font-family:"IBM Plex Mono",monospace; letter-spacing:.04em; border-top:1px solid var(--line); padding-top:18px}
+
+@media (max-width:560px){
+  .step{grid-template-columns:44px 1fr}
+  .row{grid-template-columns:1fr; gap:2px}
+  .row .k{padding-top:0}
+}
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Démo Tagetik · EDUSERVICES Group · Storyboard présentateur</div>
+    <h1>Du lead <em>à la marge</em></h1>
+    <p class="dek">Une démo qui répond à la seule question que le DAF ne sait pas trancher : <b>mon budget est-il atteignable — et où est-ce que je gagne vraiment de l'argent ?</b></p>
+    <dl class="meta">
+      <div><dt>Public</dt><dd>Directeur financier</dd></div>
+      <div><dt>Durée</dt><dd>≈ 30 min</dd></div>
+      <div><dt>Personas</dt><dd>DAF · Responsable campus</dd></div>
+      <div><dt>Fil rouge</dt><dd>Dépenses vs leads → CAC</dd></div>
+    </dl>
+  </header>
+
+  <section class="arc">
+    <h2>L'arc — cinq temps, une tension</h2>
+    <div class="arcrow">
+      <div class="phase"><span class="pn">Temps 1</span><span class="pt">Poser</span><span class="pg">Fiabilité + tension plantée</span></div>
+      <div class="phase"><span class="pn">Temps 1½</span><span class="pt">Diagnostiquer</span><span class="pg">Les 3 lentilles qui motivent le budget</span></div>
+      <div class="phase"><span class="pn">Temps 2</span><span class="pt">Construire</span><span class="pg">Le budget devient un modèle pilotable</span></div>
+      <div class="phase climax"><span class="pn">Temps 3</span><span class="pt">Révéler</span><span class="pg">La rentabilité réelle, jusqu'à la classe</span></div>
+      <div class="phase"><span class="pn">Temps 3½</span><span class="pt">Agir</span><span class="pg">Contribuer · simuler · arbitrer</span></div>
+      <div class="phase"><span class="pn">Temps 4</span><span class="pt">Boucler</span><span class="pg">La tension du début, résolue</span></div>
+    </div>
+    <p class="thread-note"><b>Le fil rouge —</b>&nbsp;on plante une question au Temps 1 (les dépenses montent plus vite que les leads), on la laisse en suspens, et on la résout au Temps 4 par le CAC. Le crescendo garde le meilleur — l'allocation à la classe — pour le climax.</p>
+  </section>
+
+  <div class="legend">
+    <span class="lbl">Repères</span>
+    <span class="chip daf">DAF</span>
+    <span class="chip campus">Responsable campus</span>
+    <span class="chip drill">Drill / hyperlien</span>
+    <span class="chip rouge">Fil rouge</span>
+    <span class="chip sim">Simulation</span>
+  </div>
+
+  <!-- ================= TEMPS 1 ================= -->
+  <section class="act">
+    <div class="act-head"><span class="act-num">Temps 1</span><h3>Poser</h3></div>
+    <p class="act-intent">Après le chargement fluide, deux rapports courts — pas un tour complet. Objectif : installer la confiance et poser la référence 2026.</p>
+    <p class="act-gain"><span class="g-lbl">Le DAF gagne</span> <b>la fiabilité</b> — « ces chiffres, je peux m'appuyer dessus »</p>
+
+    <div class="steps">
+      <article class="step">
+        <div class="rail"><span class="n">1</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>Le chargement</h4><span class="chip daf">DAF</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v"><span class="objtag">Intégration Compta + Socle CRM</span></span></div>
+            <div class="row"><span class="k">Action</span><span class="v">Montrer l'import fluide des deux sources dans un seul endroit.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">Vos deux mondes qui ne se parlent jamais — le commercial et la finance — entrent au même endroit.</span></div>
+        </div>
+      </article>
+
+      <article class="step rouge">
+        <div class="rail"><span class="n">2</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>La preuve, et l'hameçon</h4><span class="chip daf">DAF</span><span class="chip drill">Drill</span><span class="chip rouge">Fil rouge</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v"><span class="objtag">P&amp;L 2026 réconcilié</span> + <span class="objtag">Rapport tendance</span></span></div>
+            <div class="row"><span class="k">Action</span><span class="v">Compta et CRM raccord. Drill sur une ligne du P&amp;L pour montrer le détail derrière le chiffre.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">La donnée est fiable. Et regardez — vos dépenses d'acquisition montent plus vite que vos leads… on y reviendra.</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= TEMPS 1½ ================= -->
+  <section class="act">
+    <div class="act-head"><span class="act-num">Temps 1½</span><h3>Diagnostiquer</h3></div>
+    <p class="act-intent">Trois lentilles, courtes et ciblées — pas un tour de rapports. Chacune révèle un problème que le budget devra corriger. C'est le <b>diagnostic commercial</b>, distinct de la rentabilité (gardée pour le climax).</p>
+    <p class="act-gain"><span class="g-lbl">Le DAF gagne</span> <b>le discernement</b> — « je comprends d'où vient ma performance »</p>
+
+    <div class="steps">
+      <article class="step">
+        <div class="rail"><span class="n">D1</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>Le pont prix / volume / mix</h4><span class="chip daf">DAF</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v"><span class="objtag">Bridge CA</span> (waterfall)</span></div>
+            <div class="row"><span class="k">Action</span><span class="v">Décomposer la variation de CA : la part du <b>prix</b>, du <b>volume</b>, du <b>mix</b> (marque / programme).</span></div>
+            <div class="row"><span class="k">Motive</span><span class="v">le levier <b>prix</b> et le levier <b>volume</b> du budget.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">Votre CA a bougé — mais est-ce le prix, le volume ou le mix ? Voici la réponse, chiffrée.</span></div>
+        </div>
+      </article>
+
+      <article class="step rouge">
+        <div class="rail"><span class="n">D2</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>L'efficience d'acquisition</h4><span class="chip daf">DAF</span><span class="chip drill">Drill</span><span class="chip rouge">Fil rouge</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v"><span class="objtag">Rapport CAC / CPL</span> par marque</span></div>
+            <div class="row"><span class="k">Action</span><span class="v">Coût par lead et par inscrit, et sa <b>dérive</b>. C'est ici qu'on <b>développe la tension</b> plantée au Temps 1.</span></div>
+            <div class="row"><span class="k">Motive</span><span class="v">le levier <b>budget d'acquisition</b> — et se résout au Temps 4.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">Chaque euro d'acquisition rapporte-t-il autant qu'avant ? Par marque, la réponse diverge.</span></div>
+        </div>
+      </article>
+
+      <article class="step">
+        <div class="rail"><span class="n">D3</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>Le funnel de conversion</h4><span class="chip daf">DAF</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v"><span class="objtag">Rapport funnel</span> lead → candidat → admis → inscrit</span></div>
+            <div class="row"><span class="k">Action</span><span class="v">Où le rendement fuit, par marque / campus — la croissance qu'on récupère <b>sans dépenser un euro de plus</b>.</span></div>
+            <div class="row"><span class="k">Motive</span><span class="v">les leviers <b>taux de conversion</b> et <b>passage</b>.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">Où perdez-vous vos candidats ? C'est là qu'est votre croissance gratuite.</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= TEMPS 2 ================= -->
+  <section class="act">
+    <div class="act-head"><span class="act-num">Temps 2</span><h3>Construire</h3></div>
+    <p class="act-intent">Le budget cesse d'être une saisie de chiffres : c'est un modèle piloté par des leviers business, décliné en trois scénarios, simulable en direct.</p>
+    <p class="act-gain"><span class="g-lbl">Le DAF gagne</span> <b>l'agilité &amp; la traçabilité</b> — chaque euro a une cause, chaque scénario une réponse</p>
+
+    <div class="steps">
+      <article class="step">
+        <div class="rail"><span class="n">3</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>Le cadrage</h4><span class="chip daf">DAF</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v"><span class="objtag">Masque CAD</span></span></div>
+            <div class="row"><span class="k">Action</span><span class="v">Montrer les cibles (CA +5 %, marge 15 %) et les leviers de croissance.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">On ne part pas d'un tableur vide, mais d'objectifs.</span></div>
+        </div>
+      </article>
+
+      <article class="step">
+        <div class="rail"><span class="n">4</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>Le moteur en action — l'arbitrage du cap</h4><span class="chip daf">DAF</span><span class="chip drill">Drill</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v"><span class="objtag">PIL</span> cap stratégique par campus + <span class="objtag">CAD</span> Réf → Cible → Construit</span></div>
+            <div class="row"><span class="k">L'outil propose</span><span class="v"><b>3 caps d'acquisition</b> par campus : <b>Efficient</b> (CAC marginal), <b>Momentum</b> (croissance des leads), <b>Potentiel</b> (intensité marché).</span></div>
+            <div class="row"><span class="k">Le DAF arbitre</span><span class="v">il saisit le <b>Cap retenu</b>, campus par campus. Ce cap alimente le moteur : cap → leads → effectif → CA. Drill « d'où sort ce cap ? » → <span class="objtag">V_CAP</span>.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">L'outil vous propose trois logiques de budget d'acquisition ; vous, vous arbitrez. Et tout le budget en découle.</span></div>
+        </div>
+      </article>
+
+      <article class="step">
+        <div class="rail"><span class="n">5</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>Les trois scénarios</h4><span class="chip daf">DAF</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v"><span class="objtag">Restitution Cadrage · Optimiste · Prudent</span></span></div>
+            <div class="row"><span class="k">Action</span><span class="v">Les trois trajectoires côte à côte, avec le risque visible.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">Vous ne présentez plus un budget au board, mais une fourchette maîtrisée.</span></div>
+        </div>
+      </article>
+
+      <article class="step">
+        <div class="rail"><span class="n">6</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>La simulation live</h4><span class="chip daf">DAF</span><span class="chip sim">Paramétrique</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v"><span class="objtag">CAD</span> — un levier (prix / acquisition)</span></div>
+            <div class="row"><span class="k">Action</span><span class="v">On bouge le levier → CA, EBITDA, effectif bougent en direct. Puis : « pour viser +5 %, mettez le prix à <b>0,2855 %</b> — pile la cible. »</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">La question qui prenait trois jours, j'y réponds devant vous en dix secondes.</span></div>
+        </div>
+      </article>
+
+      <article class="step">
+        <div class="rail"><span class="n">7</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>Je fige, je soumets</h4><span class="chip daf">DAF</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v"><span class="objtag">Soumission → dataset Cadrage</span></span></div>
+            <div class="row"><span class="k">Action</span><span class="v">Le budget est figé — et devient la base de l'étape suivante.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">Décidé, stocké, versionné, auditable.</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= TEMPS 3 ================= -->
+  <section class="act is-climax">
+    <div class="act-head"><span class="act-num">Temps 3</span><h3>Révéler <em>— le climax</em></h3></div>
+    <p class="act-intent">Ce qu'aucun Excel ne sait faire : faire descendre les charges indirectes du groupe jusqu'à la classe, et montrer la marge réelle.</p>
+    <p class="act-gain"><span class="g-lbl">Le DAF gagne</span> <b>la lucidité</b> — « je pilotais à l'aveugle »</p>
+
+    <div class="steps">
+      <article class="step">
+        <div class="rail"><span class="n">8</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>La bascule</h4><span class="chip daf">DAF</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v">Aucun — une phrase de transition.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">Vous avez un budget. Mais une question que personne ne sait trancher : est-il rentable en profondeur ?</span></div>
+        </div>
+      </article>
+
+      <article class="step rouge">
+        <div class="rail"><span class="n">9</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>L'allocation à la classe</h4><span class="chip daf">DAF</span><span class="chip drill">Drill</span><span class="chip rouge">Fil rouge</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v"><span class="objtag">Masque ALLOC</span> maille fine + <span class="objtag">Query 00</span> les 3 charges allouées</span></div>
+            <div class="row"><span class="k">Action</span><span class="v">Marge complète par classe. On pointe une classe qu'on croyait rentable et qui ne l'est pas. Drill : classe → campus → marque → charge groupe.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">Voilà la vérité que votre reporting ne vous montrait pas.</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= TEMPS 3½ ================= -->
+  <section class="act">
+    <div class="act-head"><span class="act-num">Temps 3½</span><h3>Agir</h3></div>
+    <p class="act-intent">Le diagnostic déclenche l'action. Le budget se corrige à plusieurs mains, une décision structurelle se chiffre, et tout se re-fige en version tracée.</p>
+    <p class="act-gain"><span class="g-lbl">Le DAF gagne</span> <b>le pilotage</b> — il passe de spectateur à pilote</p>
+
+    <div class="steps">
+      <article class="step">
+        <div class="rail"><span class="n">10</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>La contribution du responsable campus</h4><span class="chip campus">Responsable campus</span><span class="chip sim">Paramétrique</span><span class="chip drill">Drill</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v"><span class="objtag">Masque de saisie</span> filtré sur son périmètre (Lyon)</span></div>
+            <div class="row"><span class="k">Il saisit</span><span class="v"><b>effet volume</b> (effectifs, funnel local) + <b>effet coûts</b> (structure locale). Ça remonte automatiquement au consolidé.</span></div>
+            <div class="row"><span class="k">Il subit</span><span class="v">le <b>prix</b> et les <b>clés d'allocation</b> — décisions centrales. Son masque ne les expose pas (gestion des droits).</span></div>
+            <div class="row"><span class="k">Mais il voit</span><span class="v">comment ses charges allouées sont calculées — <b>drill de transparence</b> jusqu'à la charge groupe. Il subit l'allocation, mais il la comprend.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">Je ne fixe ni les prix ni les clés — mais je vois exactement comment mes coûts alloués sont calculés. Donc je les comprends, et je peux les challenger.</span></div>
+        </div>
+      </article>
+
+      <article class="step">
+        <div class="rail"><span class="n">11</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>Ouvrir / fermer une classe</h4><span class="chip campus">Campus</span><span class="chip daf">DAF</span><span class="chip sim">Structurelle</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v"><span class="objtag">Écran de simulation structurelle</span> (ALLOC / PIL)</span></div>
+            <div class="row"><span class="k">Action</span><span class="v">On bascule une classe (fermeture) ou on en ouvre une → impact immédiat sur CA, effectif, marge et réseau. Rappel : le nombre de classes est figé comme <b>structurel</b>, précisément pour le piloter ici.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">Une décision d'ouverture ou de fermeture chiffrée — pas au doigt mouillé.</span></div>
+        </div>
+      </article>
+
+      <article class="step">
+        <div class="rail"><span class="n">12</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>Arbitrage &amp; nouvelle version</h4><span class="chip daf">DAF</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v"><span class="objtag">Réconciliation</span> Construit vs Cible + <span class="objtag">Δ avant / après</span></span></div>
+            <div class="row"><span class="k">Action</span><span class="v">Le DAF arbitre, re-soumet → nouvelle version. La marge remonte, l'ancienne reste auditée.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">Contributions intégrées, décisions arbitrées, version figée et auditée. Le budget n'est pas gravé — c'est un cycle.</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= TEMPS 4 ================= -->
+  <section class="act">
+    <div class="act-head"><span class="act-num">Temps 4</span><h3>Boucler</h3></div>
+    <p class="act-intent">On revient à la question laissée en suspens au tout début. La boucle se referme.</p>
+    <p class="act-gain"><span class="g-lbl">Le DAF gagne</span> <b>la sérénité</b> — défendable en comité comme en audit</p>
+
+    <div class="steps">
+      <article class="step rouge">
+        <div class="rail"><span class="n">13</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>Le retour de l'hameçon</h4><span class="chip daf">DAF</span><span class="chip rouge">Fil rouge</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v"><span class="objtag">Rapport CAC / efficience d'acquisition</span> par marque</span></div>
+            <div class="row"><span class="k">Action</span><span class="v">On résout la tension du Temps 1 : où l'acquisition coûte trop, et où agir.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">Souvenez-vous du début — les dépenses montaient plus vite que les leads. Voici pourquoi, et où agir.</span></div>
+        </div>
+      </article>
+
+      <article class="step">
+        <div class="rail"><span class="n">14</span><span class="tick"></span></div>
+        <div class="body">
+          <div class="step-top"><h4>Clôture</h4><span class="chip daf">DAF</span></div>
+          <div class="rows">
+            <div class="row"><span class="k">Objet</span><span class="v">Le « so what » — regarder le DAF dans les yeux.</span></div>
+          </div>
+          <div class="say"><span class="marker">“</span><span class="q">Vous passez de « je subis mon budget » à « je pilote mon groupe » : en jours au lieu de semaines, avec la marge jusqu'à la classe, sur une seule vérité.</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= CLOSING ================= -->
+  <section class="close">
+    <h3>La montée en valeur</h3>
+    <div style="overflow-x:auto">
+    <table class="vtable">
+      <thead><tr><th>Temps</th><th>Persona</th><th>Ce que le DAF vit</th><th>Mot-clé</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Poser</td><td>DAF</td><td>« la donnée est fiable » <span style="color:var(--thread)">(+ tension)</span></td><td class="kw">Fiabilité</td></tr>
+        <tr><td>1½ · Diagnostiquer</td><td>DAF</td><td>« je comprends d'où vient ma performance » (prix/volume/mix · CAC · funnel)</td><td class="kw">Discernement</td></tr>
+        <tr><td>2 · Construire</td><td>DAF</td><td>« mon budget est un modèle pilotable »</td><td class="kw">Agilité</td></tr>
+        <tr class="hl"><td>3 · Révéler</td><td>DAF</td><td>« je vois enfin la rentabilité réelle »</td><td class="kw">Lucidité</td></tr>
+        <tr><td>3½ · Agir</td><td>Campus + DAF</td><td>« je corrige, je simule, je fige — tout de suite »</td><td class="kw">Pilotage</td></tr>
+        <tr><td>4 · Boucler</td><td>DAF</td><td>« la question du début trouve sa réponse »</td><td class="kw">Sérénité</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p class="punch">Deux niveaux de simulation, à ne jamais mélanger dans le discours : la <b>paramétrique</b> (prix · volume · acquisition) bouge le résultat ; la <b>structurelle</b> (ouvrir / fermer une classe) change le périmètre.</p>
+
+    <p class="punch" style="font-size:clamp(1rem,2vw,1.2rem);margin-top:26px">Kit de production associé : <b style="font-style:normal">DEMO_KIT.xlsx</b> — une feuille par étape, vrais chiffres, + les vues SQL à reproduire sur Tagetik. La feuille « Sommaire &amp; Drills » fait la carte étape → objet → SQL → drill.</p>
+    <footer>Storyboard présentateur · EDUSERVICES Group · à garder sous les yeux pendant la démo</footer>
+  </section>
+
+</div>

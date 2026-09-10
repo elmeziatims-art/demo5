@@ -1,0 +1,24 @@
+COMPTE;LIBELLE;NOEUD_PL;ROLE_ALLOC;REPARTITION
+706;Prestations de formation - scolarite (initial);PRODUITS;PRODUIT;-
+7062;Prestations de formation - alternance (OPCO);PRODUITS;PRODUIT;-
+708;Frais de dossier & droits d'inscription;PRODUITS;PRODUIT;-
+604;Sous-traitance pedagogique;COUTS_DIRECTS;DIRECT;effectif (reste au campus/classe)
+6063;Fournitures pedagogiques & petit equipement;COUTS_DIRECTS;DIRECT;effectif (reste au campus/classe)
+621;Personnel exterieur - vacataires & intervenants;COUTS_DIRECTS;DIRECT;heures (reste au campus/classe)
+6231;Publicite & marketing d'acquisition (leads);COUTS_DIRECTS;DIRECT;entrants (reste au campus/classe)
+6411;Remuneration enseignants permanents;PERSONNEL;DIRECT;heures (reste au campus/classe)
+6413;Remuneration personnel administratif & pedagogique;PERSONNEL;STRUCT_CAMP;campus -> classe (K3)
+6414;Remuneration direction & fonctions support (siege);PERSONNEL;HOLDING;groupe -> marque -> campus -> classe (K1,K2,K3)
+645;Charges sociales & de prevoyance;PERSONNEL;STRUCT_CAMP;campus -> classe (K3)
+613;Loyers & charges locatives (campus);STRUCTURE;STRUCT_CAMP;campus -> classe (K3)
+615;Entretien & maintenance;STRUCTURE;STRUCT_CAMP;campus -> classe (K3)
+616;Primes d'assurance;STRUCTURE;STRUCT_CAMP;campus -> classe (K3)
+6226;Honoraires (audit, conseil, juridique);STRUCTURE;HOLDING;groupe -> marque -> campus -> classe (K1,K2,K3)
+6236;Marketing de marque, salons & JPO;STRUCTURE;FRAIS_MARQUE;groupe -> marque -> campus -> classe (K4,K2,K3)
+625;Deplacements, missions & receptions;STRUCTURE;STRUCT_CAMP;campus -> classe (K3)
+626;Telecom, systemes d'information & affranchissement;STRUCTURE;HOLDING;groupe -> marque -> campus -> classe (K1,K2,K3)
+6281;Cotisations, documentation & abonnements;STRUCTURE;HOLDING;groupe -> marque -> campus -> classe (K1,K2,K3)
+6331;Taxe sur les salaires;IMPOTS_TAXES;HOLDING;groupe -> marque -> campus -> classe (K1,K2,K3)
+6333;Participation formation professionnelle;IMPOTS_TAXES;HOLDING;groupe -> marque -> campus -> classe (K1,K2,K3)
+63511;Cotisation fonciere & CVAE;IMPOTS_TAXES;STRUCT_CAMP;campus -> classe (K3)
+6811;Dotations aux amortissements (D&A);DOTATIONS;DOTATION;sous l'EBITDA - non alloue

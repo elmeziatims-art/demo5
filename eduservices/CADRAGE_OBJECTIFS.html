@@ -1,0 +1,297 @@
+<title>Cadrage &amp; Objectifs</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F4F5F8;--surface:#FFFFFF;--surface-2:#FAFAFC;
+  --ink:#151A22;--ink-2:#454E5E;--muted:#79818F;--border:#E5E8EE;--border-2:#EEF0F5;
+  --navy:#1F3A5F;--gold:#9A7016;
+  --pos:#12805C;--pos-bg:#E7F4EE;--neg:#BC3B2E;--neg-bg:#FBECEA;--warn:#B5701E;
+  --c1:#2D6CDF;--c2:#B5701E;--c3:#1F9E8F;--c4:#7A5AA6;--c5:#C64B6E;
+  --band1:#EDEFF3;--band2:#E2E6EE;--track:#E8EBF1;
+  --shadow:0 1px 2px rgba(20,24,34,.04),0 4px 16px rgba(20,24,34,.05);--radius:13px;
+}
+:root:not([data-theme="light"]){@media(prefers-color-scheme:dark){
+  --bg:#101114;--surface:#191A1E;--surface-2:#1F2126;--ink:#ECEEF2;--ink-2:#AEB5C1;--muted:#7C8494;--border:#2B2E35;--border-2:#24262C;
+  --navy:#9DB8E8;--gold:#D2A24A;--pos:#3FBE8E;--pos-bg:#16281F;--neg:#E7776A;--neg-bg:#2A1A18;--warn:#D2913C;
+  --c1:#5B8DEF;--c2:#BB7A26;--c3:#2FA294;--c4:#8E79D6;--c5:#E05C68;--band1:#24262C;--band2:#2E313A;--track:#2B2E35;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.32);
+}}
+:root[data-theme="dark"]{
+  --bg:#101114;--surface:#191A1E;--surface-2:#1F2126;--ink:#ECEEF2;--ink-2:#AEB5C1;--muted:#7C8494;--border:#2B2E35;--border-2:#24262C;
+  --navy:#9DB8E8;--gold:#D2A24A;--pos:#3FBE8E;--pos-bg:#16281F;--neg:#E7776A;--neg-bg:#2A1A18;--warn:#D2913C;
+  --c1:#5B8DEF;--c2:#BB7A26;--c3:#2FA294;--c4:#8E79D6;--c5:#E05C68;--band1:#24262C;--band2:#2E313A;--track:#2B2E35;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.32);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px 70px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.hd{max-width:1120px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column;gap:2px}
+.brand .grp{font-family:"Spectral",Georgia,serif;font-weight:600;font-size:18px;line-height:1}
+.brand .sub{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.spacer{flex:1}
+.badge{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border:1px solid var(--border);border-radius:99px;background:var(--surface);font-size:11.5px;color:var(--ink-2)}
+.badge b{color:var(--ink)}.dot{width:7px;height:7px;border-radius:50%;background:var(--pos)}
+.tgl{width:34px;height:34px;border:1px solid var(--border);background:var(--surface);color:var(--ink-2);border-radius:9px;cursor:pointer;font-size:15px}
+.tabs{display:flex;gap:4px;margin:16px 0 18px;border-bottom:1px solid var(--border)}
+.tab{border:none;background:none;font-family:inherit;font-size:14px;font-weight:600;color:var(--muted);padding:11px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:inline-flex;gap:8px;align-items:center}
+.tab:hover{color:var(--ink-2)}.tab.on{color:var(--ink);border-bottom-color:var(--navy)}
+.tab .n{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--gold)}
+.pane{display:none}.pane.on{display:block;animation:fade .25s}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px 20px;box-shadow:var(--shadow);margin-bottom:16px}
+.phead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.phead h2{font-family:"Spectral",Georgia,serif;font-weight:600;font-size:18px;margin:0 0 3px}
+.phead .desc{font-size:12.5px;color:var(--muted);margin:0;max-width:60ch}
+.src{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:2px 7px;background:var(--surface-2);white-space:nowrap}
+.src b{color:var(--navy)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:800px){.grid2{grid-template-columns:1fr}}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.axis{fill:var(--muted);font-size:11px;font-family:"IBM Plex Mono",monospace}
+.axl{fill:var(--ink-2);font-size:12px;font-weight:500}
+.dl{fill:var(--ink);font-size:12px;font-weight:600;font-family:"IBM Plex Mono",monospace}
+.gridline{stroke:var(--border-2);stroke-width:1}
+.ecards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:2px}
+.ec{border:1px solid var(--border);border-radius:11px;padding:13px 15px;background:var(--surface-2)}
+.ec .l{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:7px}
+.ec .v{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:20px}
+.ec .d{font-size:12px;margin-top:3px;font-weight:500}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.note{display:flex;gap:10px;background:var(--surface-2);border:1px solid var(--border-2);border-left:3px solid var(--gold);border-radius:9px;padding:12px 14px;font-size:12.5px;color:var(--ink-2);margin-top:14px}
+.note b{color:var(--ink)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border-2);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:560px}
+th,td{padding:9px 13px;text-align:right;white-space:nowrap}
+th{font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);background:var(--surface-2)}
+th:first-child,td:first-child{text-align:left}
+td{border-bottom:1px solid var(--border-2)}
+td.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+tbody tr:hover td{background:var(--surface-2)}
+.grp-row td{background:color-mix(in srgb,var(--navy) 7%,var(--surface));font-weight:600;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--navy)}
+.cad{color:var(--ink);font-weight:600}.opt{color:var(--pos)}.pru{color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 10px}
+.lg{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2)}
+.sw{width:11px;height:11px;border-radius:3px}
+#tip{position:fixed;pointer-events:none;z-index:50;opacity:0;transition:opacity .1s;background:var(--ink);color:var(--bg);padding:8px 11px;border-radius:9px;font-size:12px;box-shadow:0 6px 24px rgba(0,0,0,.28);font-family:"IBM Plex Mono",monospace;max-width:230px}
+:root[data-theme="dark"] #tip{background:#000}
+footer{margin-top:22px;padding-top:18px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+footer b{color:var(--ink-2)}
+</style>
+
+<header><div class="hd">
+  <div class="brand"><span class="grp">EDUSERVICES <span style="color:var(--gold)">GROUP</span></span><span class="sub">Poste de commande CFO · Budget 2027</span></div>
+  <div class="spacer"></div>
+  <span class="badge"><span class="dot"></span>Tagetik&nbsp;·&nbsp;<b>2027BUD_V1</b></span>
+  <button class="tgl" id="tgl" aria-label="Thème">◐</button>
+</div></header>
+
+<div class="wrap">
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-p="obj"><span class="n">①</span> Objectifs</button>
+    <button class="tab" data-p="cad"><span class="n">②</span> Cadrage &amp; leviers</button>
+  </div>
+
+  <!-- ============ OBJECTIFS ============ -->
+  <div class="pane on" id="p-obj">
+    <div class="panel">
+      <div class="phead"><div><h2>Atteinte des objectifs</h2><p class="desc">Construit vs cible vs référence. La barre = le construit ; le trait vertical = la cible ; le repère clair = la référence 2026.</p></div><span class="src">← <b>V_MOTEUR</b> · V_PNL</span></div>
+      <div class="grid2">
+        <div><div class="axl" style="margin-bottom:8px">Croissance du chiffre d'affaires</div><svg id="bul-ca" viewBox="0 0 460 92"></svg></div>
+        <div><div class="axl" style="margin-bottom:8px">Marge EBITDA</div><svg id="bul-eb" viewBox="0 0 460 92"></svg></div>
+      </div>
+      <div class="ecards" style="margin-top:16px">
+        <div class="ec"><div class="l">CA construit vs cible</div><div class="v pos">+579 965 €</div><div class="d pos">✓ cible dépassée · 24,25 M€ (+7,6 %)</div></div>
+        <div class="ec"><div class="l">EBITDA construit vs cible</div><div class="v pos">+440 456 €</div><div class="d pos">✓ cible dépassée · 3,99 M€ (16,5 %)</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><div><h2>D'où vient l'EBITDA construit ?</h2><p class="desc">Le pont référence → construit : ce que chaque levier de croissance apporte, ce que les coûts reprennent.</p></div><span class="src">← <b>V_MOTEUR</b> · V_BUDGET</span></div>
+      <svg id="bridge" viewBox="0 0 900 300"></svg>
+      <div class="note"><span>💡</span><div>La croissance ajoute <b>+1,45 M€</b> d'EBITDA (surtout <b>prix</b> et <b>conversion</b>), l'inflation des coûts en reprend <b>−0,75 M€</b> → net <b>+0,70 M€</b>, soit une marge qui passe de 14,6 % à <b>16,5 %</b>.</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><div><h2>Trajectoire du groupe</h2><p class="desc">Quatre ans, de l'historique au budget construit.</p></div><span class="src">← <b>V_PNL</b></span></div>
+      <div class="grid2" style="gap:26px">
+        <div><div class="axl" style="margin-bottom:6px">Chiffre d'affaires <span style="color:var(--muted);font-weight:400">(M€)</span></div><svg id="tj-ca" viewBox="0 0 440 200"></svg></div>
+        <div><div class="axl" style="margin-bottom:6px">Marge EBITDA <span style="color:var(--muted);font-weight:400">(%)</span></div><svg id="tj-mg" viewBox="0 0 440 200"></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CADRAGE ============ -->
+  <div class="pane" id="p-cad">
+    <div class="panel">
+      <div class="phead"><div><h2>Quel levier compte le plus ?</h2><p class="desc">Impact sur l'EBITDA de chaque hypothèse, sur sa plage réaliste Prudent ↔ Optimiste. Classé du plus sensible au moins sensible.</p></div><span class="src">sensibilité · <b>V_MOTEUR</b></span></div>
+      <div class="legend"><span class="lg"><span class="sw" style="background:var(--pos)"></span>Vers l'Optimiste (gain)</span><span class="lg"><span class="sw" style="background:var(--neg)"></span>Vers le Prudent (perte)</span></div>
+      <svg id="tornado" viewBox="0 0 820 300"></svg>
+      <div class="note"><span>🎯</span><div>Les deux plus gros leviers sont <b>les coûts</b> et <b>la conversion</b> (efficacité opérationnelle) — bien avant le prix ou le budget marketing. C'est là que se joue la marge.</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><div><h2>Leviers par scénario</h2><p class="desc">Les hypothèses saisies par le CFO, sur trois scénarios. Le scénario <b>Cadrage</b> est celui du budget construit.</p></div><span class="src">write → <b>Cadrage</b></span></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Levier</th><th>Unité</th><th>Cadrage</th><th>Optimiste</th><th>Prudent</th></tr></thead>
+        <tbody id="lev-body"></tbody>
+      </table></div>
+      <div class="ecards" style="grid-template-columns:repeat(3,1fr);margin-top:14px">
+        <div class="ec"><div class="l">Cadrage</div><div class="v">+7,6 %<span style="font-size:13px;color:var(--muted)"> CA</span></div><div class="d" style="color:var(--ink-2)">EBITDA 16,5 %</div></div>
+        <div class="ec"><div class="l">Optimiste</div><div class="v pos">+13,4 %<span style="font-size:13px;color:var(--muted)"> CA</span></div><div class="d pos">EBITDA ↑</div></div>
+        <div class="ec"><div class="l">Prudent</div><div class="v">+0,5 %<span style="font-size:13px;color:var(--muted)"> CA</span></div><div class="d neg">EBITDA ↓</div></div>
+      </div>
+      <div class="note"><span>ℹ️</span><div>Croissance CA par scénario = projection du moteur (concept). Le <b>Cadrage</b> est calé sur le construit réel du modèle ; Optimiste/Prudent sont indicatifs.</div></div>
+    </div>
+  </div>
+
+  <footer><b>Concept de restitution</b> — onglets Cadrage &amp; Objectifs pour reproduction dans Tagetik. Chiffres réels du modèle EDUSERVICES · scénario 2027BUD_V1.</footer>
+</div>
+<div id="tip"></div>
+
+<script>
+const NS='http://www.w3.org/2000/svg';const E=(t,a={})=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+const nf=new Intl.NumberFormat('fr-FR');const eurK=v=>(v>=0?'+':'−')+nf.format(Math.round(Math.abs(v)/1000))+' k€';
+const tip=document.getElementById('tip');
+function bind(n,h){n.style.cursor='pointer';n.addEventListener('mouseenter',e=>{tip.innerHTML=h;tip.style.opacity=1;mv(e);});n.addEventListener('mousemove',mv);n.addEventListener('mouseleave',()=>tip.style.opacity=0);}
+function mv(e){let x=e.clientX+12,y=e.clientY+12;const r=tip.getBoundingClientRect();if(x+r.width>innerWidth-8)x=e.clientX-r.width-12;if(y+r.height>innerHeight-8)y=e.clientY-r.height-12;tip.style.left=x+'px';tip.style.top=y+'px';}
+
+/* ---------- BULLET ---------- */
+function bullet(id,{lo,hi,ref,cible,cons,fmt,refLbl,cibLbl}){
+  const s=document.getElementById(id);s.innerHTML='';const W=460,H=92,ml=6,mr=6,mt=8,h=30,y=44;
+  const iw=W-ml-mr,x=v=>ml+(v-lo)/(hi-lo)*iw;
+  // qualitative bands
+  const bands=[[lo,ref,'var(--band2)'],[ref,cible,'var(--band1)'],[cible,hi,'color-mix(in srgb,var(--pos) 12%,var(--surface))']];
+  bands.forEach(([a,b,c])=>s.appendChild(E('rect',{x:x(a),y:mt,width:Math.max(x(b)-x(a),0),height:h,fill:c})));
+  // construit bar
+  const bar=E('rect',{x:ml,y:y-7,width:x(cons)-ml,height:14,rx:3,fill:'var(--navy)'});bind(bar,`Construit <b>${fmt(cons)}</b>`);s.appendChild(bar);
+  // target tick
+  const tk=E('line',{x1:x(cible),x2:x(cible),y1:mt-3,y2:mt+h+3,stroke:'var(--ink)','stroke-width':2.5});bind(tk,`🎯 Cible <b>${fmt(cible)}</b>`);s.appendChild(tk);
+  // reference marker
+  const rf=E('circle',{cx:x(ref),cy:y,r:4.5,fill:'var(--surface)',stroke:'var(--muted)','stroke-width':2});bind(rf,`Référence <b>${fmt(ref)}</b>`);s.appendChild(rf);
+  // labels
+  const vl=E('text',{class:'dl',x:x(cons)+8,y:y+4});vl.textContent=fmt(cons);s.appendChild(vl);
+  const t1=E('text',{class:'axis',x:x(cible),y:mt+h+18,'text-anchor':'middle'});t1.textContent='cible '+fmt(cible);s.appendChild(t1);
+  const refAnchor=(ref-lo)/(hi-lo)<0.12?'start':((ref-lo)/(hi-lo)>0.88?'end':'middle');
+  const t2=E('text',{class:'axis',x:x(ref),y:mt-6,'text-anchor':refAnchor});t2.textContent=refLbl;s.appendChild(t2);
+}
+
+/* ---------- BRIDGE (waterfall) ---------- */
+const BR=[
+ {n:'EBITDA réf.',v:3291530,type:'abs'},
+ {n:'Acquisition',v:172210,type:'up'},{n:'Marque',v:108149,type:'up'},{n:'Prix',v:563617,type:'up'},
+ {n:'Conversion',v:542135,type:'up'},{n:'Passage',v:59347,type:'up'},
+ {n:'Coûts*',v:-745738,type:'dn'},
+ {n:'EBITDA constr.',v:3991250,type:'abs'}
+];
+function bridge(){
+  const s=document.getElementById('bridge');s.innerHTML='';const W=900,H=300,ml=48,mr=14,mt=16,mb=54;const iw=W-ml-mr,ih=H-mt-mb;
+  const max=4600000,y=v=>mt+ih-v/max*ih;
+  [0,1e6,2e6,3e6,4e6].forEach(g=>{s.appendChild(E('line',{class:'gridline',x1:ml,x2:W-mr,y1:y(g),y2:y(g)}));
+    const t=E('text',{class:'axis',x:ml-8,y:y(g)+4,'text-anchor':'end'});t.textContent=(g/1e6).toFixed(0);s.appendChild(t);});
+  const n=BR.length,bw=iw/n*0.62;let cum=0;
+  BR.forEach((d,i)=>{
+    const cx=ml+iw*(i+0.5)/n,bx=cx-bw/2;let top,bh,fill,base;
+    if(d.type==='abs'){base=0;top=y(d.v);bh=mt+ih-top;fill='var(--navy)';cum=d.v;}
+    else if(d.type==='up'){base=cum;cum+=d.v;top=y(cum);bh=y(base)-y(cum);fill='var(--c3)';}
+    else{base=cum;cum+=d.v;top=y(base);bh=y(cum)-y(base);fill='var(--neg)';}
+    const r=E('rect',{x:bx,y:top,width:bw,height:Math.max(bh,1),rx:2,fill});
+    bind(r,`<b>${d.n}</b><br>${d.type==='abs'?nf.format(d.v)+' €':eurK(d.v)}`);s.appendChild(r);
+    // connector
+    if(i<n-1){const yl=(d.type==='dn')?y(cum):y(cum);s.appendChild(E('line',{x1:bx+bw,x2:bx+bw+iw/n*0.38,y1:yl,y2:yl,stroke:'var(--muted)','stroke-width':1,'stroke-dasharray':'2 2',opacity:.6}));}
+    const vl=E('text',{class:'dl',x:cx,y:(d.type==='dn'?y(base):top)-6,'text-anchor':'middle','font-size':11});
+    vl.textContent=d.type==='abs'?(d.v/1e6).toFixed(2).replace('.',','):eurK(d.v);
+    if(d.type==='dn')vl.setAttribute('fill','var(--neg)');if(d.type==='up')vl.setAttribute('fill','var(--pos)');s.appendChild(vl);
+    const lb=E('text',{class:'axl',x:cx,y:H-30,'text-anchor':'middle','font-size':11});lb.textContent=d.n;s.appendChild(lb);
+  });
+  const st=E('text',{class:'axis',x:ml,y:H-8});st.textContent='* Coûts = inflation charges + politique salariale + effectifs permanents + productivité';s.appendChild(st);
+}
+
+/* ---------- TRAJECTORY ---------- */
+const TRAJ=[{y:'2024',ca:20064725,mg:.132},{y:'2025',ca:21268606,mg:.140},{y:'2026',ca:22544725,mg:.146},{y:'2027',ca:24251927,mg:.165,bud:1}];
+function tjCA(){const s=document.getElementById('tj-ca');s.innerHTML='';const W=440,H=200,ml=40,mr=12,mt=14,mb=28,iw=W-ml-mr,ih=H-mt-mb,max=26e6,y=v=>mt+ih-v/max*ih;
+  [0,10e6,20e6].forEach(g=>{s.appendChild(E('line',{class:'gridline',x1:ml,x2:W-mr,y1:y(g),y2:y(g)}));const t=E('text',{class:'axis',x:ml-6,y:y(g)+4,'text-anchor':'end'});t.textContent=g/1e6;s.appendChild(t);});
+  const n=TRAJ.length,bw=iw/n*0.5;TRAJ.forEach((d,i)=>{const cx=ml+iw*(i+0.5)/n,by=y(d.ca);
+    const r=E('rect',{x:cx-bw/2,y:by,width:bw,height:mt+ih-by,rx:3,fill:d.bud?'var(--navy)':'var(--c1)',opacity:d.bud?1:.9});if(d.bud)r.setAttribute('stroke','var(--gold)'),r.setAttribute('stroke-width',1.5);
+    bind(r,`${d.y}${d.bud?' · budget':''}<br>CA <b>${nf.format(d.ca)} €</b>`);s.appendChild(r);
+    const v=E('text',{class:'dl',x:cx,y:by-6,'text-anchor':'middle','font-size':11});v.textContent=(d.ca/1e6).toFixed(1).replace('.',',');s.appendChild(v);
+    const l=E('text',{class:'axl',x:cx,y:H-8,'text-anchor':'middle','font-size':11});l.textContent=d.y;if(d.bud)l.setAttribute('fill','var(--gold)'),l.setAttribute('font-weight',700);s.appendChild(l);});
+}
+function tjMG(){const s=document.getElementById('tj-mg');s.innerHTML='';const W=440,H=200,ml=36,mr=16,mt=16,mb=28,iw=W-ml-mr,ih=H-mt-mb,lo=.12,hi=.17,y=v=>mt+ih-(v-lo)/(hi-lo)*ih;
+  [.12,.14,.16].forEach(g=>{s.appendChild(E('line',{class:'gridline',x1:ml,x2:W-mr,y1:y(g),y2:y(g)}));const t=E('text',{class:'axis',x:ml-6,y:y(g)+4,'text-anchor':'end'});t.textContent=(g*100).toFixed(0);s.appendChild(t);});
+  const n=TRAJ.length,X=i=>ml+iw*(i+0.5)/n;let d='';TRAJ.forEach((p,i)=>d+=(i?'L':'M')+X(i)+' '+y(p.mg));
+  s.appendChild(E('path',{d:d+`L${X(n-1)} ${mt+ih} L${X(0)} ${mt+ih} Z`,fill:'var(--c3)',opacity:.1}));
+  s.appendChild(E('path',{d,fill:'none',stroke:'var(--c3)','stroke-width':2.5,'stroke-linecap':'round','stroke-linejoin':'round'}));
+  TRAJ.forEach((p,i)=>{const c=E('circle',{cx:X(i),cy:y(p.mg),r:4.5,fill:p.bud?'var(--surface)':'var(--c3)',stroke:'var(--c3)','stroke-width':2});bind(c,`${p.y}<br>Marge <b>${(p.mg*100).toFixed(1).replace('.',',')} %</b>`);s.appendChild(c);
+    const v=E('text',{class:'dl',x:X(i),y:y(p.mg)-10,'text-anchor':'middle','font-size':11});v.textContent=(p.mg*100).toFixed(1).replace('.',',')+'%';if(p.bud)v.setAttribute('fill','var(--gold)');s.appendChild(v);
+    const l=E('text',{class:'axl',x:X(i),y:H-8,'text-anchor':'middle','font-size':11});l.textContent=p.y;if(p.bud)l.setAttribute('fill','var(--gold)'),l.setAttribute('font-weight',700);s.appendChild(l);});
+}
+
+/* ---------- TORNADO ---------- */
+const TOR=[
+ {n:'Coûts (inflation, salaires…)',o:642976,p:-642976},
+ {n:'Conversion lead→inscrit',o:625540,p:-542135},
+ {n:'Budget acquisition',o:159384,p:-310468},
+ {n:'Prix',o:232160,p:-116080},
+ {n:'Budget marque',o:111510,p:-180723},
+ {n:'Taux de passage',o:118694,p:-178040}
+];
+function tornado(){
+  const s=document.getElementById('tornado');s.innerHTML='';const W=820,rowH=38,ml=210,mr=70,mt=14;const H=mt+TOR.length*rowH+30;s.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const half=(W-ml-mr)/2,cx=ml+half,max=680000,x=v=>v/max*half;
+  [-600000,-300000,0,300000,600000].forEach(g=>{s.appendChild(E('line',{class:'gridline',x1:cx+x(g),x2:cx+x(g),y1:mt-2,y2:mt+TOR.length*rowH}));
+    const t=E('text',{class:'axis',x:cx+x(g),y:H-12,'text-anchor':'middle'});t.textContent=(g>=0?'+':'−')+Math.abs(g/1000)+'k';s.appendChild(t);});
+  s.appendChild(E('line',{x1:cx,x2:cx,y1:mt-2,y2:mt+TOR.length*rowH,stroke:'var(--ink-2)','stroke-width':1.5}));
+  TOR.forEach((d,i)=>{const cy=mt+i*rowH+rowH/2;
+    const nm=E('text',{class:'axl',x:ml-14,y:cy+4,'text-anchor':'end'});nm.textContent=d.n;s.appendChild(nm);
+    // prudent (left, neg)
+    const wp=Math.abs(x(d.p));
+    const rp=E('rect',{x:cx+x(d.p),y:cy-10,width:wp,height:20,rx:3,fill:'var(--neg)',opacity:.9});bind(rp,`${d.n}<br>Vers Prudent <b>${eurK(d.p)}</b>`);s.appendChild(rp);
+    // optimiste (right, pos)
+    const wo=Math.abs(x(d.o));
+    const ro=E('rect',{x:cx,y:cy-10,width:wo,height:20,rx:3,fill:'var(--pos)',opacity:.9});bind(ro,`${d.n}<br>Vers Optimiste <b>${eurK(d.o)}</b>`);s.appendChild(ro);
+    // labels : inside the bar when it is wide enough, otherwise just outside the tip
+    const inO=wo>=46;
+    const to=E('text',{class:'dl',x:inO?cx+wo-7:cx+wo+7,y:cy+4,'font-size':11,fill:inO?'#fff':'var(--pos)','text-anchor':inO?'end':'start'});to.textContent=eurK(d.o);s.appendChild(to);
+    const inP=wp>=46;
+    const tp=E('text',{class:'dl',x:inP?cx-wp+7:cx-wp-7,y:cy+4,'font-size':11,fill:inP?'#fff':'var(--neg)','text-anchor':inP?'start':'end'});tp.textContent=eurK(d.p);s.appendChild(tp);
+  });
+}
+
+/* ---------- LEVER TABLE ---------- */
+const LEV=[
+ {g:'Leviers de croissance → CA'},
+ {n:"Budget d'acquisition",u:'%',c:'+8,0',o:'+15,0',p:'−5,0'},
+ {n:'Budget de marque',u:'%',c:'+10,0',o:'+20,0',p:'−5,0'},
+ {n:'Hausse tarifaire (prix)',u:'%',c:'+2,5',o:'+3,5',p:'+2,0'},
+ {n:'Gain lead → candidature',u:'pts',c:'+1,0',o:'+3,0',p:'0,0'},
+ {n:'Gain admis → inscrit',u:'pts',c:'+1,0',o:'+2,5',p:'0,0'},
+ {n:'Taux de passage',u:'pts',c:'+0,5',o:'+1,5',p:'−1,0'},
+ {g:'Leviers de coûts → EBITDA'},
+ {n:'Inflation charges externes',u:'%',c:'+2,0',o:'+1,5',p:'+3,0'},
+ {n:'Politique salariale',u:'%',c:'+2,5',o:'+2,0',p:'+3,0'},
+ {n:'Effectifs permanents',u:'%',c:'+4,0',o:'+3,0',p:'+5,0'},
+ {n:'Effort de productivité',u:'%',c:'+1,0',o:'+3,0',p:'0,0'},
+ {n:'Coûts de structure',u:'%',c:'0,0',o:'−3,0',p:'+4,0'},
+ {n:'Frais de dossier',u:'€',c:'90',o:'90',p:'90'}
+];
+function levTable(){const b=document.getElementById('lev-body');b.innerHTML='';
+  LEV.forEach(r=>{if(r.g){b.insertAdjacentHTML('beforeend',`<tr class="grp-row"><td colspan="5">${r.g}</td></tr>`);}
+   else b.insertAdjacentHTML('beforeend',`<tr><td>${r.n}</td><td class="num" style="color:var(--muted)">${r.u}</td><td class="num cad">${r.c}</td><td class="num opt">${r.o}</td><td class="num pru">${r.p}</td></tr>`);});
+}
+
+/* ---------- init ---------- */
+function draw(){
+  bullet('bul-ca',{lo:0,hi:.09,ref:0,cible:.05,cons:.076,fmt:v=>(v*100).toFixed(1).replace('.',',')+' %',refLbl:'réf. 0 %'});
+  bullet('bul-eb',{lo:.12,hi:.18,ref:.146,cible:.15,cons:.165,fmt:v=>(v*100).toFixed(1).replace('.',',')+' %',refLbl:'réf. 14,6 %'});
+  bridge();tjCA();tjMG();tornado();levTable();
+}
+draw();
+document.getElementById('tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));b.classList.add('on');
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));document.getElementById('p-'+b.dataset.p).classList.add('on');});
+const root=document.documentElement;document.getElementById('tgl').addEventListener('click',()=>{const c=root.getAttribute('data-theme');const dk=c?c==='dark':matchMedia('(prefers-color-scheme: dark)').matches;root.setAttribute('data-theme',dk?'light':'dark');});
+</script>
